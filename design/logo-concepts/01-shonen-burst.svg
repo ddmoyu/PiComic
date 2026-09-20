@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="108" height="108" viewBox="0 0 108 108" role="img" aria-labelledby="title desc">
+  <title id="title">PiComic · 热血爆框</title>
+  <desc id="desc">黄色漫画爆框、红色圆周率 π；Android 自适应图标 108 单位分层母版。</desc>
+  <g id="background">
+    <path fill="#FFD83D" d="M0 0h108v108H0z"/>
+    <path fill="#FFB52E" d="M0 0l43 40L25 0zM75 0L61 36 108 0zM108 30L75 47l33 4zM108 84L74 65l20 43h14zM0 108l43-37-16 37zM0 44l33 10L0 70z"/>
+    <g fill="#DA901A">
+      <circle cx="26" cy="24" r="1.1"/><circle cx="30" cy="22" r="1.1"/><circle cx="34" cy="20" r="1.1"/>
+      <circle cx="25" cy="29" r="1.1"/><circle cx="29" cy="27" r="1.1"/><circle cx="33" cy="25" r="1.1"/>
+      <circle cx="77" cy="81" r="1.1"/><circle cx="81" cy="79" r="1.1"/><circle cx="85" cy="77" r="1.1"/>
+      <circle cx="76" cy="86" r="1.1"/><circle cx="80" cy="84" r="1.1"/><circle cx="84" cy="82" r="1.1"/>
+    </g>
+    <path fill="#1D1826" d="M15 30l15 8-1 2zM83 22L72 36l-2-1zM91 62l-14-2 1-2zM24 88l13-15 2 2z"/>
+  </g>
+  <g id="foreground" stroke="#1D1826" stroke-linejoin="round">
+    <path fill="#1D1826" stroke-width="2.1" d="M56 23l6 11 13-6-1 13 14 5-9 10 7 11-14 2-2 14-13-6-9 10-6-12-14 3 3-14-10-7 10-9-3-12 14 1 4-13 8 8z"/>
+    <path fill="#FFFEF4" stroke-width="2.1" d="M53 21l6 11 13-6-1 13 14 5-9 10 7 11-14 2-2 14-13-6-9 10-6-12-14 3 3-14-10-7 10-9-3-12 14 1 4-13 8 8z"/>
+    <path fill="#1D1826" stroke-width="2" d="M33 43c4-7 9-8 17-7l24-3 1 10-8 1 2 19q1 4 5 2l1 9q-16 5-18-8l-2-20-9 1q2 16-3 29l-11-3q5-11 3-25l-5 3z"/>
+    <path id="pi" fill="#F54B43" stroke-width="2.1" d="M31 40c4-7 9-8 17-7l24-3 1 10-8 1 2 19q1 4 5 2l1 9q-16 5-18-8l-2-20-9 1q2 16-3 29l-11-3q5-11 3-25l-5 3z"/>
+    <path fill="none" stroke="#FFB5A0" stroke-width="2" stroke-linecap="round" d="M39 38l12-1m8 10 1 11"/>
+  </g>
+</svg>

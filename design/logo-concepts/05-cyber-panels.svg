@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="108" height="108" viewBox="0 0 108 108" role="img" aria-labelledby="title desc">
+  <title id="title">PiComic · 赛博漫格</title>
+  <desc id="desc">深夜漫画分镜、电光青与几何圆周率 π；Android 自适应图标 108 单位分层母版。</desc>
+  <g id="background">
+    <path fill="#171C3C" d="M0 0h108v108H0z"/>
+    <path fill="#252956" d="M0 0h108v17L0 83z"/>
+    <path fill="#333268" d="M74 0h34v9L0 77V46z"/>
+    <path fill="none" stroke="#525080" stroke-width=".7" d="M8 44l69-44M0 62L98 0M41 108l67-42M70 108l38-24"/>
+    <path fill="#71EFDA" d="M22 37l9-5-2 4-9 5zM78 76l12-7-2 4-12 7z"/>
+    <path fill="#FF91D3" d="M73 19l9-5-2 4-9 5zM20 81l10-6-2 4-10 6z"/>
+    <path fill="none" stroke="#555781" stroke-width="1" d="M25 48h-9m12 4h-8m60 0h9m-6 4h6"/>
+  </g>
+  <g id="foreground" transform="translate(1.62 2.62) scale(.97)" stroke-linejoin="round">
+    <path fill="#7060BE" stroke="#BBA8FF" stroke-width="1.5" d="M35 28h17l-7 50H28z"/>
+    <path fill="#CC709F" stroke="#FFB2D9" stroke-width="1.5" d="M57 28h22l-3 21H54z"/>
+    <path fill="#245B71" stroke="#74C5D1" stroke-width="1.5" d="M54 54h22l-4 24H50z"/>
+    <path fill="none" stroke="#E1C4EE" stroke-width="1" d="M64 33l-5 11m10-11-5 11m10-11-5 11"/>
+    <path fill="none" stroke="#A1F4EC" stroke-width="1" d="M57 69l12-8m-11 12 10-7"/>
+    <path fill="#11182F" stroke="#11182F" stroke-width="4" d="M32 38l6-8h38l-2 11h-8l-3 21 8-4-2 12-10 5-9-6 4-28h-9l-5 29-12 5 6-34h-5z"/>
+    <path id="pi" fill="#8BFFEC" d="M31 36l6-8h38l-2 11h-8l-3 21 8-4-2 12-10 5-9-6 4-28h-9l-5 29-12 5 6-34h-5z"/>
+    <path fill="#E8FFFA" d="M37 28h38l-2 4H35zM32 66l7-4-1 6-11 5zM57 62l5-2 8-4-1 5-12 6z"/>
+  </g>
+</svg>

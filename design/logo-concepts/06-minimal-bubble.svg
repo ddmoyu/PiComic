@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="108" height="108" viewBox="0 0 108 108" role="img" aria-labelledby="title desc">
+  <title id="title">PiComic · 极简气泡</title>
+  <desc id="desc">钴蓝底色、漫画对白气泡与负形圆周率 π；Android 自适应图标 108 单位分层母版。</desc>
+  <g id="background">
+    <path fill="#4560E8" d="M0 0h108v108H0z"/>
+    <path fill="#3B51D3" d="M0 85q51-23 108-73v96H0z"/>
+  </g>
+  <g id="foreground">
+    <path fill="#263CB2" d="M32 37q0-9 9-9h31q10 0 10 10v24q0 10-10 10H55L40 84V72q-8-1-8-10z"/>
+    <path fill="#FFFDF4" d="M27 34q0-9 10-9h32q10 0 10 10v24q0 10-10 10H53L37 81V69q-10 0-10-10z"/>
+    <path id="pi" fill="#4560E8" d="M34 41q0-7 8-7h29v9h-7v15q0 3 5 1v8q-14 3-14-9V43h-8q1 15-4 24l-9-4q4-8 4-20l-4 2z"/>
+    <path fill="#BCD3FF" d="M68 25h1q10 0 10 10v9L62 25z"/>
+    <path fill="#263CB2" d="M61 25h7l11 13v8z"/>
+  </g>
+</svg>
