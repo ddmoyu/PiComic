@@ -33,15 +33,22 @@ class JmProtocolTest {
         for (host in listOf("http://cdn-msp.jmapiproxy3.cc", "https://cdn-msp.jmapiproxy3.cc.evil.test", "https://localhost", "https://cdn-msp.jmapiproxy3.cc:8443", "https://user@cdn-msp.jmapiproxy3.cc",
             "https://cdn-msp2.jmdanjonproxy.vip.evil.test", "https://cdn-msp12.jmdanjonproxy.xyz.evil.test",
             "https://jmdanjonproxy.vip", "https://cdn-msp.jmdanjonproxy.net", "https://cdn-msp2.jmdanjonproxy.vip:8443",
-            "https://user@cdn-msp2.jmdanjonproxy.vip", "https://cdn-msp2.jmdanjonproxy.vip/path", "https://cdn-msp12.jmdanjonproxy.xyz/?token=secret"))
+            "https://user@cdn-msp2.jmdanjonproxy.vip", "https://cdn-msp2.jmdanjonproxy.vip/path", "https://cdn-msp12.jmdanjonproxy.xyz/?token=secret",
+            "https://tencent.jmdanjonproxy.xyz.evil.test", "https://tencent.jmdanjonproxy.vip", "https://other.jmdanjonproxy.xyz",
+            "http://tencent.jmdanjonproxy.xyz", "https://tencent.jmdanjonproxy.xyz:8443", "https://user@tencent.jmdanjonproxy.xyz",
+            "https://tencent.jmdanjonproxy.xyz/path", "https://tencent.jmdanjonproxy.xyz/?key=fixture", "https://tencent.jmdanjonproxy.xyz/#fragment"))
             assertTrue(runCatching { JmProtocol.imageHost(host) }.exceptionOrNull() is ContentFailure)
         for (name in listOf("../image.jpg", "%2e%2e.jpg", "image.jpg?token=secret", "image.svg")) assertTrue(runCatching { JmProtocol.filename(name) }.isFailure)
         assertEquals("cdn-msp3.jmapiproxy3.cc", JmProtocol.imageHost("https://cdn-msp3.jmapiproxy3.cc").host)
     }
     @Test fun currentPublishedImageRoutesAreAccepted() {
-        for (host in listOf("cdn-msp2.jmdanjonproxy.vip", "cdn-msp12.jmdanjonproxy.xyz", "cdn-msp.jmapiproxy3.cc", "cdn-msp3.jmapiproxy1.cc")) {
+        for (host in listOf("cdn-msp2.jmdanjonproxy.vip", "cdn-msp12.jmdanjonproxy.xyz", "cdn-msp.jmapiproxy3.cc", "cdn-msp3.jmapiproxy1.cc", "tencent.jmdanjonproxy.xyz")) {
             assertEquals(host, JmProtocol.imageHost("https://$host").host)
         }
+    }
+    @Test fun unsupportedImageRouteDoesNotClaimTheComicFormatChanged() {
+        val failure = runCatching { JmProtocol.imageHost("https://unknown.example.test") }.exceptionOrNull() as ContentFailure
+        assertEquals("JM 图片线路暂不受支持，请切换图片分流后重试", failure.message)
     }
     @Test fun corruptedCiphertextFailsClosed() {
         for (value in listOf("", "abcd", "AA==", "AAAAAAAAAAAAAAAAAAAAAA==")) assertTrue(runCatching { JmProtocol.decode(1700000000, value) }.exceptionOrNull() is ContentFailure)

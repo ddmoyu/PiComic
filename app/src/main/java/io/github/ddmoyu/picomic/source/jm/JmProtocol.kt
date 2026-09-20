@@ -28,11 +28,13 @@ object JmProtocol {
     } catch (_: Exception) { throw malformed() }
 
     fun imageHost(value: String): HttpUrl {
-        val url = runCatching { value.toHttpUrl() }.getOrNull() ?: throw malformed()
+        fun unsupported() = ContentFailure(ContentFailureKind.PARSE, "JM 图片线路暂不受支持，请切换图片分流后重试")
+        val url = runCatching { value.toHttpUrl() }.getOrNull() ?: throw unsupported()
+        // /setting rotates between cdn-* hosts and this exact additional origin.
+        val knownHost = url.host == "tencent.jmdanjonproxy.xyz" ||
+            url.host.matches(Regex("cdn-[a-z0-9-]+\\.(jmapiproxy[1-4]\\.cc|jmdanjonproxy\\.(vip|xyz))"))
         if (url.scheme != "https" || url.port != 443 || url.username.isNotEmpty() || url.password.isNotEmpty() ||
-            url.query != null || url.fragment != null || url.encodedPath != "/" ||
-            // /setting currently publishes both the legacy and jmdanjonproxy image routes.
-            !url.host.matches(Regex("cdn-[a-z0-9-]+\\.(jmapiproxy[1-4]\\.cc|jmdanjonproxy\\.(vip|xyz))"))) throw malformed()
+            url.query != null || url.fragment != null || url.encodedPath != "/" || !knownHost) throw unsupported()
         return url
     }
     fun id(value: String): String = value.takeIf { it.matches(Regex("[1-9][0-9]{0,11}")) } ?: throw malformed()
