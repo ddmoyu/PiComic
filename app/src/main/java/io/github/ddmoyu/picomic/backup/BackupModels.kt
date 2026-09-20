@@ -13,7 +13,7 @@ data class BackupDocument(val deviceId: String, val revision: Long, val exported
 
 /** Explicit portable settings contract. Endpoints, account modes, paths and credentials cannot enter it. */
 object PortablePreferences {
-    private val flags = setOf("volume", "keepAwake", "doubleTap", "longPress", "dark", "pureBlack", "highRefresh", "unknownLanguage", "downloadWifi", "checkOnStart", "pica.avatar", "pica.checkin", "jm.checkin", "eh.original", "eh.subtitle", "eh.warning")
+    private val flags = setOf("skipDetails", "volume", "keepAwake", "doubleTap", "longPress", "dark", "pureBlack", "highRefresh", "unknownLanguage", "downloadWifi", "checkOnStart", "pica.avatar", "pica.checkin", "jm.checkin", "eh.original", "eh.subtitle", "eh.warning")
     private val options = mapOf(
         "themeMode" to io.github.ddmoyu.picomic.data.ThemeMode.entries.map { it.label }.toSet(),
         "readingMode" to setOf("纵向连续", "从左向右", "从右向左"),

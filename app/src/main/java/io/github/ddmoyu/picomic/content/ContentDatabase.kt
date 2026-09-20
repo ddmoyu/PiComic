@@ -41,6 +41,7 @@ data class PortablePreferenceEntity(@PrimaryKey val key: String, val value: Stri
     @Query("SELECT * FROM comics") abstract fun comics(): Flow<List<SavedComic>>
     @Query("SELECT * FROM favorites ORDER BY updatedAt DESC") abstract fun favorites(): Flow<List<FavoriteEntity>>
     @Query("SELECT * FROM progress ORDER BY updatedAt DESC") abstract fun progress(): Flow<List<ContentProgressEntity>>
+    @Query("SELECT * FROM progress WHERE source=:source AND id=:id") abstract suspend fun readingPosition(source: String, id: String): ContentProgressEntity?
     @Query("SELECT * FROM search_history ORDER BY updatedAt DESC") abstract fun searches(): Flow<List<SearchEntity>>
     @Query("SELECT * FROM work_preferences") abstract fun preferences(): Flow<List<WorkPreferenceEntity>>
     @Query("SELECT * FROM favorites WHERE source=:source AND id=:id") abstract suspend fun favorite(source: String, id: String): FavoriteEntity?
@@ -152,6 +153,10 @@ class ContentLibrary(private val database: ContentDatabase) {
     suspend fun undoFavorite(change: FavoriteChange) = perform { dao.undoFavorite(change) }
     fun deleteHistory(key: ComicKey? = null) { operations.trySend { dao.deleteHistory(key) } }
     fun record(comic: ComicSummary, progress: ContentProgress) { operations.trySend { dao.record(comic, progress) } }
+    // Read after queued writes; the UI flow may still contain the previous reading position.
+    suspend fun readingPosition(key: ComicKey): ContentProgress? = perform {
+        dao.readingPosition(key.source.name, key.id)?.takeUnless { it.deleted }?.progress()
+    }
     fun search(source: Source, query: String) { operations.trySend { dao.search(source, query) } }
     fun clearSearches(source: Source) { operations.trySend { dao.clearSearches(source.name) } }
     fun preference(key: ComicKey, name: String, value: String?) {

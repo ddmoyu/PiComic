@@ -9,9 +9,10 @@ import org.junit.Test
 class BackupContractTest {
     @Test fun allThemeChoicesSurvivePortableBackupAlongsideLegacyPreferences() {
         for (mode in io.github.ddmoyu.picomic.data.ThemeMode.entries) {
-            val data = BackupData(preferences = listOf(TransferPreference("themeMode", mode.label, 100), TransferPreference("dark", "true", 90)))
+            val data = BackupData(preferences = listOf(TransferPreference("themeMode", mode.label, 100), TransferPreference("dark", "true", 90), TransferPreference("skipDetails", "true", 100)))
             val restored = BackupCodec.decode(BackupCodec.encode(document(data))).data.preferences.associate { it.key to it.value }
             assertEquals(mode, io.github.ddmoyu.picomic.data.ThemeMode.fromPreferences(restored))
+            assertEquals("true", restored["skipDetails"])
         }
         assertFalse(PortablePreferences.valid("themeMode", "unknown"))
     }

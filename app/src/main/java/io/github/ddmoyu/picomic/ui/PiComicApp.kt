@@ -50,7 +50,10 @@ import kotlinx.coroutines.launch
         nav.popBackStack(); Unit
     }
     val open: (Source,Comic) -> Unit = { source,comic -> go("detail/${source.name}/${comic.id}") }
-    val openContent: (ComicKey) -> Unit = { key -> go("content-detail/${key.source.name}/${Uri.encode(key.id)}") }
+    val openContent: (ComicKey) -> Unit = { key ->
+        val destination = if (ui.enabled("skipDetails")) "content-reader" else "content-detail"
+        go("$destination/${key.source.name}/${Uri.encode(key.id)}")
+    }
     val login: (Source) -> Unit = { go("login/${it.name}") }
     val read: (Source,Comic,Int,Int) -> Unit = { source,comic,chapter,page ->
         val offset = ui.history.firstOrNull { it.source==source && it.comicId==comic.id && it.chapter==chapter && it.page==page }?.offsetRatio ?: 0f
@@ -112,6 +115,10 @@ import kotlinx.coroutines.launch
                     systemBackPage("content-detail/{source}/{id}", nav, back) { target ->
                         val key = ComicKey(Source.valueOf(target.arguments!!.getString("source")!!), target.arguments!!.getString("id")!!)
                         ContentDetailScreen(key,ui,vm,{ chapter -> go("content-reader/${key.source.name}/${Uri.encode(key.id)}/${Uri.encode(chapter)}") },login) { tag -> vm.source(key.source); go("search?query=${Uri.encode(tag)}") }
+                    }
+                    systemBackPage("content-reader/{source}/{id}", nav, back) { target ->
+                        val key = ComicKey(Source.valueOf(target.arguments!!.getString("source")!!), target.arguments!!.getString("id")!!)
+                        ContentReaderScreen(key,null,ui,vm,back,login)
                     }
                     systemBackPage("content-reader/{source}/{id}/{chapter}", nav, back) { target ->
                         val key = ComicKey(Source.valueOf(target.arguments!!.getString("source")!!), target.arguments!!.getString("id")!!)

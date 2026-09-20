@@ -71,6 +71,8 @@ val settingsTitles = mapOf("settings" to "设置", "accounts" to "账号管理",
     Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(bottom=28.dp)) {
         when(route) {
             "reading" -> {
+                SectionTitle("打开作品")
+                PreferenceToggle("跳过详情页", "skipDetails", ui, vm, "点击封面直接阅读；新作品从头开始，有历史记录时继续阅读")
                 SectionTitle("翻页")
                 PreferenceChoice("阅读模式","readingMode",listOf("纵向连续","从左向右","从右向左"),ui,vm)
                 PreferenceToggle("音量键翻页","volume",ui,vm,"音量减向后阅读，音量加向前阅读")
