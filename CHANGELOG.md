@@ -4,16 +4,19 @@
 
 ### 简体中文
 
+- 修复 JM 部分多章节作品始终提示“格式改变”的问题：来源可能为不同章节提供重复排序号，现在保留全部真实章节，稳定排列并生成独立位置，确保阅读与离线章节顺序一致。
 - 分类页按分组展示短标签：JM 保留来源原始目录与标签分组，不再逐个重复组名前缀；Hitomi、nhentai 区分内容类型和语言，绅士漫画按目录类型分组。统一使用柔和底色，保留完整查询条件与同名分类的区分。
 - 精简作品详情页：缩小标题，阅读主按钮与收藏、下载图标合并为一行；信息区改用统一色调的紧凑文字排版，去掉彩色按钮底色，分类标签仍可点击搜索。
 
 ### English
 
+- Fixed persistent “format changed” errors for some multi-chapter JM albums. Different chapters may share a source sort value; retain every distinct chapter and assign stable local positions so online and offline reading keep the same order.
 - Group category chips under headings with shorter labels. JM retains its native directory and tag groups, Hitomi and nhentai separate content types from languages, and Wnacg groups directory types. Use subtle chip backgrounds while preserving complete query values and distinct routes for duplicate names.
 - Simplified comic details with a smaller title and one action row for reading, favorites and downloads. Metadata now uses compact text without colorful button backgrounds, while category tags remain searchable by tapping.
 
 ### 日本語
 
+- 一部の複数章作品で JM が常に「形式が変わった」と表示する問題を修正しました。配信元の並び順番号が重複していても各章を保持し、安定した順序と個別の位置を割り当て、オンライン・オフラインの読書順序を揃えます。
 - 分類を見出しごとにまとめ、短いラベルで表示します。JM の元のディレクトリ・タググループを維持し、Hitomi と nhentai は作品種別と言語、Wnacg はディレクトリ種別ごとに整理しました。背景色を控えめにし、検索条件や同名分類の区別は維持します。
 - 作品詳細のタイトルを小さくし、読書ボタン・お気に入り・ダウンロードを1行にまとめました。情報欄はカラフルなボタン背景をなくして簡潔なテキスト表示に変更し、分類タグからの検索は引き続き利用できます。
 

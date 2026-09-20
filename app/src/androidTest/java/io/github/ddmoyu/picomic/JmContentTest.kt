@@ -81,6 +81,39 @@ class JmContentTest {
             assertEquals(2, server.requestCount)
         }
     }
+    @Test fun repeatedSeriesSortKeepsDistinctChaptersAndReadsTheirRealPhotoIds() = runBlocking {
+        MockWebServer().use { server ->
+            val series = """[{"id":"500002","sort":"2","name":"测试第二篇"},{"id":"500001","sort":"1","name":""},{"id":"500003","sort":"1","name":"测试补充篇"},{"id":"500004","sort":"3","name":"测试第三篇"}]"""
+            server.enqueue(encrypted(book.replace("\"series\":[]", "\"series\":$series")))
+            server.enqueue(encrypted(setting))
+            server.enqueue(encrypted("""{"id":"500003","images":["00001.jpg"]}"""))
+            server.enqueue(MockResponse().setBody("<script>var aid = 500003; var scramble_id = 220980; var speed = '0';</script>"))
+            server.start()
+            val source = JmSource(client(server))
+            val detail = source.details("500001")
+            assertEquals(listOf("500001", "500003", "500002", "500004"), detail.chapters.map { it.id })
+            assertEquals(listOf(1, 2, 3, 4), detail.chapters.map { it.order })
+            assertEquals("第 1 话", detail.chapters.first().title)
+            assertEquals("测试补充篇", detail.chapters[1].title)
+            assertEquals(4, detail.summary.chapterCount)
+            val pages = source.pages("500001", detail.chapters[1])
+            assertEquals(500003L, pages.single().jm!!.photoId)
+            assertTrue(pages.single().url.endsWith("/media/photos/500003/00001.jpg"))
+            assertEquals("/album?id=500001", server.takeRequest().path)
+            assertEquals("/setting", server.takeRequest().requestUrl!!.encodedPath)
+            assertEquals("500003", server.takeRequest().requestUrl!!.queryParameter("id"))
+            assertEquals("500003", server.takeRequest().requestUrl!!.queryParameter("id"))
+        }
+    }
+    @Test fun repeatedSeriesIdsStillFailWithoutPublishingAmbiguousChapters() = runBlocking {
+        MockWebServer().use { server ->
+            val series = """[{"id":"500002","sort":"1"},{"id":"500002","sort":"2"}]"""
+            server.enqueue(encrypted(book.replace("\"series\":[]", "\"series\":$series"))); server.start()
+            val failure = runCatching { JmSource(client(server)).details("500001") }.exceptionOrNull() as ContentFailure
+            assertEquals(ContentFailureKind.PARSE, failure.kind)
+            assertEquals(1, server.requestCount)
+        }
+    }
     @Test fun cookieCandidateMustPassIndependentProfileAndCannotCrossOrigins() = runBlocking {
         MockWebServer().use { server ->
             val profile = """{"uid":42,"username":"夹具账号"}"""

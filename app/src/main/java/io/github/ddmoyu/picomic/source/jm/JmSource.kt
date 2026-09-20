@@ -64,8 +64,12 @@ class JmSource(private val client: JmClient, private val imageLine: Int = 1) : C
         val series = data.array("series").objects()
         val chapters = if (series.isEmpty()) listOf(Chapter("whole", "全册", 1)) else series.map {
             Chapter(JmProtocol.id(it.optString("id")), it.optString("name").ifBlank { "第 ${it.optInt("sort")} 话" }, it.optString("sort").toIntOrNull()?.takeIf { n -> n > 0 } ?: throw JmProtocol.malformed())
-        }.sortedBy { it.order }
-        if (chapters.map { it.id }.distinct().size != chapters.size || chapters.map { it.order }.distinct().size != chapters.size) throw JmProtocol.malformed()
+        }.sortedBy { it.order }.mapIndexed { index, chapter ->
+            // JM can reuse sort for different parts. Stable sorting preserves their source order;
+            // a unique local position also keeps offline chapters in the same sequence.
+            chapter.copy(order = index + 1)
+        }
+        if (chapters.map { it.id }.distinct().size != chapters.size) throw JmProtocol.malformed()
         return ComicDetails(summary(data, imageHost()).copy(chapterCount = chapters.size), data.optString("description"), chapters)
     }
     override suspend fun pages(comicId: String, chapter: Chapter): List<PageRef> {
