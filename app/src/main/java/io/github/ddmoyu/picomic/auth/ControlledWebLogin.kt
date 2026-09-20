@@ -55,6 +55,29 @@ class WebLoginSpec(val startUrl: HttpUrl, val allowedOrigins: Set<String>,
 /** Serializes the process-wide WebView proxy. No page is loaded before the override callback. */
 object WebLoginRuntime {
     private val lease = Mutex()
+    /** Recovery pages share the proxy lease but never extract or replace app credentials. */
+    suspend fun <T> withPage(network: NetworkEngine, error: (String) -> Unit,
+                            block: suspend (() -> Boolean) -> T): T = lease.withLock {
+        withContext(Dispatchers.Main.immediate) {
+            val snapshot = network.status
+            try {
+                withContext(NonCancellable) { applyWebProxy(snapshot.profile) }
+                ensureActive()
+                check(snapshot.generation == network.status.generation) { "网络设置已更改，请重新打开页面" }
+                coroutineScope {
+                    val pageScope = this
+                    val watcher = launch {
+                        network.generations.first { it != snapshot.generation }
+                        error("网络设置已更改，请重新加载页面")
+                        pageScope.cancel("网络设置已更改")
+                    }
+                    try { block { snapshot.generation == network.status.generation } } finally { watcher.cancel() }
+                }
+            } finally {
+                withContext(NonCancellable) { applyWebProxy(NetworkProfile.FollowSystem) }
+            }
+        }
+    }
     suspend fun <T> withLogin(context: Context, spec: WebLoginSpec, network: NetworkEngine,
                               isCurrent: () -> Boolean, candidate: (SessionCandidate) -> Unit,
                               error: (String) -> Unit, block: suspend (ControlledLoginView) -> T): T = lease.withLock {

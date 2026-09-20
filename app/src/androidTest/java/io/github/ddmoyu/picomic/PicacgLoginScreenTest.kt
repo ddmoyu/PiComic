@@ -45,7 +45,7 @@ class PicacgLoginScreenTest {
             }
             val engine = NetworkEngine(); val sessions = SessionCoordinator(secrets, engine)
             val controller = PicacgAccountController(sessions, engine, scope, {}) { PicacgClient(engine, server.url("/")) }
-            ui.setContent { PiComicTheme(false, false) { PicacgLoginScreen(controller, true, openNetwork = {}) } }
+            ui.setContent { PiComicTheme(false, false) { PicacgLoginScreen(controller, true, openRecovery = {}, openNetwork = {}) } }
             ui.onNodeWithText("登录并验证").assertIsNotEnabled()
             ui.onNodeWithText("账号 / 邮箱").performTextInput("fixture@example.test")
             ui.onNodeWithText("密码").performTextInput("fixture-password")
@@ -80,7 +80,7 @@ class PicacgLoginScreenTest {
             override suspend fun signIn(email: String, password: CharArray): SessionCandidate = error("must not send credentials")
             override suspend fun profile(candidate: SessionCandidate): String = error("must not validate")
         } }
-        ui.setContent { PiComicTheme(false, false) { if (show) PicacgLoginScreen(controller, true, openNetwork = {}) } }
+        ui.setContent { PiComicTheme(false, false) { if (show) PicacgLoginScreen(controller, true, openRecovery = {}, openNetwork = {}) } }
         ui.onNodeWithText("账号 / 邮箱").performTextInput("fixture")
         ui.onNodeWithText("密码").performTextInput("fixture-password")
         ui.onNodeWithText("登录并验证").performScrollTo().performClick()

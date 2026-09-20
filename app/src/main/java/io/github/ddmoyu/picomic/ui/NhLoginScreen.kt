@@ -21,7 +21,7 @@ import io.github.ddmoyu.picomic.network.origin
 import kotlinx.coroutines.*
 import okhttp3.HttpUrl.Companion.toHttpUrl
 
-@Composable fun NhLoginScreen(ui: UiState, vm: AppViewModel, openNetwork: () -> Unit) {
+@Composable fun NhLoginScreen(ui: UiState, vm: AppViewModel, openRecovery: () -> Unit, openNetwork: () -> Unit) {
     var secret by remember { mutableStateOf("") }
     var web by remember { mutableStateOf(false) }
     val mode = ui.pref("nh.auth", "匿名")
@@ -39,6 +39,7 @@ import okhttp3.HttpUrl.Companion.toHttpUrl
     Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(24.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
         Text("nhentai", style = MaterialTheme.typography.headlineSmall)
         Text("选择本次使用的认证方式。网页会话和 API Key 分开加密保存，权限由平台决定。")
+        TextButton(onClick = { secret = ""; controller.cancel(); openRecovery() }, enabled = !operation.busy) { Text("忘记密码") }
         listOf("匿名", "API Key", "网页会话").forEach { value ->
             Row { RadioButton(mode == value, onClick = { secret = ""; controller.cancel(); vm.preference("nh.auth", value) }); Text(value, Modifier.padding(top = 12.dp)) }
         }

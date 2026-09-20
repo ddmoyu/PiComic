@@ -31,7 +31,7 @@ internal fun AccountState.label(): String = when (status) {
     AccountStatus.EXPIRED -> "会话已失效"
 }
 
-@Composable fun PicacgLoginScreen(controller: PasswordAccountController, networkReady: Boolean, showAvatarFrame: Boolean = true, openNetwork: () -> Unit) {
+@Composable fun PicacgLoginScreen(controller: PasswordAccountController, networkReady: Boolean, showAvatarFrame: Boolean = true, openRecovery: () -> Unit, openNetwork: () -> Unit) {
     val operation by controller.state.collectAsStateWithLifecycle()
     val accounts by controller.accounts.collectAsStateWithLifecycle()
     val remembered by controller.rememberedAccounts.collectAsStateWithLifecycle()
@@ -65,6 +65,8 @@ internal fun AccountState.label(): String = when (status) {
         OutlinedTextField(password, { password = it.take(1024) }, Modifier.fillMaxWidth(), enabled = !operation.busy,
             label = { Text("密码") }, singleLine = true, visualTransformation = PasswordVisualTransformation(),
             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password))
+        TextButton(onClick = { password = ""; controller.cancel(); openRecovery() }, enabled = !operation.busy,
+            modifier = Modifier.align(Alignment.End)) { Text("忘记密码") }
         Row(verticalAlignment = Alignment.CenterVertically) {
             Checkbox(rememberPassword, { rememberPassword = it }, enabled = !operation.busy)
             Text("记住账号密码（加密保存）")

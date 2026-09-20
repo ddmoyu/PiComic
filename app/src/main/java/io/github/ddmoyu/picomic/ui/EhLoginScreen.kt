@@ -22,7 +22,7 @@ import io.github.ddmoyu.picomic.source.html.BROWSER_AGENT
 import kotlinx.coroutines.*
 import okhttp3.HttpUrl.Companion.toHttpUrl
 
-@Composable fun EhLoginScreen(vm: AppViewModel, openNetwork: () -> Unit) {
+@Composable fun EhLoginScreen(vm: AppViewModel, openRecovery: () -> Unit, openNetwork: () -> Unit) {
     val controller = vm.ehAccount
     val operation by controller.state.collectAsStateWithLifecycle()
     val accounts by controller.accounts.collectAsStateWithLifecycle()
@@ -46,6 +46,7 @@ import okhttp3.HttpUrl.Companion.toHttpUrl
         Text("EH 会话与 EX 访问权限分别验证。登录后可继续阅读原站画廊。")
         Button(onClick = { web = false }, enabled = network.ready && !operation.busy, modifier = Modifier.fillMaxWidth()) { Text("打开 EH 网页登录") }
         OutlinedButton(onClick = { web = true }, enabled = network.ready && !operation.busy, modifier = Modifier.fillMaxWidth()) { Text("打开 EX 网页验证") }
+        TextButton(onClick = { member = ""; hash = ""; igneous = ""; controller.cancel(); openRecovery() }, enabled = !operation.busy) { Text("忘记密码") }
         Text("手动导入 Cookie", style = MaterialTheme.typography.titleMedium)
         OutlinedTextField(member, { member = it.take(12) }, Modifier.fillMaxWidth(), singleLine = true, enabled = !operation.busy, label = { Text("ipb_member_id") })
         OutlinedTextField(hash, { hash = it.take(4096) }, Modifier.fillMaxWidth(), singleLine = true, enabled = !operation.busy, label = { Text("ipb_pass_hash") }, visualTransformation = PasswordVisualTransformation())

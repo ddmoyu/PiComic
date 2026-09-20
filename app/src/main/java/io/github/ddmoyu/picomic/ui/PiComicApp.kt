@@ -72,7 +72,7 @@ import kotlinx.coroutines.launch
             snackbarHost={SnackbarHost(snackbar)},
             topBar={
                 if(!reading&&!route.startsWith("search")) {
-                    val title=when(route) { "discover"->"探索";"categories"->"分类";"library"->"书架";"detail/{source}/{id}","content-detail/{source}/{id}"->"作品详情";"category/{category}"->entry?.arguments?.getString("category")?:"分类";"login/{source}"->"账号登录";else->settingsTitles[route]?:"PiComic" }
+                    val title=when(route) { "discover"->"探索";"categories"->"分类";"library"->"书架";"detail/{source}/{id}","content-detail/{source}/{id}"->"作品详情";"category/{category}"->entry?.arguments?.getString("category")?:"分类";"login/{source}"->"账号登录";"password-recovery/{source}"->"忘记密码";else->settingsTitles[route]?:"PiComic" }
                     PageTop(title,if(root)null else back,if(root)({go("search")}) else null,if(root)({go("settings")}) else null)
                 }
             },
@@ -123,12 +123,16 @@ import kotlinx.coroutines.launch
                     systemBackPage("filters", nav, back) { FiltersScreen(ui,vm) }
                     systemBackPage("login/{source}", nav, back) { target ->
                         val source=Source.valueOf(target.arguments!!.getString("source")!!)
+                        val recovery = { go("password-recovery/${source.name}") }
                         if (source in setOf(Source.PICACG, Source.JMCOMIC, Source.HTCOMIC)) {
                             val network by vm.network.state.collectAsStateWithLifecycle()
-                            PicacgLoginScreen(when(source) { Source.PICACG -> vm.picacgAccount; Source.JMCOMIC -> vm.jmAccount; else -> vm.htAccount }, network.ready, ui.enabled("pica.avatar", true)) { go("network") }
-                        } else if (source == Source.NHENTAI) NhLoginScreen(ui, vm) { go("network") }
-                        else if (source == Source.EHENTAI) EhLoginScreen(vm) { go("network") }
+                            PicacgLoginScreen(when(source) { Source.PICACG -> vm.picacgAccount; Source.JMCOMIC -> vm.jmAccount; else -> vm.htAccount }, network.ready, ui.enabled("pica.avatar", true), recovery) { go("network") }
+                        } else if (source == Source.NHENTAI) NhLoginScreen(ui, vm, recovery) { go("network") }
+                        else if (source == Source.EHENTAI) EhLoginScreen(vm, recovery) { go("network") }
                         else LoginScreen(source)
+                    }
+                    systemBackPage("password-recovery/{source}", nav, back) { target ->
+                        PasswordRecoveryScreen(Source.valueOf(target.arguments!!.getString("source")!!), vm, back)
                     }
                     listOf("reading","appearance","updates","data","logs","network","about","webdav").forEach { id -> systemBackPage(id, nav, back) { SettingsPage(id,ui,vm,go,notice) } }
                 }
