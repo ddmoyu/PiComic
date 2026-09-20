@@ -84,3 +84,15 @@ Runner 只在临时目录恢复密钥，构建结束清理。Gradle 从 `PICOMIC
 - 本地证据位于忽略目录 `artifacts/github-release/v0.3.2/`，Android 回归日志为 `artifacts/v0.3.2-android-tests.log`；云端验证报告、单元测试报告、lint 和 mapping 保存在 `verification-v0.3.2` Actions artifact。
 
 实体手机覆盖升级及数据保留仍需实际设备验证，云端构建和文件校验不替代此项验收。
+
+## v0.3.3 发布验证
+
+2026-09-20 通过 `v0.3.3` 标签发布，源码提交为 `96f4267`；[Actions 运行 35519101025](https://github.com/ddmoyu/PiComic/actions/runs/35519101025) 成功，[Release](https://github.com/ddmoyu/PiComic/releases/tag/v0.3.3) 已公开并设为 Latest，附简体中文、英文、日文更新日志。
+
+- 本轮包含单列虚拟章节目录、跳过详情页与历史续读、分类分组、紧凑详情页和 JM 重复章节排序号兼容；章节列表已用 5,000 章验证滚动、不可见条目回收及末章点击。
+- 发版前完成当前 API 36.1 的 Android 全量回归，报告计数为 177 项。发现的 3 项失败来自更新页旧断言与主题弹窗过渡时序，修正测试后相关用例均复测通过；外网来源探测和 SAF 授权用例按显式参数跳过。本轮未进行旧 Android、真实账号登录或实体手机覆盖安装测试；全部模拟器测试无窗口运行。
+- 本地与云端均通过 92 项单元测试和 6 项发布脚本测试。Release lint 本地为 0 errors、48 warnings、1 hint，云端为 0 errors、52 warnings、1 hint。
+- `PiComic-0.3.3.apk`：版本名 `0.3.3`、versionCode `3003`、包名 `io.github.ddmoyu.picomic`、最低 API 26、仅 `arm64-v8a`，大小 3,258,901 字节。
+- APK SHA-256：`8a302eb325dafc3dd6581ec6d0f71e8a21761a704e7dfc80e52ab40082bb1d8e`。匿名下载后的大小、摘要、包信息、ABI、v2 签名及固定发行证书均与云端验证报告匹配；更新清单、GitHub 资产摘要和 `SHA256SUMS.txt` 一致。
+- GitHub 与 GH-Proxy 的匿名 `latest` API 均返回 200，指向 `v0.3.3`；GitHub、GH-Proxy、GHProxy.net 的更新清单全部返回 200 且内容一致。本轮未重复下载镜像 APK。
+- 证据保存在忽略目录 `artifacts/github-release/v0.3.3/`；Android 日志为 `artifacts/v0.3.3-android-tests.log`、`artifacts/v0.3.3-android-retest.log`、`artifacts/v0.3.3-settings-retest.log`；云端报告和 mapping 位于 `verification-v0.3.3` Actions artifact。
