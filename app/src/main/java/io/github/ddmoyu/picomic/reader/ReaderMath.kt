@@ -1,9 +1,10 @@
 package io.github.ddmoyu.picomic.reader
 
 object ReaderMath {
-    fun prefetchPages(current: Int, count: Int, total: Int): List<Int> {
+    fun prefetchPages(current: Int, count: Int, total: Int, lastVisible: Int = current): List<Int> {
         if (current !in 1..total) return emptyList()
-        return ((current + 1)..minOf(total, current + count.coerceIn(1, 10))).toList() +
+        val end = lastVisible.coerceIn(current, total)
+        return ((end + 1)..minOf(total, end + count.coerceIn(1, 10))).toList() +
             if (current > 1) listOf(current - 1) else emptyList()
     }
 

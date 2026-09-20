@@ -45,8 +45,6 @@ import io.github.ddmoyu.picomic.data.*
 import io.github.ddmoyu.picomic.reader.*
 import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.*
-import kotlinx.coroutines.sync.Semaphore
-import kotlinx.coroutines.sync.withPermit
 
 @Composable fun ReaderScreen(
     source: Source, comic: Comic, initialChapter: Int, initialPage: Int,
@@ -225,12 +223,20 @@ data class ReaderLocation(val chapter: Int, val page: Int, val offsetRatio: Floa
         }
     }
     val preload = ui.pref("preload", "3 张").substringBefore(' ').toIntOrNull() ?: 3
-    LaunchedEffect(pages, currentPage, preload, imageWidth, resumed) {
-        if (!resumed || viewportWidth == 0) return@LaunchedEffect
-        val semaphore = Semaphore(2)
-        ReaderMath.prefetchPages(currentPage, preload, comic.pages).map { page ->
-            launch { semaphore.withPermit { ReaderImages.loader(context).execute(ReaderImages.request(context, pages[page - 1], imageWidth)) } }
-        }.joinAll()
+    val visiblePages by remember(scroll, pages) { derivedStateOf {
+        if (scroll) list.layoutInfo.visibleItemsInfo.map { it.index + 1 }.filter { it in 1..pages.size }.toSet()
+            .ifEmpty { setOf(currentPage) }
+        else setOf(pager.currentPage + 1)
+    } }
+    val prefetcher = remember(pages, imageWidth, context) {
+        ReaderPrefetcher<Int>(scope) { page ->
+            ReaderImages.loader(context).execute(ReaderImages.request(context, pages[page - 1], imageWidth)) is coil3.request.SuccessResult
+        }
+    }
+    DisposableEffect(prefetcher) { onDispose { prefetcher.clear() } }
+    LaunchedEffect(prefetcher, visiblePages, preload, resumed, viewportWidth) {
+        if (!resumed || viewportWidth == 0) prefetcher.clear()
+        else prefetcher.update(ReaderMath.prefetchPages(visiblePages.min(), preload, pages.size, visiblePages.max()), visiblePages)
     }
     LaunchedEffect(auto, mode, ui.pref("autoInterval", "5 秒"), resumed, touching, interaction, panel, zoomed, restoring) {
         if (!auto || !resumed || touching || panel.isNotEmpty() || zoomed || restoring) return@LaunchedEffect
@@ -340,11 +346,12 @@ data class ReaderLocation(val chapter: Int, val page: Int, val offsetRatio: Floa
             Text(when { endHint -> if (chapter == comic.chapters && currentPage == comic.pages) "已经是最后一章了" else "已到本章边界"; changing -> "正在进入第 $transitionChapter 章"; pull >= threshold -> "松开进入下一章"; else -> "继续上拉进入下一章" }, Modifier.padding(12.dp, 6.dp), fontSize = 11.sp, color = Color.LightGray)
         }
     }
-    if (panel.isNotEmpty()) ModalBottomSheet(onDismissRequest = { panel = ""; pull = 0f }) {
+    if (panel.isNotEmpty()) ModalBottomSheet(onDismissRequest = { panel = ""; pull = 0f },
+        sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)) {
         Text(if (panel == "chapters") "目录" else "阅读设置", Modifier.padding(24.dp, 8.dp), style = MaterialTheme.typography.titleLarge)
         if (panel == "chapters") LazyColumn(Modifier.heightIn(max = 380.dp).testTag("reader-chapters")) {
             items((1..comic.chapters).toList()) { c -> SettingRow(comic.chapterTitles[c - 1], value = if (c == chapter) "正在阅读" else "", onClick = { panel = ""; scope.launch { changeChapter(c) } }) }
-        } else LazyColumn(Modifier.heightIn(max = 480.dp)) {
+        } else LazyColumn(Modifier.heightIn(max = 480.dp).testTag("reader-settings")) {
             item { PreferenceChoice("阅读模式", "readingMode", listOf("纵向连续", "从左向右", "从右向左"), ui, vm, save = { onReadingPreference("readingMode", it) }) }
             item { PreferenceChoice("阅读背景", "readerBackground", listOf("深灰", "纯黑", "米白"), ui, vm, save = { onReadingPreference("readerBackground", it) }) }
             item { PreferenceChoice("屏幕方向", "readerOrientation", listOf("跟随系统", "竖屏", "横屏"), ui, vm, save = { onReadingPreference("readerOrientation", it) }) }

@@ -4,6 +4,8 @@
 
 ### 简体中文
 
+- 修复翻页反复取消预加载的问题：持续补齐可见区域之后设定数量的图片，翻页保留已开始的下载，快速跳页只移除过时的排队任务；等待图片时显示加载提示。
+- 修复预加载选项和阅读设置弹层需要返回两次的问题，返回一次直接关闭当前弹层。
 - 修复 JM 随机切换到 Tencent 图片线路时，详情和阅读页偶发误报“格式改变”的问题；不支持的图片线路改为明确提示切换分流。
 - 修复 JM 分类接口中默认目录空 slug 导致整页加载失败的问题，完整读取主目录、子目录和标签分组；同名子目录按所属主目录区分，点击标签分类使用对应搜索请求。
 - 补齐 EH、绅士漫画、Hitomi 和 nhentai 的目录类型，并为新增类型接入对应筛选参数；公开固定目录不再被账号会话失效阻挡。哔咔继续读取账号接口返回的完整分类列表。
@@ -11,6 +13,8 @@
 
 ### English
 
+- Fixed page turns repeatedly cancelling preloads. Keep the configured number of images ahead of the visible area, finish started downloads and discard only outdated queued work after jumps. Show a loading indicator while images are pending.
+- Fixed preload choices and reader settings requiring two back actions. One back action now dismisses the current sheet.
 - Fixed intermittent “format changed” errors when JM rotates to its Tencent image route. Unsupported image routes now display a specific message suggesting another image route.
 - Fixed JM's empty slug for its default directory, which previously caused the entire category page to fail. Load all parent directories, child directories and tag groups, keep same-named children distinct, and route tag selections to search.
 - Completed directory types for EH, Wnacg, Hitomi and nhentai with matching filters. Public fixed directories no longer depend on a valid account session. Pica continues to load the full category list returned by its authenticated API.
@@ -18,6 +22,8 @@
 
 ### 日本語
 
+- ページ移動で先読みが繰り返し中断される問題を修正しました。表示範囲の先に設定枚数を先読みし、開始済みのダウンロードは継続します。離れたページへ移動した場合は不要な待機タスクだけを取り除き、画像の読み込み中はインジケーターを表示します。
+- 先読み枚数と読書設定のシートで、戻る操作を二度必要とする問題を修正しました。一度の操作で現在のシートが閉じます。
 - JM が Tencent の画像配信先を選んだ際、詳細・読書画面で「形式が変わった」と誤表示する問題を修正しました。未対応の配信先では画像経路の切り替えを案内します。
 - JM の既定ディレクトリで slug が空の場合に、分類ページ全体が読み込めなくなる問題を修正しました。親・子ディレクトリとタググループを取得し、同名の子分類を区別して、タグには検索リクエストを使用します。
 - EH、Wnacg、Hitomi、nhentai の不足していた分類と対応する絞り込みを追加しました。公開の固定ディレクトリはセッション失効時も表示できます。Pica は引き続き認証済み API の分類一覧を取得します。

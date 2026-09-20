@@ -13,6 +13,7 @@ import coil3.ImageLoader
 import coil3.network.okhttp.OkHttpNetworkFetcherFactory
 import io.github.ddmoyu.picomic.network.NetworkRepository
 import coil3.compose.AsyncImage
+import coil3.compose.AsyncImagePainter
 import coil3.request.ImageRequest
 import coil3.size.Precision
 import com.github.panpf.zoomimage.rememberCoilZoomState
@@ -23,6 +24,8 @@ import io.github.ddmoyu.picomic.ui.readerPages
 import io.github.ddmoyu.picomic.content.ContentFailure
 import io.github.ddmoyu.picomic.content.ContentFailureKind
 import kotlinx.coroutines.channels.Channel
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 
 data class ReaderPage(val id: String, val model: Any, val width: Int, val height: Int, val dimensionsKnown: Boolean = true)
 
@@ -66,25 +69,29 @@ object ReaderImages {
     val context = LocalContext.current
     val loader = remember { ReaderImages.loader(context) }
     var retry by remember(page.id) { mutableIntStateOf(0) }
-    var failed by remember(page.id, retry) { mutableStateOf<Throwable?>(null) }
     var ordinary by remember(page.id) { mutableStateOf(false) }
-    // A memory-cache result can be delivered while an image painter is composing.
-    // Apply callbacks from an effect so they never write the same snapshot inside and outside composition.
-    val events = remember(page.id, retry, ordinary) { Channel<Pair<Throwable?, Pair<Int, Int>?>>(Channel.CONFLATED) }
-    val dimensionsCallback by rememberUpdatedState(onDimensions)
-    LaunchedEffect(events) {
-        for ((error, size) in events) {
-            failed = error
-            size?.takeIf { it.first > 0 && it.second > 0 }?.let { dimensionsCallback(it.first, it.second) }
-        }
-    }
     val request = remember(page, width, retry, ordinary) {
         val model = page.model as? SourceImage
         val effective = if (ordinary && model != null) page.copy(model = model.copy(page = model.page.copy(resolver = "eh"))) else page
         ReaderImages.request(context, effective, width)
     }
+    var failed by remember(request, retry) { mutableStateOf<Throwable?>(null) }
+    var loading by remember(request, retry) { mutableStateOf(true) }
+    // A memory-cache result can be delivered while an image painter is composing.
+    // Apply callbacks from an effect so they never write the same snapshot inside and outside composition.
+    val events = remember(request, retry) { Channel<AsyncImagePainter.State>(Channel.CONFLATED) }
+    val dimensionsCallback by rememberUpdatedState(onDimensions)
+    LaunchedEffect(events) {
+        for (result in events) {
+            loading = result is AsyncImagePainter.State.Empty || result is AsyncImagePainter.State.Loading
+            failed = (result as? AsyncImagePainter.State.Error)?.result?.throwable
+            (result as? AsyncImagePainter.State.Success)?.result?.image?.let { image ->
+                if (image.width > 0 && image.height > 0) dimensionsCallback(image.width, image.height)
+            }
+        }
+    }
     Box(modifier, contentAlignment = Alignment.Center) {
-        if (zoomable) {
+        if (zoomable) key(retry) {
             val state = rememberCoilZoomState()
             SideEffect { state.zoomable.setDisabledGestureTypes(if (doubleTap) 0 else GestureType.DOUBLE_TAP_SCALE or GestureType.ONE_FINGER_SCALE) }
             DisposableEffect(state, active) {
@@ -95,17 +102,14 @@ object ReaderImages {
             ReaderZoomImage(
                 request = request, loader = loader, description = description, state = state,
                 onTap = onTap, onLongPress = onLongPress?.let { callback -> { point -> callback(state.zoomable, point) } },
-                onResult = { result -> when (result) {
-                    is coil3.compose.AsyncImagePainter.State.Error -> events.trySend(result.result.throwable to null)
-                    is coil3.compose.AsyncImagePainter.State.Success -> events.trySend(null to (result.result.image.width to result.result.image.height))
-                    else -> Unit
-                } }
+                onResult = { events.trySend(it) }
             )
-        } else key(request) { AsyncImage(
+        } else key(request, retry) { AsyncImage(
             model = request, imageLoader = loader, contentDescription = description,
             modifier = Modifier.fillMaxSize(), contentScale = ContentScale.FillWidth,
-            onError = { events.trySend(it.result.throwable to null) }, onSuccess = { events.trySend(null to (it.result.image.width to it.result.image.height)) }
+            onLoading = { events.trySend(it) }, onError = { events.trySend(it) }, onSuccess = { events.trySend(it) }
         ) }
+        if (loading) CircularProgressIndicator(Modifier.size(32.dp).semantics { contentDescription = "图片正在加载" }, strokeWidth = 3.dp)
         failed?.let { error -> Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.padding(12.dp)) {
             Text(if (error is ContentFailure) error.message.orEmpty() else "图片加载失败")
             TextButton(onClick = {

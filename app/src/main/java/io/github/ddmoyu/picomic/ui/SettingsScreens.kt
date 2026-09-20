@@ -49,7 +49,8 @@ val settingsTitles = mapOf("settings" to "设置", "accounts" to "账号管理",
 @Composable fun PreferenceChoice(title: String, key: String, choices: List<String>, ui: UiState, vm: AppViewModel, default: String=choices.first(), subtitle: String="", save: (String) -> Unit = { vm.preference(key, it) }) {
     var showing by remember { mutableStateOf(false) }
     SettingRow(title,subtitle,value=ui.pref(key,default),onClick={showing=true})
-    if(showing) ModalBottomSheet(onDismissRequest={showing=false}) {
+    if(showing) ModalBottomSheet(onDismissRequest={showing=false},
+        sheetState=rememberModalBottomSheetState(skipPartiallyExpanded=true)) {
         Text(title,Modifier.padding(24.dp,8.dp),style=MaterialTheme.typography.titleLarge)
         Column(Modifier.heightIn(max=420.dp).verticalScroll(rememberScrollState())) {
             choices.forEach { value -> SettingRow(value,onClick={save(value);showing=false},trailing={RadioButton(selected=ui.pref(key,default)==value,onClick={save(value);showing=false})}) }
@@ -78,7 +79,7 @@ val settingsTitles = mapOf("settings" to "设置", "accounts" to "账号管理",
                 PreferenceChoice("屏幕方向", "readerOrientation", listOf("跟随系统", "竖屏", "横屏"), ui, vm)
                 PreferenceChoice("阅读亮度", "readerBrightness", listOf("跟随系统", "10", "25", "50", "75", "100"), ui, vm, subtitle = "数值为百分比，仅阅读页面生效")
                 PreferenceToggle("保持屏幕常亮","keepAwake",ui,vm,"仅在前台阅读时生效",true)
-                PreferenceChoice("图片预加载","preload",(1..10).map{"$it 张"},ui,vm,"3 张","沿阅读顺序预加载，快速跳页取消旧任务")
+                PreferenceChoice("图片预加载","preload",(1..10).map{"$it 张"},ui,vm,"3 张","持续预加载可见区域之后的图片，翻页不中断已开始的下载")
                 SectionTitle("缩放手势")
                 PreferenceToggle("双击缩放","doubleTap",ui,vm,"双击放大，再次双击恢复",true)
                 PreferenceToggle("长按缩放","longPress",ui,vm,"按住临时放大，松开恢复")
