@@ -10,7 +10,9 @@ $apkPath = (Resolve-Path -LiteralPath $Apk).Path
 $buildTools = Get-ChildItem -LiteralPath (Join-Path $SdkRoot 'build-tools') -Directory |
     Where-Object { $_.Name -match '^\d+\.\d+\.\d+$' } | Sort-Object { [version]$_.Name } -Descending | Select-Object -First 1
 if (!$buildTools) { throw '没有找到 Android build-tools' }
-$badging = & (Join-Path $buildTools.FullName 'aapt.exe') dump badging $apkPath
+$aaptName = if ($env:OS -eq 'Windows_NT') { 'aapt.exe' } else { 'aapt' }
+$signerName = if ($env:OS -eq 'Windows_NT') { 'apksigner.bat' } else { 'apksigner' }
+$badging = & (Join-Path $buildTools.FullName $aaptName) dump badging $apkPath
 if ($LASTEXITCODE -ne 0) { throw 'APK 元数据解析失败' }
 $package = [regex]::Match(($badging -join "`n"), "(?m)^package: name='([^']+)' versionCode='([0-9]+)' versionName='([^']+)'")
 if (!$package.Success) { throw 'APK 包信息不完整' }
@@ -24,7 +26,7 @@ if ($isDevelopment -and !$AllowDevelopmentBuild) { throw '开发版本不能生�
 $sdk = [regex]::Match(($badging -join "`n"), "(?m)^sdkVersion:'([0-9]+)'")
 if (!$sdk.Success) { throw 'APK 未提供 minSdk' }
 $minSdk = [int]$sdk.Groups[1].Value
-$signature = & (Join-Path $buildTools.FullName 'apksigner.bat') verify --verbose --print-certs --min-sdk-version $minSdk $apkPath
+$signature = & (Join-Path $buildTools.FullName $signerName) verify --verbose --print-certs --min-sdk-version $minSdk $apkPath
 if ($LASTEXITCODE -ne 0) { throw 'APK 签名验证失败' }
 $signatureText = $signature -join "`n"
 $signers = @([regex]::Matches($signatureText, '(?m)^(?:Signer #[0-9]+|V[0-9.]+ Signer:) certificate SHA-256 digest: ([0-9a-fA-F]{64})') | ForEach-Object { $_.Groups[1].Value.ToLowerInvariant() } | Sort-Object -Unique)

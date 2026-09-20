@@ -10,3 +10,5 @@ artifacts/
 keystore.properties
 .env
 .env.*
+__pycache__/
+*.pyc

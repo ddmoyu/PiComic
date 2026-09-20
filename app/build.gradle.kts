@@ -5,8 +5,23 @@ plugins {
 }
 val targetAbi = providers.gradleProperty("targetAbi").orNull
 val localReleaseSigning = providers.gradleProperty("localReleaseSigning").orNull == "true"
-val releaseOwner = providers.gradleProperty("releaseOwner").orElse("").get()
-val releaseRepo = providers.gradleProperty("releaseRepo").orElse("").get()
+val releaseOwner = providers.gradleProperty("releaseOwner").orElse("ddmoyu").get()
+val releaseRepo = providers.gradleProperty("releaseRepo").orElse("PiComic").get()
+val taggedVersion = providers.gradleProperty("releaseVersionName").orNull
+val taggedCode = taggedVersion?.let { version ->
+    require(version.matches(Regex("(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)"))) { "Release version must be X.Y.Z" }
+    val parts = version.split('.').map { it.toLongOrNull() ?: error("Version component is too large") }
+    require(parts[0] <= 2099 && parts[1] <= 999 && parts[2] <= 999) { "Version component is out of range" }
+    (parts[0] * 1_000_000 + parts[1] * 1_000 + parts[2]).also { require(it in 1..2_099_999_999) }.toInt()
+}
+val releaseKeyFile = providers.environmentVariable("PICOMIC_KEYSTORE_FILE").orNull
+val releaseStorePassword = providers.environmentVariable("PICOMIC_KEYSTORE_PASSWORD").orNull
+val releaseKeyAlias = providers.environmentVariable("PICOMIC_KEY_ALIAS").orNull
+val releaseKeyPassword = providers.environmentVariable("PICOMIC_KEY_PASSWORD").orNull
+if (releaseKeyFile != null) {
+    require(!localReleaseSigning) { "Production and development signing cannot be combined" }
+    require(listOf(releaseStorePassword, releaseKeyAlias, releaseKeyPassword).all { !it.isNullOrEmpty() }) { "Release signing configuration is incomplete" }
+}
 require((releaseOwner.isEmpty() && releaseRepo.isEmpty()) ||
     (releaseOwner.matches(Regex("[A-Za-z0-9][A-Za-z0-9-]{0,38}")) && releaseRepo.matches(Regex("[A-Za-z0-9_][A-Za-z0-9_.-]{0,99}"))))
 require(targetAbi == null || targetAbi in setOf("arm64-v8a", "armeabi-v7a", "x86", "x86_64")) {
@@ -19,14 +34,20 @@ android {
         applicationId = "io.github.ddmoyu.picomic"
         minSdk = 26
         targetSdk = 36
-        versionCode = 8
-        versionName = "0.3.0-alpha"
+        versionCode = taggedCode ?: 8
+        versionName = taggedVersion ?: "0.3.0-alpha"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         buildConfigField("String", "RELEASE_OWNER", "\"$releaseOwner\"")
         buildConfigField("String", "RELEASE_REPO", "\"$releaseRepo\"")
         targetAbi?.let { ndk.abiFilters += it }
     }
     buildFeatures { compose = true; buildConfig = true }
+    if (releaseKeyFile != null) signingConfigs.create("production") {
+        storeFile = file(releaseKeyFile)
+        storePassword = releaseStorePassword
+        keyAlias = releaseKeyAlias
+        keyPassword = releaseKeyPassword
+    }
     buildTypes {
         getByName("release") {
             isDebuggable = false
@@ -36,6 +57,7 @@ android {
             // Local comparison builds can update the existing development installation.
             // Leave ordinary Release builds unsigned until a production key is configured.
             if (localReleaseSigning) signingConfig = signingConfigs.getByName("debug")
+            if (releaseKeyFile != null) signingConfig = signingConfigs.getByName("production")
         }
     }
     compileOptions { sourceCompatibility = JavaVersion.VERSION_17; targetCompatibility = JavaVersion.VERSION_17; isCoreLibraryDesugaringEnabled = true }

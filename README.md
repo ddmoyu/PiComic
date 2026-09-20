@@ -2,7 +2,7 @@
 
 Android 手机漫画阅读 App · Kotlin / Jetpack Compose · 0.3.0-alpha
 
-项目目录：`E:\ddmoyu\PiComic`。首版功能代码已涵盖六组来源、账号、搜索/分类/详情、阅读器、收藏/历史、持久下载与离线、备份/WebDAV、设置/日志和 GitHub 更新。真实平台账号、实体设备、WebDAV 服务商及正式发布验收仍需外部条件，当前保持开发版标识。正常页面使用真实来源，原创示意目录仅在显式开启 Debug 演示模式时使用。源码仓库为 [ddmoyu/PiComic](https://github.com/ddmoyu/PiComic)（私有）。
+项目目录：`E:\ddmoyu\PiComic`。首版功能代码已涵盖六组来源、账号、搜索/分类/详情、阅读器、收藏/历史、持久下载与离线、备份/WebDAV、设置/日志和 GitHub 更新。真实平台账号、实体设备、WebDAV 服务商及正式发布验收仍需外部条件，当前保持开发版标识。正常页面使用真实来源，原创示意目录仅在显式开启 Debug 演示模式时使用。源码与安装包使用同一公开仓库 [ddmoyu/PiComic](https://github.com/ddmoyu/PiComic)。
 
 图标采用已确认的 D7 圆周率字形；SVG 母版及 Android 资源说明见 [正式图标](design/logo/README.md)。
 
@@ -26,7 +26,9 @@ Debug APK：`app/build/outputs/apk/debug/app-debug.apk`。当前功能、测试�
 .\gradlew.bat :app:assembleRelease :app:assembleDebug :app:lintRelease -PtargetAbi=arm64-v8a -PlocalReleaseSigning=true
 ```
 
-Release 启用 R8 代码优化、混淆和资源裁剪，关闭调试；Release 只提供真实内容入口，Debug 可显式启用原创示意目录。`localReleaseSigning=true` 仅用于本机验收，沿用 Debug 证书；普通 Release 未签名。更新模块已实现，但公开分发渠道默认未配置，也未发布 GitHub Release；配置及资产校验见[更新模块与发布验证](docs/22-更新模块与发布验证.md)。
+Release 启用 R8 代码优化、混淆和资源裁剪，关闭调试；Release 只提供真实内容入口，Debug 可显式启用原创示意目录。`localReleaseSigning=true` 仅用于本机验收，沿用 Debug 证书；配置 `PICOMIC_KEYSTORE_*` 等环境变量后可使用专用发行证书，未配置时普通 Release 未签名。
+
+GitHub Actions **仅在推送 `vX.Y.Z` 标签时**构建并发布正式签名 APK、更新清单和摘要；普通提交、PR 不触发打包。App 默认使用本仓库 Releases，连接失败或限流时自动尝试 GH-Proxy / GHProxy.net 备用线路，可在设置中关闭。发布操作、版本规则和签名备份见 [Actions 发布说明](docs/24-GitHub-Actions发布与镜像更新.md)，客户端验证见 [更新模块与发布验证](docs/22-更新模块与发布验证.md)。首次标签的云端构建及正式旧版升级仍需实际发布验证。
 
 `0.2.1-alpha` 的体积对比与签名记录见 [Release 与 Debug 构建](docs/15-Release与Debug构建.md)。后续验证持续更新在 [内容接入与 JM 验证](docs/19-内容接入与JM验证.md)。
 
@@ -69,4 +71,4 @@ Release 启用 R8 代码优化、混淆和资源裁剪，关闭调试；Release 
 - **源码证据**：已读固定提交中的实现，不代表远端平台当前可用。
 - **待联调**：需要真实网络、账号、图片或 Android 设备验证。
 
-完整来源接入是 v1.0 目标；分批开发只是实施顺序，不会把未接入来源标为已完成。更新发布渠道已确定为 GitHub Releases；当前私有源码仓库的安装包分发与访问方案在发布阶段确定，不能在 APK 内置仓库凭据。应用商店和云端同步服务不预设。
+完整来源接入是 v1.0 目标；分批开发只是实施顺序，不会把未接入来源标为已完成。更新发布渠道为公开仓库 `ddmoyu/PiComic` 的 GitHub Releases，APK 不内置仓库凭据。应用商店和云端同步服务不预设。

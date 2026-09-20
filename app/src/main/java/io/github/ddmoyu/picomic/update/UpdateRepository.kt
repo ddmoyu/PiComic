@@ -6,16 +6,14 @@ import android.os.Build
 import androidx.core.content.FileProvider
 import io.github.ddmoyu.picomic.BuildConfig
 import io.github.ddmoyu.picomic.data.*
-import io.github.ddmoyu.picomic.download.RangeTransfer
 import io.github.ddmoyu.picomic.network.NetworkRepository
 import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.*
-import okhttp3.Request
 import java.io.File
 
 enum class UpdatePhase { IDLE, CHECKING, AVAILABLE, CURRENT, INCOMPATIBLE, DOWNLOADING, PAUSED, VERIFYING, READY, WAITING_INSTALL, ERROR }
 data class UpdateState(val configured: Boolean, val phase: UpdatePhase = UpdatePhase.IDLE, val bundle: UpdateBundle? = null,
-    val artifact: UpdateArtifact? = null, val downloaded: Long = 0, val task: Boolean = false, val message: String? = null, val checkedAt: Long = 0, val initialized: Boolean = false) {
+    val artifact: UpdateArtifact? = null, val downloaded: Long = 0, val task: Boolean = false, val message: String? = null, val checkedAt: Long = 0, val initialized: Boolean = false, val route: String? = null) {
     val busy get() = phase in setOf(UpdatePhase.CHECKING, UpdatePhase.DOWNLOADING, UpdatePhase.VERIFYING)
 }
 class UpdateRepository private constructor(private val context: Context) {
@@ -23,6 +21,13 @@ class UpdateRepository private constructor(private val context: Context) {
     private val network = NetworkRepository.get(context)
     private val log = EventLog.get(context)
     private val preferences = context.getSharedPreferences("update_status", 0)
+    private val mutableMirrors = MutableStateFlow(preferences.getBoolean("mirrorFallback", true))
+    val mirrorFallback = mutableMirrors.asStateFlow()
+    private val cooldowns = object : UpdateRouteCooldowns {
+        override fun until(key: String): Long = maxOf(preferences.getLong("route:$key", 0),
+            if (key == "api:github") preferences.getLong("cooldown", 0) else 0)
+        override fun set(key: String, until: Long) { preferences.edit().putLong("route:$key", until).commit() }
+    }
     private val channel = if (BuildConfig.RELEASE_OWNER.isEmpty() || BuildConfig.RELEASE_REPO.isEmpty()) null else ReleaseChannel(BuildConfig.RELEASE_OWNER, BuildConfig.RELEASE_REPO)
     private val directory = File(context.filesDir, "updates")
     private val part = File(directory, "update.part")
@@ -66,8 +71,6 @@ class UpdateRepository private constructor(private val context: Context) {
     fun check() {
         if (job?.isActive == true || !state.value.initialized || state.value.task) return
         if (channel == null) { mutable.update { it.copy(message = "此构建尚未配置公开发布渠道") }; return }
-        val now = System.currentTimeMillis()
-        if (now < preferences.getLong("cooldown", 0)) { mutable.update { it.copy(message = "GitHub 请求仍在冷却期，请稍后重试") }; return }
         mutable.update { it.copy(phase = UpdatePhase.CHECKING, message = null) }
         job = scope.launch {
             try {
@@ -78,7 +81,7 @@ class UpdateRepository private constructor(private val context: Context) {
                 val current = bundle.versionCode <= ApkVerifier.version(ApkVerifier.installed(context))
                 val time = System.currentTimeMillis(); preferences.edit().putLong("checkedAt", time).commit()
                 mutable.value = UpdateState(true, if (current) UpdatePhase.CURRENT else if (artifact == null) UpdatePhase.INCOMPATIBLE else UpdatePhase.AVAILABLE,
-                    bundle, artifact, message = if (current) "暂无更高版本" else if (artifact == null) "新版本不兼容当前系统或设备架构" else "发现新版本", checkedAt = time, initialized = true)
+                    bundle, artifact, message = if (current) "暂无更高版本" else if (artifact == null) "新版本不兼容当前系统或设备架构" else "发现新版本", checkedAt = time, initialized = true, route = state.value.route)
                 log.record(EventCode.UPDATE_CHECKED)
             } catch (e: CancellationException) { throw e }
             catch (e: Exception) { failure(e) }
@@ -87,9 +90,6 @@ class UpdateRepository private constructor(private val context: Context) {
     fun download() {
         val selected = state.value
         if (!foreground || job?.isActive == true || selected.bundle == null || selected.artifact == null || selected.bundle.versionCode <= BuildConfig.VERSION_CODE) return
-        if (System.currentTimeMillis() < preferences.getLong("cooldown", 0)) {
-            mutable.update { it.copy(message = "GitHub 请求仍在冷却期，请稍后重试") }; return
-        }
         mutable.update { it.copy(phase = UpdatePhase.DOWNLOADING, message = null, task = true) }
         job = scope.launch {
             try { withContext(Dispatchers.IO) {
@@ -102,7 +102,7 @@ class UpdateRepository private constructor(private val context: Context) {
                     throw UpdateFailure("发布文件已变化，请取消后重新检查")
                 coroutineScope {
                     val progress = launch { while (isActive) { mutable.update { it.copy(downloaded = part.length()) }; delay(300) } }
-                    try { RangeTransfer(client.assets).fetch(Request.Builder().url(artifact.asset.url).header("User-Agent", "PiComic/${BuildConfig.VERSION_NAME}").build(), part, artifact.asset.size) }
+                    try { client.download(artifact, part) }
                     finally { progress.cancelAndJoin() }
                 }
                 mutable.update { it.copy(phase = UpdatePhase.VERIFYING, downloaded = part.length()) }
@@ -135,13 +135,18 @@ class UpdateRepository private constructor(private val context: Context) {
     }
     fun installerOpened() { mutable.update { it.copy(phase = UpdatePhase.WAITING_INSTALL, message = "等待系统处理；取消后可重新安装，当前版本以系统记录为准") } }
     fun message(value: String) { mutable.update { it.copy(message = value) } }
-    private fun client() = GitHubUpdateClient(network.engine, channel ?: throw UpdateFailure("尚未配置发布渠道"), BuildConfig.VERSION_NAME, context.packageName)
+    fun setMirrorFallback(enabled: Boolean) {
+        if (state.value.busy) return
+        preferences.edit().putBoolean("mirrorFallback", enabled).commit()
+        mutableMirrors.value = enabled
+    }
+    private fun client() = GitHubUpdateClient(network.engine, channel ?: throw UpdateFailure("尚未配置发布渠道"), BuildConfig.VERSION_NAME,
+        context.packageName, mutableMirrors.value, cooldowns) { route -> mutable.update { it.copy(route = route) } }
     private fun clearTask() {
         listOf(part, apk, File(part.path + ".resume"), File(part.path + ".resume.bak")).forEach { if (it.exists() && !it.delete()) throw UpdateFailure("无法清理更新包，请检查存储空间") }
         store?.delete("task.json")
     }
     private fun failure(error: Exception) {
-        if (error is UpdateFailure && error.cooldownUntil > 0) preferences.edit().putLong("cooldown", error.cooldownUntil).commit()
         mutable.update { it.copy(phase = UpdatePhase.ERROR, message = (error as? UpdateFailure)?.message ?: "更新操作失败，请检查网络或存储空间后重试") }
         log.record(EventCode.UPDATE_FAILED)
     }

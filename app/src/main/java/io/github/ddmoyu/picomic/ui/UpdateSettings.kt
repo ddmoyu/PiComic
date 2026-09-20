@@ -19,6 +19,7 @@ import kotlinx.coroutines.launch
 
 @Composable fun UpdateSettings(ui: UiState, vm: AppViewModel) {
     val repo = vm.updates; val state by repo.state.collectAsStateWithLifecycle()
+    val mirrors by repo.mirrorFallback.collectAsStateWithLifecycle()
     val context = LocalContext.current; val uri = LocalUriHandler.current; val scope = rememberCoroutineScope()
     var installing by remember { mutableStateOf(false) }; var cancel by remember { mutableStateOf(false) }
     val permissions = rememberLauncherForActivityResult(ActivityResultContracts.StartActivityForResult()) {
@@ -27,7 +28,15 @@ import kotlinx.coroutines.launch
     SectionTitle("应用版本")
     SettingRow("当前版本", BuildConfig.VERSION_NAME, onClick = {})
     SettingRow("发布渠道", if (state.configured) "GitHub Releases · 稳定版" else "公开发布渠道尚未配置", onClick = {})
-    if (!state.configured) Note("当前为开发构建。配置公开的安装包发布仓库后可检查更新；源码仓库保持私有。")
+    if (!state.configured) Note("此构建尚未配置安装包发布仓库。")
+    Row(Modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = 8.dp), verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {
+        Column(Modifier.weight(1f)) {
+            Text("更新备用线路", style = MaterialTheme.typography.bodyLarge)
+            Text("GitHub 连接失败或限流时，自动尝试镜像", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        }
+        Switch(checked = mirrors, onCheckedChange = repo::setMirrorFallback, enabled = state.configured && !state.busy)
+    }
+    state.route?.let { Note("当前更新线路：$it") }
     if (state.checkedAt > 0) Note("上次成功检查：" + java.time.Instant.ofEpochMilli(state.checkedAt).atZone(java.time.ZoneId.systemDefault()).format(java.time.format.DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm")))
     PreferenceToggle("启动时检查更新", "checkOnStart", ui, vm, "每天至多自动尝试一次；只提示，不自动下载或安装", enabled = state.configured)
     Column(Modifier.fillMaxWidth().padding(horizontal = 20.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {

@@ -1,6 +1,6 @@
 # 11 · 应用更新与 GitHub 发布
 
-设计合同：2026-09-18；实现更新：2026-09-20。Android 更新模块已实现，验证记录见 [22 号文档](22-更新模块与发布验证.md)。公开分发仓库、正式签名和真实发布尚未配置。
+设计合同：2026-09-18；实现更新：2026-09-20。Android 更新模块已实现，验证记录见 [22 号文档](22-更新模块与发布验证.md)。公开仓库、专用发行签名和标签发布工作流已配置；首次真实发布待推送版本标签，见 [24 号文档](24-GitHub-Actions发布与镜像更新.md)。
 
 ## 1. 已确认与首版范围
 
@@ -8,7 +8,7 @@
 
 首版基线：公开 Release 仓库、稳定版、手动检查、可选启动检查、完整 APK 下载和系统安装确认。入口在“设置 → 更新”。后台定时轮询、测试版订阅、差分更新、强制更新不纳入首版。
 
-应用包名为 `io.github.ddmoyu.picomic`；发布仓库 `owner/repo` 和正式签名尚待配置。源码仓库 `ddmoyu/PiComic` 保持私有，不默认作为匿名更新渠道，也不指向竞品仓库。
+应用包名为 `io.github.ddmoyu.picomic`；发布仓库为已公开的 `ddmoyu/PiComic`，默认作为匿名更新渠道。正式签名使用专用发行证书。
 
 ## 2. 页面与流程
 
@@ -32,7 +32,7 @@
 
 - `tag_name`：`v<versionName>`，例如 `v1.1.0`。
 - Release 标题：`PiComic <versionName>`；正文为简洁、完整的用户可见更新说明。
-- 一个或多个独立可安装的签名 APK；首版优先一个包含已验证 ABI 的通用 APK，不把 split APK 当作独立包下载。
+- 一个包含 `arm64-v8a` 的独立完整签名 APK，不把 split APK 当作独立包下载。
 - `picomic-update.json`：该版本机器可读清单，与 APK 一起作为 Release asset 上传。
 
 版本名、包名、versionCode、minSdk、ABI、文件大小与 SHA-256 均从最终签名 APK/构建输出生成，不能手工填写一份与 APK 不一致的清单。ABIs 按本项目实际构建和测试结果确定。
@@ -48,7 +48,7 @@ If-None-Match: <cached-etag>    # 存在缓存时
 
 API 版本头在实现时固定为 GitHub 支持并经过验证的版本。稳定版过滤 `draft == false`、`prerelease == false`，核对仓库身份。`latest` 是发行方的稳定发布入口，不能当作任意标签的最大 Android versionCode；客户端仍要比对清单版本，绝不降级。公开资源可以匿名读取。[GitHub Releases API](https://docs.github.com/en/rest/releases/releases#get-the-latest-release)
 
-从这个 Release 的 `assets` 找唯一、已上传的 `picomic-update.json`。下载使用该对象的 `browser_download_url`，不拼接未经验证的镜像地址。清单里的 APK 名称必须匹配同一 Release 的唯一资产；随后使用匹配资产返回的下载 URL。不能在两次 `latest` 请求中把旧清单与新 APK 混用。
+从这个 Release 的 `assets` 找唯一、已上传的 `picomic-update.json`。下载使用该对象的 `browser_download_url`，先验证官方地址，网络失败或限流时才通过内置 HTTPS 镜像传输；不接受任意镜像地址。清单里的 APK 名称必须匹配同一 Release 的唯一资产；随后使用匹配资产返回的下载 URL。不能在两次 `latest` 请求中把旧清单与新 APK 混用。
 
 ### 3.3 更新清单字段
 
@@ -77,13 +77,13 @@ Release 正文作为更新说明的唯一来源，不再要求清单中复制另
 
 更新客户端采用应用的 NetworkProfile：默认系统网络/VPN，可用用户选择的 HTTP 代理。更新请求与漫画请求共用路由策略，但使用独立客户端凭据作用域，不附加平台 Cookie、签名、Token。
 
-缓存 ETag、Release ID、完整验证过的元数据及检查时间；304 且存在对应缓存时复用，无缓存的异常 304 重新无条件请求一次。GitHub 建议使用条件请求；不能承诺所有匿名 304 都不占配额。[GitHub 条件请求](https://docs.github.com/en/rest/using-the-rest-api/best-practices-for-using-the-rest-api#use-conditional-requests-if-appropriate)
+按线路缓存 ETag，同时保存 Release ID、完整验证过的元数据及检查时间；304 且存在对应缓存时复用，无缓存的异常 304 重新无条件请求一次。GitHub 建议使用条件请求；不能承诺所有匿名 304 都不占配额。[GitHub 条件请求](https://docs.github.com/en/rest/using-the-rest-api/best-practices-for-using-the-rest-api#use-conditional-requests-if-appropriate)
 
-相同检查操作 single-flight。读取 403/429 的 Retry-After、X-RateLimit-Remaining/Reset，区分限流和权限异常，冷却期内不重复请求。公开匿名 API 可能因共享代理出口受限；不以向用户索取 PAT 作为默认解决办法。[GitHub 速率限制](https://docs.github.com/en/rest/using-the-rest-api/rate-limits-for-the-rest-api)
+相同检查操作 single-flight。读取 403/429 的 Retry-After、X-RateLimit-Remaining/Reset，区分限流和权限异常，按 API/文件下载与具体线路分别冷却，冷却期内不重复请求该线路；允许继续尝试其他可用线路。公开匿名 API 可能因共享代理出口受限；不以向用户索取 PAT 作为默认解决办法。[GitHub 速率限制](https://docs.github.com/en/rest/using-the-rest-api/rate-limits-for-the-rest-api)
 
 | 异常 | 行为 |
 |---|---|
-| 超时/代理断连/TLS 错误 | 保留已有内容，显示检查失败，提供重试；不回退强制直连 |
+| 超时/代理断连/TLS 错误 | 启用备用线路时按顺序尝试镜像，全部失败后提示重试；不改变用户代理或强制直连 |
 | 404 | 提示“发布地址不可用或尚无版本”，不当作已是最新；诊断中记录脱敏原因 |
 | 没有稳定版/缺清单/缺 APK | 暂无可用更新包，不能下载源码压缩包充数 |
 | JSON 错误/清单字段不符 | 提示发布信息异常；不继续安装 |
@@ -113,7 +113,7 @@ GitHub 资产下载可能跳转到其 CDN/短期签名地址；使用经过验�
 2. 递增 versionCode，填写完整用户可见更新说明，创建对应版本标签。保管并备份正式签名密钥，禁止把密钥/PAT写入仓库或 APK。
 3. 生成最终签名 APK、更新清单、摘要与本地发布验证记录。
 4. 创建 Draft Release；上传全部资产后逐个读回，检查包名、版本、签名、ABI、size/hash 及说明一致性。
-5. 核对完成后发布稳定 Release，设为 Latest。普通构建不会自动发布；后续可用 GitHub Actions 自动化以上流程，具体仓库/签名配置确定后再落地工作流。
+5. 核对完成后发布稳定 Release，设为 Latest。GitHub Actions 仅由 `vX.Y.Z` 标签触发以上流程，普通提交、PR 和本地构建不发布。
 6. 公开发布后使用匿名客户端重新检查并下载，真机完成“旧版 → 新版”升级，确认权限页、安装结果和数据保留。
 
 资产准备完整再发布，可避免客户端看见缺包 Release。若使用不可变发布策略，同一已发布版本不替换 APK；发现错误以更高 versionCode 发布修复，必要时撤下问题 Release 的 Latest 标记，不能让已更新用户自动降级。[GitHub 发布管理](https://docs.github.com/en/repositories/releasing-projects-on-github/managing-releases-in-a-repository)
@@ -124,7 +124,7 @@ GitHub 资产下载可能跳转到其 CDN/短期签名地址；使用经过验�
 
 P0 验收：最新/更高/更低版本、草稿/预发布过滤、缺资产、API 限流/304、版本清单不符、ABI/minSdk、下载暂停/取消/续传、网络切换、损坏 APK、错误包名/签名、安装权限拒绝/撤销、安装取消/失败/成功、进程恢复及升级后数据保留。
 
-HTML 已覆盖的范围见[浏览器验证](evidence/prototype-validation.md)。真实 GitHub 发布、APK 下载校验、后台恢复及 Android 安装均待工程实现与联调，原型版本号和 Release 信息是明确标注的演示数据。
+HTML 已覆盖的范围见[浏览器验证](evidence/prototype-validation.md)。APK 下载校验、后台恢复和系统安装入口已实现，真实 GitHub 首发与实体手机升级仍待实际发版验收；原型版本号和 Release 信息是明确标注的演示数据。
 
 ## 启动时检查更新
 

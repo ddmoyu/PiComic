@@ -91,6 +91,23 @@ class UpdateContractTest {
             store.delete("task.json"); assertNull(store.read("task.json"))
         } finally { dir.deleteRecursively() }
     }
+    @Test fun crossRoute304CannotReuseCacheAfterAnUnconditionalRetry() = runBlocking {
+        val context = ApplicationProvider.getApplicationContext<android.content.Context>()
+        val dir = File(context.cacheDir, "update-route-304-${System.nanoTime()}")
+        try { MockWebServer().use { server ->
+            server.enqueue(MockResponse().setResponseCode(503))
+            repeat(2) { server.enqueue(MockResponse().setResponseCode(304)) }; server.start()
+            val http = OkHttpClient(); val calls = Call.Factory { request -> http.newCall(request.newBuilder().url(server.url(request.url.encodedPath)).build()) }
+            val api = GitHubUpdateClient(channel, "fixture", packageName, calls, calls, true)
+            val store = UpdateStore(dir, channel, packageName)
+            store.write("cache.json", UpdateStore.Saved(bundle(), etag = "\"official\""))
+            assertTrue(runCatching { UpdateChecker.check(api, store) }.exceptionOrNull() is UpdateFailure)
+            val requests = List(3) { server.takeRequest() }
+            assertEquals("\"official\"", requests[0].getHeader("If-None-Match"))
+            assertNull(requests[1].getHeader("If-None-Match")); assertNull(requests[2].getHeader("If-None-Match"))
+            assertEquals(3, server.requestCount)
+        } } finally { dir.deleteRecursively() }
+    }
     @Test fun unexpected304WithoutUsableCacheRetriesOnceAndValidCacheAvoidsAssetDownload() = runBlocking {
         val context = ApplicationProvider.getApplicationContext<android.content.Context>(); val dir = File(context.cacheDir, "update-304-${System.nanoTime()}")
         try { MockWebServer().use { server ->

@@ -7,7 +7,7 @@ import java.io.IOException
 import java.nio.ByteBuffer
 import java.nio.charset.CodingErrorAction
 
-class UpdateFailure(message: String, val cooldownUntil: Long = 0) : IOException(message)
+class UpdateFailure(message: String, val cooldownUntil: Long = 0, val retryable: Boolean = false) : IOException(message)
 data class ReleaseChannel(val owner: String, val repo: String) {
     init { require(owner.matches(Regex("[A-Za-z0-9][A-Za-z0-9-]{0,38}")) && repo.matches(Regex("[A-Za-z0-9_][A-Za-z0-9_.-]{0,99}")) && repo !in setOf(".", "..")) }
     val api = "https://api.github.com/repos/$owner/$repo/releases/"

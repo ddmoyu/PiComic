@@ -10,7 +10,7 @@ import kotlin.coroutines.resumeWithException
 
 /** Resume only an exact URL with a strong ETag. Unsupported ranges restart this page. */
 class RangeTransfer(private val calls: Call.Factory) {
-    suspend fun fetch(request: Request, destination: File, limit: Long = 32L * 1024 * 1024) {
+    suspend fun fetch(request: Request, destination: File, limit: Long = 32L * 1024 * 1024, checkResponse: (Response) -> Unit = {}) {
         val metadata = AtomicFile(File(destination.path + ".resume"))
         val urlKey = digest(request.url.toString().toByteArray())
         val saved = runCatching { JSONObject(metadata.openRead().use { it.readBytes().toString(Charsets.UTF_8) }) }.getOrNull()
@@ -31,6 +31,7 @@ class RangeTransfer(private val calls: Call.Factory) {
                 override fun onResponse(call: Call, response: Response) {
                     try {
                         response.use { reply ->
+                            checkResponse(reply)
                             if (reply.code !in setOf(200, 206)) throw IOException("图片下载失败（HTTP ${reply.code}）")
                             if (reply.header("Content-Encoding")?.let { it != "identity" } == true) throw IOException("图片传输编码不支持断点验证")
                             val append = reply.code == 206
