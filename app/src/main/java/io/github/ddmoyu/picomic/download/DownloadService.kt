@@ -70,7 +70,7 @@ class DownloadService : Service() {
         }
         fun notice(context: Context, message: String, active: Boolean): Notification {
             val open = PendingIntent.getActivity(context, 4102, Intent(context, MainActivity::class.java).putExtra("openDownloads", true).addFlags(Intent.FLAG_ACTIVITY_SINGLE_TOP), PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT)
-            return NotificationCompat.Builder(context, CHANNEL).setSmallIcon(R.drawable.ic_launcher)
+            return NotificationCompat.Builder(context, CHANNEL).setSmallIcon(R.drawable.ic_stat_picomic)
                 .setContentTitle(if (active) "PiComic 正在下载" else "PiComic 下载待继续").setContentText(message)
                 .setContentIntent(open).setOnlyAlertOnce(true).setOngoing(active).setAutoCancel(!active)
                 .apply { if (active) addAction(0, "暂停全部", PendingIntent.getService(context, 4103, Intent(context, DownloadService::class.java).setAction(PAUSE), PendingIntent.FLAG_IMMUTABLE)) }.build()

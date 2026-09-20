@@ -4,6 +4,8 @@ Android 手机漫画阅读 App · Kotlin / Jetpack Compose · 0.3.0-alpha
 
 项目目录：`E:\ddmoyu\PiComic`。首版功能代码已涵盖六组来源、账号、搜索/分类/详情、阅读器、收藏/历史、持久下载与离线、备份/WebDAV、设置/日志和 GitHub 更新。真实平台账号、实体设备、WebDAV 服务商及正式发布验收仍需外部条件，当前保持开发版标识。正常页面使用真实来源，原创示意目录仅在显式开启 Debug 演示模式时使用。源码仓库为 [ddmoyu/PiComic](https://github.com/ddmoyu/PiComic)（私有）。
 
+图标采用已确认的 D7 圆周率字形；SVG 母版及 Android 资源说明见 [正式图标](design/logo/README.md)。
+
 ## 构建
 
 用 Android Studio 打开项目根目录，配置 Android SDK 后运行 `app`。命令行：

@@ -1,1 +1,13 @@
-<vector xmlns:android="http://schemas.android.com/apk/res/android" android:width="80dp" android:height="80dp" android:viewportWidth="80" android:viewportHeight="80"><path android:fillColor="#405FAD" android:pathData="M0,0h80v80h-80z"/><path android:fillColor="#FFFFFF" android:fillType="evenOdd" android:pathData="M18,22h19c9,0 15,6 15,14s-6,14 -15,14h-7v12h-12z M30,33h8a4,4 0,1 1,0 8h-8z"/><path android:fillColor="#B5CBFF" android:pathData="M56,21h7v41h-7z"/></vector>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="80dp" android:height="80dp"
+    android:viewportWidth="72" android:viewportHeight="72">
+    <!-- Rounded display asset for Compose; the launcher uses the adaptive mipmap. -->
+    <path android:fillColor="@color/ic_launcher_background"
+        android:pathData="M18,0H54A18,18 0,0 1,72 18V54A18,18 0,0 1,54 72H18A18,18 0,0 1,0 54V18A18,18 0,0 1,18 0Z"/>
+    <group android:translateX="-18" android:translateY="-18">
+        <group android:translateX="2.88407" android:pivotX="54" android:pivotY="54" android:scaleX="0.82402" android:scaleY="0.82402">
+            <path android:fillColor="#FFFFFF"
+                android:pathData="M31 30H77l-3 6H65l-4 26q-2 12 6 9 4-1 8-6l2 2q-6 11-15 11-12 0-9-15l5-27H44q-1 25-11 42h-9q13-19 15-42H31z"/>
+        </group>
+    </group>
+</vector>
