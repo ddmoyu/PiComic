@@ -36,15 +36,18 @@ import okhttp3.HttpUrl.Companion.toHttpUrl
         onDispose { lifecycle.removeObserver(observer); controller.cancel() }
     }
     if (web) { NhWebLogin(vm, { web = false }); return }
-    Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(24.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
+    val account = accounts[controller.sourceId] ?: AccountState()
+    val scroll = rememberScrollState()
+    if (mode != "匿名") LoginSuccessFeedback(operation.loginSucceeded, "nhentai · $mode", account, scroll, controller::dismissLoginSuccess)
+    Column(Modifier.fillMaxSize().verticalScroll(scroll).padding(24.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
         Text("nhentai", style = MaterialTheme.typography.headlineSmall)
+        if (mode != "匿名") AccountStatusCard(account)
         Text("选择本次使用的认证方式。网页会话和 API Key 分开加密保存，权限由平台决定。")
         TextButton(onClick = { secret = ""; controller.cancel(); openRecovery() }, enabled = !operation.busy) { Text("忘记密码") }
         listOf("匿名", "API Key", "网页会话").forEach { value ->
             Row { RadioButton(mode == value, onClick = { secret = ""; controller.cancel(); vm.preference("nh.auth", value) }); Text(value, Modifier.padding(top = 12.dp)) }
         }
         if (mode != "匿名") {
-            Text((accounts[controller.sourceId] ?: AccountState()).label())
             if (mode == "网页会话") Button(onClick = { web = true }, enabled = network.ready && !operation.busy, modifier = Modifier.fillMaxWidth()) { Text("打开网页登录") }
             OutlinedTextField(secret, { secret = it.take(16384) }, Modifier.fillMaxWidth(), singleLine = true, enabled = !operation.busy,
                 label = { Text(if (mode == "API Key") "API Key" else "手动导入 User token") }, visualTransformation = PasswordVisualTransformation(), keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password))

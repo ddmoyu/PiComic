@@ -23,20 +23,14 @@ import io.github.ddmoyu.picomic.auth.AccountState
 import io.github.ddmoyu.picomic.auth.AccountStatus
 import io.github.ddmoyu.picomic.auth.PasswordAccountController
 
-internal fun AccountState.label(): String = when (status) {
-    AccountStatus.ANONYMOUS -> "未登录"
-    AccountStatus.AUTHENTICATING -> "正在验证账号"
-    AccountStatus.AUTHENTICATED -> "已登录 · $displayName"
-    AccountStatus.NEEDS_VALIDATION -> "会话待验证"
-    AccountStatus.EXPIRED -> "会话已失效"
-}
-
 @Composable fun PicacgLoginScreen(controller: PasswordAccountController, networkReady: Boolean, showAvatarFrame: Boolean = true, openRecovery: () -> Unit, openNetwork: () -> Unit) {
     val operation by controller.state.collectAsStateWithLifecycle()
     val accounts by controller.accounts.collectAsStateWithLifecycle()
     val remembered by controller.rememberedAccounts.collectAsStateWithLifecycle()
     val savedAccount = remembered[controller.sourceId]
     val account = accounts[controller.sourceId] ?: AccountState()
+    val scroll = rememberScrollState()
+    LoginSuccessFeedback(operation.loginSucceeded, controller.title, account, scroll, controller::dismissLoginSuccess)
     var email by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
     var rememberPassword by remember { mutableStateOf(true) }
@@ -49,7 +43,7 @@ internal fun AccountState.label(): String = when (status) {
         lifecycle.addObserver(observer)
         onDispose { lifecycle.removeObserver(observer); controller.cancel() }
     }
-    Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(24.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
+    Column(Modifier.fillMaxSize().verticalScroll(scroll).padding(24.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
         val profile = account.profile
         Box(Modifier.size(80.dp), contentAlignment = Alignment.Center) {
             AppIcon(Glyph.User, modifier = Modifier.size(42.dp), color = MaterialTheme.colorScheme.primary)
@@ -57,7 +51,7 @@ internal fun AccountState.label(): String = when (status) {
             if (showAvatarFrame) profile?.frame?.let { coil3.compose.AsyncImage(it, "平台头像框", imageLoader = io.github.ddmoyu.picomic.reader.ReaderImages.loader(LocalContext.current), modifier = Modifier.fillMaxSize()) }
         }
         Text(controller.title, style = MaterialTheme.typography.headlineSmall)
-        Text(account.label(), style = MaterialTheme.typography.titleMedium)
+        AccountStatusCard(account)
         profile?.level?.let { Text("等级 $it" + profile.title?.takeIf(String::isNotBlank)?.let { title -> " · $title" }.orEmpty(), style = MaterialTheme.typography.bodySmall) }
         Text("使用${controller.title}账号登录。验证成功后加密保存会话；开启记住账号密码后，可一键重新登录并加密备份。", style = MaterialTheme.typography.bodyMedium)
         OutlinedTextField(email, { email = it.take(320) }, Modifier.fillMaxWidth(), enabled = !operation.busy,

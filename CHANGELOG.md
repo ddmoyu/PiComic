@@ -4,6 +4,7 @@
 
 ### 简体中文
 
+- 强化平台登录反馈：手动登录或导入凭据验证成功后，弹窗显示平台与账号，并收起键盘、返回页首。登录页增加醒目的账号状态卡片，账号管理页显示“已登录”标识；自动验证旧会话不重复弹窗，失败或过期不会误报成功。
 - 分类结果页增加各平台原生排序：JM 的最新、总/月/周/日排行、最多图片和最多喜欢；哔咔的新旧、喜欢数和浏览数；nhentai 的最新与各时段热门；Hitomi 的收录/发布时间、日/周/月/年热门和随机。切换排序保留分类并回到第一页，翻页沿用所选排序，返回页面保留选择和位置。EH、绅士漫画沿用官网分类默认顺序。
 - 哔咔、JM、EH、绅士漫画和 nhentai 登录页新增“忘记密码”，在应用内网页打开平台找回或账号入口，支持网页后退、重新加载与返回登录；哔咔网页未提供找回选项时提示使用官方客户端。
 - 调整作品详情布局：ID、作者和分类标签分组展示，下载与阅读按钮左右等宽排列，章节采用双列按钮；保留收藏、续读和已下载提示，不显示分享与评论入口。
@@ -20,6 +21,7 @@
 
 ### English
 
+- Made sign-in results clearer with a confirmation showing the platform and account after a successful login or credential import. Dismiss the keyboard and return to the top, keep a prominent account-status card and signed-in badge, and avoid repeated confirmations during session restoration or false success on failures and expiry.
 - Added source-specific sorting to category results: all seven JM orders, Pica date/likes/views, nhentai date and popularity periods, and Hitomi added/published dates, daily/weekly/monthly/yearly popularity and random order. Changing order retains the category and restarts pagination; subsequent pages and restored screens keep the selection. EH and Wnacg retain their native category order.
 - Added “Forgot password” to Pica, JM, EH, Wnacg and nhentai login pages. Recovery or account pages open inside the app with back, reload and return-to-login controls. Pica users are directed to the official client if web recovery is unavailable.
 - Redesigned details with grouped ID, author and category tags, equal-width Download and Read buttons, and two-column chapter buttons. Favorites, reading progress and downloaded indicators remain available, without share or comment actions.
@@ -36,6 +38,7 @@
 
 ### 日本語
 
+- ログインや認証情報の取り込みが成功すると、配信元とアカウントを確認ダイアログで表示し、キーボードを閉じて画面先頭へ戻ります。ログイン状態カードと「ログイン済み」表示を追加し、保存済みセッションの自動確認では繰り返し通知せず、失敗や期限切れを成功と表示しません。
 - 分類の結果画面に配信元ごとの並び替えを追加しました。JM の7種類、Pica の新旧・いいね・閲覧数、nhentai の新着・期間別人気、Hitomi の追加日・公開日・日/週/月/年の人気・ランダムに対応します。変更時は分類を維持して先頭ページへ戻り、ページ送りと画面復帰でも選択を保持します。EH と Wnacg は公式の分類順を使用します。
 - Pica、JM、EH、Wnacg、nhentai のログイン画面に「パスワードを忘れた」を追加しました。アプリ内で再設定またはアカウントページを開き、ページを戻る・再読み込み・ログインに戻る操作ができます。Pica のウェブ版に再設定項目がない場合は公式クライアントを案内します。
 - 詳細画面の ID・作者・分類タグをグループ化し、ダウンロードと読書ボタンを同じ幅で横並びに、章ボタンを2列に配置しました。お気に入り、続きを読む、ダウンロード済み表示を維持し、共有・コメントの操作は表示しません。

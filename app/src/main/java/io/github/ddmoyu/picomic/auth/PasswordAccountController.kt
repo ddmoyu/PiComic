@@ -10,7 +10,7 @@ import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 
-data class PasswordLoginState(val busy: Boolean = false, val message: String? = null)
+data class PasswordLoginState(val busy: Boolean = false, val message: String? = null, val loginSucceeded: Boolean = false)
 
 /** All entry points are called on the UI scope. Credentials are never part of observable UI state. */
 open class PasswordAccountController(
@@ -29,6 +29,8 @@ open class PasswordAccountController(
     private var job: Job? = null
     private var attempt: LoginAttempt? = null
     private var operation = 0L
+
+    fun dismissLoginSuccess() { mutable.value = mutable.value.copy(loginSucceeded = false) }
 
     fun login(email: String, password: CharArray, rememberPassword: Boolean = false) {
         val account = email.trim()
@@ -60,7 +62,8 @@ open class PasswordAccountController(
         try {
             val retention = if (rememberPassword) PasswordRetention.Remember(RememberedLogin(account, password)) else PasswordRetention.Forget
             sessions.validateAndCommit(active, candidate, retention) { api.validate(it) }
-            mutable.value = mutable.value.copy(message = if (rememberPassword) "登录成功，会话和账号密码已加密保存" else "登录成功，已验证账号并保存加密会话")
+            mutable.value = mutable.value.copy(loginSucceeded = true,
+                message = if (rememberPassword) "登录成功，会话和账号密码已加密保存" else "登录成功，已验证账号并保存加密会话")
         } finally { candidate.value.fill(0) }
     }
 

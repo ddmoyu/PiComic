@@ -40,9 +40,12 @@ import okhttp3.HttpUrl.Companion.toHttpUrl
         onDispose { lifecycle.removeObserver(observer); controller.cancel(); permissionJob?.cancel() }
     }
     if (web != null) { EhWebLogin(vm, web!!) { web = null }; return }
-    Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(24.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
+    val account = accounts[controller.sourceId] ?: AccountState()
+    val scroll = rememberScrollState()
+    LoginSuccessFeedback(operation.loginSucceeded, "EH / EX", account, scroll, controller::dismissLoginSuccess)
+    Column(Modifier.fillMaxSize().verticalScroll(scroll).padding(24.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
         Text("EH / EX", style = MaterialTheme.typography.headlineSmall)
-        Text((accounts["ehentai"] ?: AccountState()).label())
+        AccountStatusCard(account)
         Text("EH 会话与 EX 访问权限分别验证。登录后可继续阅读原站画廊。")
         Button(onClick = { web = false }, enabled = network.ready && !operation.busy, modifier = Modifier.fillMaxWidth()) { Text("打开 EH 网页登录") }
         OutlinedButton(onClick = { web = true }, enabled = network.ready && !operation.busy, modifier = Modifier.fillMaxWidth()) { Text("打开 EX 网页验证") }

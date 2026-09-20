@@ -15,6 +15,19 @@ class CredentialAccountControllerTest {
         override fun remove(key: String) { values.remove(key) }
     }
     private fun token() = SessionCandidate(CredentialKind.USER_TOKEN, "fixture-secret".toByteArray())
+    @Test fun explicitLoginAcknowledgesOnceButSessionRestorationStaysQuiet() = runBlocking {
+        val store = Store(); val sessions = SessionCoordinator(store, NetworkEngine())
+        val controller = CredentialAccountController("nhentai_web", sessions, this, {}) { ValidationResult.Verified("测试账号") }
+        controller.submit(token()); controller.state.first { !it.busy }
+        assertTrue(controller.state.value.loginSucceeded)
+        controller.dismissLoginSuccess(); assertFalse(controller.state.value.loginSucceeded)
+        controller.restore(); controller.state.first { !it.busy }
+        assertFalse(controller.state.value.loginSucceeded)
+        controller.submit(token()); controller.state.first { !it.busy }
+        assertTrue(controller.state.value.loginSucceeded)
+        controller.logout(); controller.state.first { !it.busy }
+        assertFalse(controller.state.value.loginSucceeded)
+    }
     @Test fun rejectedCandidateDoesNotReplaceSavedKeyAndIsZeroed() = runBlocking {
         val store = Store(); val sessions = SessionCoordinator(store, NetworkEngine())
         sessions.validateAndCommit(sessions.begin("nhentai_key"), token()) { ValidationResult.Verified("旧账号", "42") }
@@ -24,6 +37,7 @@ class CredentialAccountControllerTest {
         assertArrayEquals(original, store.values["session.nhentai_key"])
         assertTrue(candidate.value.all { it == 0.toByte() })
         assertEquals(AccountStatus.AUTHENTICATED, sessions.state.value["nhentai_key"]?.status)
+        assertFalse(controller.state.value.loginSucceeded)
     }
     @Test fun clearingWebSessionRetainsIndependentKey() = runBlocking {
         val store = Store(); val sessions = SessionCoordinator(store, NetworkEngine())

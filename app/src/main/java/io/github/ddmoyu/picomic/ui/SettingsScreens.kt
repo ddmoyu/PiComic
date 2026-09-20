@@ -208,11 +208,15 @@ val settingsTitles = mapOf("settings" to "设置", "accounts" to "账号管理",
         Source.entries.forEach { source ->
             SectionTitle(source.title)
             if(source==Source.HITOMI) Note("该来源无需账号，可直接搜索和阅读。")
-            else if(source==Source.PICACG) SettingRow((accounts[io.github.ddmoyu.picomic.source.picacg.PicacgAccountController.SOURCE] ?: io.github.ddmoyu.picomic.auth.AccountState()).label(),"账号密码登录 · 加密会话",Glyph.User,"管理",{login(source)})
-            else if(source==Source.JMCOMIC) SettingRow((accounts["jmcomic"] ?: io.github.ddmoyu.picomic.auth.AccountState()).label(),"可匿名浏览 · 登录后验证会话",Glyph.User,"管理",{login(source)})
-            else if(source==Source.NHENTAI) SettingRow(vm.nhSessionId()?.let { (accounts[it] ?: io.github.ddmoyu.picomic.auth.AccountState()).label() } ?: "匿名浏览", "API Key / 网页会话分别验证", Glyph.User, "管理", { login(source) })
-            else if(source==Source.HTCOMIC) SettingRow((accounts["htcomic"] ?: io.github.ddmoyu.picomic.auth.AccountState()).label(), "可匿名浏览 · 账号密码登录", Glyph.User, "管理", { login(source) })
-            else if(source==Source.EHENTAI) SettingRow((accounts["ehentai"] ?: io.github.ddmoyu.picomic.auth.AccountState()).label(), "网页登录 / Cookie 导入 · 单独验证 EX 权限", Glyph.User, "管理", { login(source) })
+            else if(source==Source.PICACG) AccountSettingRow(accounts["picacg"] ?: io.github.ddmoyu.picomic.auth.AccountState(), "账号密码登录 · 加密会话") { login(source) }
+            else if(source==Source.JMCOMIC) AccountSettingRow(accounts["jmcomic"] ?: io.github.ddmoyu.picomic.auth.AccountState(), "可匿名浏览 · 登录后验证会话") { login(source) }
+            else if(source==Source.NHENTAI) {
+                val sessionId = vm.nhSessionId()
+                if (sessionId == null) SettingRow("匿名浏览", "API Key / 网页会话分别验证", Glyph.User, "管理", { login(source) })
+                else AccountSettingRow(accounts[sessionId] ?: io.github.ddmoyu.picomic.auth.AccountState(), "API Key / 网页会话分别验证") { login(source) }
+            }
+            else if(source==Source.HTCOMIC) AccountSettingRow(accounts["htcomic"] ?: io.github.ddmoyu.picomic.auth.AccountState(), "可匿名浏览 · 账号密码登录") { login(source) }
+            else if(source==Source.EHENTAI) AccountSettingRow(accounts["ehentai"] ?: io.github.ddmoyu.picomic.auth.AccountState(), "网页登录 / Cookie 导入 · 单独验证 EX 权限") { login(source) }
             HorizontalDivider(Modifier.padding(horizontal=20.dp),color=MaterialTheme.colorScheme.outlineVariant)
         }
         Spacer(Modifier.height(30.dp))

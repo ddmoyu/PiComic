@@ -9,6 +9,15 @@ import org.junit.Assert.*
 import org.junit.Test
 
 class PicacgAccountControllerTest {
+    @Test fun successfulManualOrSavedLoginAcknowledgesButRestorationStaysQuiet() = runBlocking {
+        val f = Fixture(this)
+        f.controller.login("fixture", charArrayOf('x'), true); f.done()
+        assertTrue(f.controller.state.value.loginSucceeded)
+        f.controller.dismissLoginSuccess(); assertFalse(f.controller.state.value.loginSucceeded)
+        f.controller.restore(); f.done(); assertFalse(f.controller.state.value.loginSucceeded)
+        f.controller.loginSaved(); f.done(); assertTrue(f.controller.state.value.loginSucceeded)
+        f.controller.logout(); f.done(); assertFalse(f.controller.state.value.loginSucceeded)
+    }
     private class Store : SecretStore {
         val data = mutableMapOf<String, ByteArray>()
         override fun read(key: String) = data[key]?.copyOf()
@@ -73,6 +82,7 @@ class PicacgAccountControllerTest {
         assertArrayEquals(old, f.store.data["session.picacg"])
         assertEquals(AccountStatus.AUTHENTICATED, f.status())
         assertTrue(f.controller.state.value.message!!.contains("会话已失效"))
+        assertFalse(f.controller.state.value.loginSucceeded)
     }
     @Test fun expiredStoredSessionIsRemovedAndRequiresNewLogin() = runBlocking {
         val f = Fixture(this, object : Api() { override suspend fun profile(candidate: SessionCandidate): String { throw PicacgFailure(PicacgFailureKind.EXPIRED) } })

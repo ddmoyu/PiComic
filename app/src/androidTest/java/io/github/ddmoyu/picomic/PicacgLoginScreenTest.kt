@@ -51,18 +51,26 @@ class PicacgLoginScreenTest {
             ui.onNodeWithText("密码").performTextInput("fixture-password")
             ui.onNodeWithText("登录并验证").performScrollTo().performClick()
             ui.waitUntil(10000) { !controller.state.value.busy && controller.state.value.message != null }
+            ui.onNodeWithTag("login-success-dialog").assertDoesNotExist()
             ui.onNodeWithText("登录未通过，请检查账号和密码").performScrollTo().assertExists()
             assertTrue(secrets.data.isEmpty())
             ui.onNodeWithText("密码").performScrollTo().assert(SemanticsMatcher.expectValue(SemanticsProperties.EditableText, AnnotatedString("")))
             ui.onNodeWithText("密码").performTextInput("fixture-password")
             ui.onNodeWithText("登录并验证").performScrollTo().performClick()
             ui.waitUntil(10000) { sessions.state.value["picacg"]?.status == AccountStatus.AUTHENTICATED && !controller.state.value.busy }
-            ui.onNodeWithText("已登录 · 联调测试账号").performScrollTo().assertIsDisplayed()
+            ui.onNodeWithTag("login-success-dialog").assertIsDisplayed()
+            ui.onNode(hasText("已登录 · 联调测试账号") and hasAnyAncestor(hasTestTag("login-success-dialog"))).assertIsDisplayed()
+            ui.onNodeWithText("知道了").performClick()
+            ui.onNodeWithTag("login-success-dialog").assertDoesNotExist()
+            ui.onNodeWithTag("account-status").assertIsDisplayed()
+            ui.onNodeWithText("已登录 · 联调测试账号").assertIsDisplayed()
             assertNotNull(secrets.data["session.picacg"])
             assertEquals("fixture@example.test", controller.rememberedAccounts.value["picacg"])
             StoredAccountCodec.decode(secrets.data.getValue("session.picacg")).use { assertArrayEquals("fixture-password".toCharArray(), it.login!!.password) }
             ui.onNodeWithText("清除本地账号").performScrollTo().performClick()
             ui.waitUntil(10000) { sessions.state.value["picacg"]?.status == AccountStatus.ANONYMOUS && !controller.state.value.busy }
+            ui.onNodeWithText("未登录").performScrollTo().assertIsDisplayed()
+            ui.onNodeWithTag("login-success-dialog").assertDoesNotExist()
             assertTrue(secrets.data.isEmpty())
             assertEquals(5, server.requestCount)
         }

@@ -17,12 +17,13 @@ class CredentialAccountController(val sourceId: String, private val sessions: Se
     private var job: Job? = null
     private var attempt: LoginAttempt? = null
     private var sequence = 0L
+    fun dismissLoginSuccess() { mutable.value = mutable.value.copy(loginSucceeded = false) }
     fun submit(candidate: SessionCandidate) {
         val operation = start {
             awaitNetwork()
             val active = sessions.begin(sourceId).also { attempt = it }
             sessions.validateAndCommit(active, candidate, validate = validate)
-            mutable.value = mutable.value.copy(message = "已验证账号并加密保存凭据")
+            mutable.value = mutable.value.copy(message = "登录成功，已验证账号并加密保存凭据", loginSucceeded = true)
         }
         operation.invokeOnCompletion { candidate.value.fill(0) }
     }
