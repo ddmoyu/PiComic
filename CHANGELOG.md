@@ -4,6 +4,7 @@
 
 ### 简体中文
 
+- 更新页面的操作按钮固定在底部，长更新日志不再影响下载操作；按钮内显示下载进度，支持原位暂停、断点继续和取消更新。
 - 从阅读返回详情时复用临时缓存，保留目录位置并更新阅读进度；详情和阅读不再重复获取相同资料，支持手动刷新。
 - 图片加载改为低调的浅色细线动画，提示随长图的可见区域移动；错误文字和重试按钮适配阅读背景。点击重试按当前可见图片及后续预加载张数恢复失败任务，保留成功和正在加载的图片，不重试整章或之前的失败页。
 - 修复翻页反复取消预加载的问题：持续补齐可见区域之后设定数量的图片，翻页保留已开始的下载，快速跳页只移除过时的排队任务；等待图片时显示加载提示。
@@ -15,6 +16,7 @@
 
 ### English
 
+- Update actions now stay at the bottom while release notes scroll. Download progress appears inside the button, with pause, resume and cancel controls always within reach.
 - Returning from the reader restores cached details and the chapter-list position while updating reading progress. Details and reading share the same temporary cache, with a manual refresh action.
 - Added a subtle loading animation that stays within the visible part of long images, with error text and retry controls adapted to the reader background. Retry failed images in the current visible area and configured look-ahead window, preserving successful and ongoing loads without retrying earlier failures or the whole chapter.
 - Fixed page turns repeatedly cancelling preloads. Keep the configured number of images ahead of the visible area, finish started downloads and discard only outdated queued work after jumps. Show a loading indicator while images are pending.
@@ -26,6 +28,7 @@
 
 ### 日本語
 
+- 更新画面の操作ボタンを下部に固定しました。長い更新履歴でも操作でき、ボタン内の進捗表示、一時停止、中断位置からの再開、キャンセルに対応します。
 - 読書画面から戻ると、詳細の一時キャッシュと目次の位置を復元し、読書進捗を更新します。詳細と読書で同じ情報を再取得せず、手動更新も利用できます。
 - 長い画像でも表示範囲内に留まる控えめな読み込みアニメーションを追加し、エラー表示と再試行ボタンを読書背景に合わせました。再試行は現在の表示範囲と設定した先読み枚数内の失敗画像だけを対象とし、読み込み済み・処理中の画像や以前の失敗ページ、章全体を再取得しません。
 - ページ移動で先読みが繰り返し中断される問題を修正しました。表示範囲の先に設定枚数を先読みし、開始済みのダウンロードは継続します。離れたページへ移動した場合は不要な待機タスクだけを取り除き、画像の読み込み中はインジケーターを表示します。

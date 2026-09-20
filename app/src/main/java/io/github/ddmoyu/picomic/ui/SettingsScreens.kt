@@ -66,6 +66,7 @@ val settingsTitles = mapOf("settings" to "设置", "accounts" to "账号管理",
 }
 
 @Composable fun SettingsPage(route: String, ui: UiState, vm: AppViewModel, go: (String) -> Unit, notice: (String) -> Unit) {
+    if (route == "updates") { UpdateSettings(ui, vm); return }
     val uriHandler = LocalUriHandler.current
     Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(bottom=28.dp)) {
         when(route) {
@@ -91,7 +92,6 @@ val settingsTitles = mapOf("settings" to "设置", "accounts" to "账号管理",
                 SectionTitle("显示")
                 PreferenceToggle("高刷新率模式","highRefresh",ui,vm,"优先请求设备支持的较高刷新率，仍受系统和省电影响")
             }
-            "updates" -> UpdateSettings(ui, vm)
             "data" -> {
                 SectionTitle("下载偏好")
                 DownloadLocationSettings(ui, vm)

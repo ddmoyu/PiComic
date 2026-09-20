@@ -112,8 +112,8 @@ class UpdateRepository private constructor(private val context: Context) {
                 java.nio.file.Files.move(part.toPath(), apk.toPath(), java.nio.file.StandardCopyOption.REPLACE_EXISTING)
                 mutable.update { it.copy(phase = UpdatePhase.READY, downloaded = apk.length(), message = "校验通过，可安装更新") }
                 log.record(EventCode.UPDATE_VERIFIED)
-            } } catch (e: CancellationException) { mutable.update { it.copy(phase = UpdatePhase.PAUSED, message = "下载已暂停，可在前台继续") }; throw e }
-            catch (e: Exception) { failure(e) }
+            } } catch (e: CancellationException) { mutable.update { it.copy(phase = UpdatePhase.PAUSED, downloaded = part.length(), message = "下载已暂停，可在前台继续") }; throw e }
+            catch (e: Exception) { mutable.update { it.copy(downloaded = part.length()) }; failure(e) }
         }
     }
     fun pause() { job?.cancel() }
