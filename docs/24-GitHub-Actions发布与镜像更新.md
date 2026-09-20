@@ -72,4 +72,15 @@ Runner 只在临时目录恢复密钥，构建结束清理。Gradle 从 `PICOMIC
 
 先前 `v0.3.0` 运行因 `sdkmanager` 未在 PATH 中而终止，未产生 Release。已修正为 SDK 内绝对工具路径和 `platforms;android-37.0`，保留失败标签，使用新标签 `v0.3.1` 发布。普通文档提交仍不会触发打包。
 
-实体手机正式旧版覆盖升级及数据保留仍需实际设备验证，云端构建和文件校验不替代此项验收。
+## v0.3.2 发布验证
+
+2026-09-20 通过 `v0.3.2` 标签发布，源码提交为 `02e43cb`；[Actions 运行 35515205730](https://github.com/ddmoyu/PiComic/actions/runs/35515205730) 成功，[Release](https://github.com/ddmoyu/PiComic/releases/tag/v0.3.2) 已公开并设为 Latest，包含简体中文、英文、日文更新日志。
+
+- 发版前完成 143 项 API 36.1 Android 回归、92 项单元测试和 6 项发布脚本测试，全部通过。Android 测试在无窗口模拟器中使用测试数据运行，覆盖账号、分类和排序、列表、详情缓存、阅读预加载与重试、下载、备份、系统返回及更新控制；未进行旧 Android 或真实平台账号登录测试。
+- 本地 Release lint 为 0 errors、48 warnings、1 hint；云端重新执行 92 项单元测试和 6 项发布脚本测试，Release lint 为 0 errors、52 warnings、1 hint，随后构建并验证正式签名 APK。
+- `PiComic-0.3.2.apk`：版本名 `0.3.2`、versionCode `3002`、包名 `io.github.ddmoyu.picomic`、最低 API 26、仅 `arm64-v8a`，大小 3,258,905 字节。
+- APK SHA-256：`f8c769c1ffad31a6b11c22338c357c1f2211d2f7b68a8204dffa3c143ff01ad1`。下载后独立检查 APK 包信息、ABI、v2 签名和正式发行证书，均与云端报告一致；更新清单、GitHub 资产摘要和 `SHA256SUMS.txt` 全部匹配。
+- 当前网络出口匿名访问 GitHub `latest` API 返回 403 限流；GH-Proxy `latest` API 返回 200，并正确提供 `v0.3.2`。GitHub、GH-Proxy、GHProxy.net 的版本更新清单均返回 200，内容完全一致；本轮未重复下载镜像 APK。经认证的 GitHub `latest` 也确认新版本及三语言日志。
+- 本地证据位于忽略目录 `artifacts/github-release/v0.3.2/`，Android 回归日志为 `artifacts/v0.3.2-android-tests.log`；云端验证报告、单元测试报告、lint 和 mapping 保存在 `verification-v0.3.2` Actions artifact。
+
+实体手机覆盖升级及数据保留仍需实际设备验证，云端构建和文件校验不替代此项验收。
