@@ -21,7 +21,7 @@ class CredentialAccountController(val sourceId: String, private val sessions: Se
         val operation = start {
             awaitNetwork()
             val active = sessions.begin(sourceId).also { attempt = it }
-            sessions.validateAndCommit(active, candidate, validate)
+            sessions.validateAndCommit(active, candidate, validate = validate)
             mutable.value = mutable.value.copy(message = "已验证账号并加密保存凭据")
         }
         operation.invokeOnCompletion { candidate.value.fill(0) }
@@ -33,7 +33,7 @@ class CredentialAccountController(val sourceId: String, private val sessions: Se
             try {
                 awaitNetwork()
                 val active = sessions.begin(sourceId).also { attempt = it }
-                try { sessions.validateAndCommit(active, candidate, validate) }
+                try { sessions.validateAndCommit(active, candidate, validate = validate) }
                 catch (e: ContentFailure) { if (e.kind == ContentFailureKind.EXPIRED) sessions.expire(active); throw e }
                 mutable.value = mutable.value.copy(message = "会话验证通过")
             } finally { candidate.value.fill(0) }

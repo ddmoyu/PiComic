@@ -36,6 +36,36 @@ class PicacgAccountControllerTest {
         assertEquals(setOf("session.picacg"), f.store.data.keys)
         assertFalse(f.controller.state.value.toString().contains("fixture-password"))
     }
+    @Test fun rememberedPasswordSurvivesExpiryAndAllowsExplicitRelogin() = runBlocking {
+        var expired = false
+        val f = Fixture(this, object : Api() {
+            override suspend fun signIn(email: String, password: CharArray): SessionCandidate {
+                assertEquals("fixture-user", email); assertArrayEquals("fixture-password".toCharArray(), password)
+                return super.signIn(email, password)
+            }
+            override suspend fun profile(candidate: SessionCandidate): String {
+                if (expired) throw PicacgFailure(PicacgFailureKind.EXPIRED)
+                return super.profile(candidate)
+            }
+        })
+        val password = "fixture-password".toCharArray()
+        f.controller.login("fixture-user", password, true); f.done()
+        assertTrue(password.all { it == '\u0000' }); assertEquals("fixture-user", f.controller.rememberedAccounts.value["picacg"])
+        expired = true; f.controller.restore(); f.done()
+        assertEquals(AccountStatus.EXPIRED, f.status()); assertEquals(1, f.api.logins)
+        f.sessions.rememberedLogin("picacg")!!.use { assertEquals("fixture-user", it.username) }
+        expired = false; f.controller.loginSaved(); f.done()
+        assertEquals(2, f.api.logins); assertEquals(AccountStatus.AUTHENTICATED, f.status())
+        f.controller.forgetPassword(); f.done()
+        assertNull(f.sessions.rememberedLogin("picacg")); assertEquals(AccountStatus.AUTHENTICATED, f.status())
+    }
+    @Test fun disablingRememberOnNextSuccessfulLoginRemovesSavedPassword() = runBlocking {
+        val f = Fixture(this)
+        f.controller.login("fixture", "fixture-password".toCharArray(), true); f.done()
+        assertTrue(f.controller.rememberedAccounts.value.isNotEmpty())
+        f.controller.login("fixture", "fixture-password".toCharArray(), false); f.done()
+        assertNull(f.sessions.rememberedLogin("picacg")); assertEquals(AccountStatus.AUTHENTICATED, f.status())
+    }
     @Test fun tokenAloneCannotAuthenticateAndFailedReplacementPreservesExistingSession() = runBlocking {
         val f = Fixture(this, object : Api() { override suspend fun profile(candidate: SessionCandidate): String { throw PicacgFailure(PicacgFailureKind.EXPIRED) } })
         f.seed(); val old = f.store.data.getValue("session.picacg").copyOf()

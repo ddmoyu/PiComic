@@ -6,8 +6,6 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.first
-import java.io.ByteArrayOutputStream
-import java.io.DataOutputStream
 
 enum class CredentialKind { USER_TOKEN, COOKIE, API_KEY }
 class SessionCandidate(val kind: CredentialKind, val value: ByteArray, val accountId: String? = null) {
@@ -40,6 +38,8 @@ class SessionCoordinator(private val store: SecretStore, private val network: Ne
     private val previous = mutableMapOf<String, AccountState>()
     private val mutable = MutableStateFlow<Map<String, AccountState>>(emptyMap())
     val state = mutable.asStateFlow()
+    private val remembered = MutableStateFlow<Map<String, String>>(emptyMap())
+    val rememberedAccounts = remembered.asStateFlow()
 
     fun begin(source: String): LoginAttempt = synchronized(lock) {
         require(source.matches(Regex("[a-zA-Z0-9_-]{1,40}")))
@@ -54,7 +54,7 @@ class SessionCoordinator(private val store: SecretStore, private val network: Ne
     private fun current(attempt: LoginAttempt) = attempts[attempt.source] == attempt &&
         (generations[attempt.source] ?: 0) == attempt.sessionGeneration && network.status.generation == attempt.networkGeneration
 
-    suspend fun validateAndCommit(attempt: LoginAttempt, candidate: SessionCandidate,
+    suspend fun validateAndCommit(attempt: LoginAttempt, candidate: SessionCandidate, retention: PasswordRetention = PasswordRetention.Preserve,
                                   validate: suspend (SessionCandidate) -> ValidationResult): ValidationResult = withContext(Dispatchers.IO) {
         val validationJob = currentCoroutineContext()[Job]!!
         try {
@@ -70,15 +70,20 @@ class SessionCoordinator(private val store: SecretStore, private val network: Ne
                 if (result is ValidationResult.Verified) {
                     require(result.displayName.isNotBlank() && result.displayName.length <= 200)
                     require(result.accountId == null || (result.accountId.isNotBlank() && result.accountId.length <= 512 && result.accountId.none(Char::isISOControl)))
-                    val bytes = ByteArrayOutputStream().also { buffer ->
-                        DataOutputStream(buffer).use { out ->
-                            out.writeInt(2); out.writeUTF(candidate.kind.name); out.writeUTF(result.displayName); out.writeUTF(result.accountId.orEmpty())
-                            out.writeInt(candidate.value.size); out.write(candidate.value)
-                        }
-                    }.toByteArray()
+                    val previousAccount = if (retention == PasswordRetention.Preserve) readAccount(attempt.source) else null
                     try {
-                        network.withGeneration(attempt.networkGeneration) { store.write("session.${attempt.source}", bytes) }
-                    } finally { bytes.fill(0) }
+                        val login = when (retention) {
+                            PasswordRetention.Forget -> null
+                            PasswordRetention.Preserve -> previousAccount?.takeIf {
+                                if (it.accountId != null) it.accountId == result.accountId else it.displayName == result.displayName
+                            }?.login
+                            is PasswordRetention.Remember -> retention.login.also { require(attempt.source in AccountSlots.passwords) }
+                        }
+                        val bytes = StoredAccountCodec.encode(StoredAccount(result.displayName, result.accountId, candidate, login))
+                        try { network.withGeneration(attempt.networkGeneration) { store.write("session.${attempt.source}", bytes) } }
+                        finally { bytes.fill(0) }
+                        rememberedName(attempt.source, login?.username)
+                    } finally { previousAccount?.close() }
                     generations[attempt.source] = attempt.sessionGeneration + 1
                     revisions.value = generations.toMap()
                     attempts.remove(attempt.source)
@@ -112,7 +117,7 @@ class SessionCoordinator(private val store: SecretStore, private val network: Ne
     suspend fun expire(attempt: LoginAttempt) = withContext(Dispatchers.IO) {
         synchronized(lock) {
             if (!current(attempt)) return@synchronized
-            network.withGeneration(attempt.networkGeneration) { store.remove("session.${attempt.source}") }
+            network.withGeneration(attempt.networkGeneration) { removeSessionRetainingPassword(attempt.source) }
             generations[attempt.source] = attempt.sessionGeneration + 1
             revisions.value = generations.toMap()
             cancelLocked(attempt.source)
@@ -130,42 +135,33 @@ class SessionCoordinator(private val store: SecretStore, private val network: Ne
             revisions.value = generations.toMap()
             cancelLocked(source)
             store.remove("session.$source")
+            rememberedName(source, null)
             publish(source, AccountState())
         }
     }
     /** Reading a stored credential only establishes that validation is needed, never success. */
     suspend fun storedCandidate(source: String): SessionCandidate? = withContext(Dispatchers.IO) {
         synchronized(lock) {
-            val bytes = store.read("session.$source") ?: return@synchronized null
-            try {
-                java.io.DataInputStream(bytes.inputStream()).use { input ->
-                    val version = input.readInt(); require(version in 1..2)
-                    val kind = CredentialKind.valueOf(input.readUTF())
-                    val displayName = input.readUTF()
-                    val identity = if (version == 2) input.readUTF().ifBlank { null } else null
-                    val length = input.readInt()
-                    require(length in 1..(48 * 1024) && length == input.available())
-                    val value = ByteArray(length).also(input::readFully)
-                    publish(source, AccountState(AccountStatus.NEEDS_VALIDATION, displayName))
-                    SessionCandidate(kind, value, identity)
+            val account = readAccount(source)
+            rememberedName(source, account?.login?.username)
+            account?.use {
+                if (it.candidate == null) {
+                    publish(source, AccountState(AccountStatus.EXPIRED, it.displayName))
+                    return@synchronized null
                 }
-            } finally { bytes.fill(0) }
+                publish(source, AccountState(AccountStatus.NEEDS_VALIDATION, it.displayName))
+                SessionCandidate(it.candidate.kind, it.candidate.value.copyOf(), it.accountId)
+            }
         }
     }
     suspend fun lease(source: String): SessionLease = withContext(Dispatchers.IO) {
         synchronized(lock) {
             check(mutable.value[source]?.status == AccountStatus.AUTHENTICATED) { "请先登录并验证账号" }
-            val bytes = store.read("session.$source") ?: error("会话不存在")
-            try {
-                java.io.DataInputStream(bytes.inputStream()).use { input ->
-                    val version = input.readInt(); require(version in 1..2)
-                    val kind = CredentialKind.valueOf(input.readUTF()); input.readUTF()
-                    val identity = if (version == 2) input.readUTF().ifBlank { null } else null
-                    val length = input.readInt(); require(length in 1..(48 * 1024) && length == input.available())
-                    SessionLease(source, generations[source] ?: 0, network.status.generation,
-                        SessionCandidate(kind, ByteArray(length).also(input::readFully), identity))
-                }
-            } finally { bytes.fill(0) }
+            (readAccount(source) ?: error("会话不存在")).use { account ->
+                val candidate = account.candidate ?: error("会话已失效")
+                SessionLease(source, generations[source] ?: 0, network.status.generation,
+                    SessionCandidate(candidate.kind, candidate.value.copyOf(), account.accountId))
+            }
         }
     }
     fun isCurrent(lease: SessionLease): Boolean = synchronized(lock) {
@@ -184,12 +180,72 @@ class SessionCoordinator(private val store: SecretStore, private val network: Ne
     suspend fun expire(lease: SessionLease) = withContext(Dispatchers.IO) {
         synchronized(lock) {
             if (!isCurrent(lease)) return@synchronized
-            store.remove("session.${lease.source}")
+            removeSessionRetainingPassword(lease.source)
             generations[lease.source] = lease.generation + 1
             revisions.value = generations.toMap()
             cancelLocked(lease.source)
             publish(lease.source, AccountState(AccountStatus.EXPIRED))
         }
+    }
+    suspend fun rememberedLogin(source: String): RememberedLogin? = withContext(Dispatchers.IO) {
+        synchronized(lock) { readAccount(source)?.use { account -> account.login?.let { RememberedLogin(it.username, it.password.copyOf()) } } }
+    }
+    suspend fun forgetPassword(source: String) = withContext(Dispatchers.IO) {
+        synchronized(lock) {
+            readAccount(source)?.use { account ->
+                if (account.candidate == null) store.remove("session.$source")
+                else {
+                    val bytes = StoredAccountCodec.encode(StoredAccount(account.displayName, account.accountId, account.candidate, null))
+                    try { store.write("session.$source", bytes) } finally { bytes.fill(0) }
+                }
+            }
+            rememberedName(source, null)
+        }
+    }
+    suspend fun exportAccounts(): List<AccountTransfer> = withContext(Dispatchers.IO) {
+        synchronized(lock) {
+            val result = mutableListOf<AccountTransfer>()
+            try {
+                for (source in AccountSlots.titles.keys) store.read("session.$source")?.let { result += AccountTransfer(source, it) }
+                result
+            } catch (e: Exception) { result.forEach(AccountTransfer::close); throw e }
+        }
+    }
+    suspend fun accountFingerprint(source: String): String = withContext(Dispatchers.IO) { synchronized(lock) { fingerprint(source) } }
+    suspend fun importAccount(transfer: AccountTransfer, expectedFingerprint: String) = withContext(Dispatchers.IO) {
+        synchronized(lock) {
+            val source = transfer.source
+            check(fingerprint(source) == expectedFingerprint) { "本机账号已变化，请重新预览" }
+            StoredAccountCodec.decode(transfer.bytes).use { account ->
+                require(AccountSlots.accepts(source, account.candidate?.kind) && (account.login == null || source in AccountSlots.passwords))
+                store.write("session.$source", transfer.bytes)
+                cancelLocked(source)
+                generations[source] = (generations[source] ?: 0) + 1
+                revisions.value = generations.toMap()
+                rememberedName(source, account.login?.username)
+                publish(source, AccountState(if (account.candidate != null) AccountStatus.NEEDS_VALIDATION else AccountStatus.EXPIRED, account.displayName))
+            }
+        }
+    }
+    private fun readAccount(source: String): StoredAccount? = store.read("session.$source")?.let { bytes ->
+        try { StoredAccountCodec.decode(bytes) } finally { bytes.fill(0) }
+    }
+    private fun fingerprint(source: String): String = store.read("session.$source")?.let { bytes ->
+        try { java.security.MessageDigest.getInstance("SHA-256").digest(bytes).joinToString("") { "%02x".format(it) } }
+        finally { bytes.fill(0) }
+    } ?: "absent"
+    private fun removeSessionRetainingPassword(source: String) {
+        readAccount(source)?.use { account ->
+            if (account.login == null) store.remove("session.$source")
+            else {
+                val bytes = StoredAccountCodec.encode(StoredAccount(account.displayName, account.accountId, null, account.login))
+                try { store.write("session.$source", bytes) } finally { bytes.fill(0) }
+            }
+            rememberedName(source, account.login?.username)
+        }
+    }
+    private fun rememberedName(source: String, username: String?) {
+        remembered.value = if (username == null) remembered.value - source else remembered.value + (source to username)
     }
     private fun publish(source: String, value: AccountState) { mutable.value = mutable.value + (source to value) }
 }

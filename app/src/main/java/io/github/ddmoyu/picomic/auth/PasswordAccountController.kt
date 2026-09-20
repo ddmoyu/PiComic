@@ -23,33 +23,45 @@ open class PasswordAccountController(
     private val apiFactory: suspend () -> PasswordAuthApi
 ) {
     val accounts = sessions.state
+    val rememberedAccounts = sessions.rememberedAccounts
     private val mutable = MutableStateFlow(PasswordLoginState())
     val state = mutable.asStateFlow()
     private var job: Job? = null
     private var attempt: LoginAttempt? = null
     private var operation = 0L
 
-    fun login(email: String, password: CharArray) {
+    fun login(email: String, password: CharArray, rememberPassword: Boolean = false) {
         val account = email.trim()
         if (account.isBlank() || account.length > 320 || account.any { it.isISOControl() } || password.isEmpty() || password.size > 1024) {
             password.fill('\u0000')
             mutable.value = mutable.value.copy(message = "请输入账号和密码（账号最多 320 字，密码最多 1024 字）")
             return
         }
-        val pending = start {
-            awaitNetwork()
-            val active = sessions.begin(sourceId).also { attempt = it }
-            val api = apiFactory()
-            api.probe()
-            currentCoroutineContext().ensureActive()
-            if (!sessions.isCurrent(active)) throw CancellationException()
-            val candidate = api.signIn(account, password)
-            try {
-                sessions.validateAndCommit(active, candidate) { api.validate(it) }
-                mutable.value = mutable.value.copy(message = "登录成功，已验证账号并保存加密会话")
-            } finally { candidate.value.fill(0) }
-        }
+        val pending = start { authenticate(account, password, rememberPassword) }
         pending.invokeOnCompletion { password.fill('\u0000') }
+    }
+
+    fun loginSaved() { start {
+        val saved = sessions.rememberedLogin(sourceId) ?: error("没有已保存的账号密码，请先手动登录")
+        saved.use { authenticate(it.username, it.password, true) }
+    } }
+    fun forgetPassword() { start {
+        sessions.forgetPassword(sourceId)
+        mutable.value = mutable.value.copy(message = "已删除保存的账号密码，当前有效会话保留")
+    } }
+    private suspend fun authenticate(account: String, password: CharArray, rememberPassword: Boolean) {
+        awaitNetwork()
+        val active = sessions.begin(sourceId).also { attempt = it }
+        val api = apiFactory()
+        api.probe()
+        currentCoroutineContext().ensureActive()
+        if (!sessions.isCurrent(active)) throw CancellationException()
+        val candidate = api.signIn(account, password)
+        try {
+            val retention = if (rememberPassword) PasswordRetention.Remember(RememberedLogin(account, password)) else PasswordRetention.Forget
+            sessions.validateAndCommit(active, candidate, retention) { api.validate(it) }
+            mutable.value = mutable.value.copy(message = if (rememberPassword) "登录成功，会话和账号密码已加密保存" else "登录成功，已验证账号并保存加密会话")
+        } finally { candidate.value.fill(0) }
     }
 
     /** Manual verification and startup restoration share one job, so concurrent requests are coalesced. */
@@ -89,7 +101,7 @@ open class PasswordAccountController(
     fun logout() {
         start {
             sessions.logout(sourceId)
-            mutable.value = mutable.value.copy(message = "已清除本机${title}会话")
+            mutable.value = mutable.value.copy(message = "已清除本机${title}会话和已保存的账号密码")
         }
     }
 

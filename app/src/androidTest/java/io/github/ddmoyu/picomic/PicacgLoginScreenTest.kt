@@ -59,7 +59,9 @@ class PicacgLoginScreenTest {
             ui.waitUntil(10000) { sessions.state.value["picacg"]?.status == AccountStatus.AUTHENTICATED && !controller.state.value.busy }
             ui.onNodeWithText("已登录 · 联调测试账号").performScrollTo().assertIsDisplayed()
             assertNotNull(secrets.data["session.picacg"])
-            ui.onNodeWithText("清除本地会话").performScrollTo().performClick()
+            assertEquals("fixture@example.test", controller.rememberedAccounts.value["picacg"])
+            StoredAccountCodec.decode(secrets.data.getValue("session.picacg")).use { assertArrayEquals("fixture-password".toCharArray(), it.login!!.password) }
+            ui.onNodeWithText("清除本地账号").performScrollTo().performClick()
             ui.waitUntil(10000) { sessions.state.value["picacg"]?.status == AccountStatus.ANONYMOUS && !controller.state.value.busy }
             assertTrue(secrets.data.isEmpty())
             assertEquals(5, server.requestCount)
