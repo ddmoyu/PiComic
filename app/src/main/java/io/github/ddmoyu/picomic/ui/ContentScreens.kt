@@ -23,7 +23,11 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -246,26 +250,27 @@ fun contentSort(ui: UiState) = when (ui.pref("pica.search", "新到旧")) { "旧
     val detail = value
     if (detail == null) { if (error == null) ContentLoading() else ContentFailurePanel(error!!, { retry++ }, { login(key.source) }); return }
     val progress = library.progress.firstOrNull { it.key == key }
+    val chapterRows = remember(detail.chapters) { detail.chapters.chunked(2) }
+    val downloadedChapters = downloads.filter { it.key() == key && it.state == "COMPLETED" }.map { it.chapterId }.toSet()
     if (selectDownloads) DownloadSelection(detail, vm) { selectDownloads = false }
     Box(Modifier.fillMaxSize()) {
     LazyColumn(Modifier.fillMaxSize().testTag("content-detail"), contentPadding = PaddingValues(bottom = 30.dp)) {
         item {
             Row(Modifier.padding(20.dp), horizontalArrangement = Arrangement.spacedBy(20.dp)) {
-                ContentCover(detail.summary, Modifier.width(120.dp).aspectRatio(2f / 3))
+                ContentCover(detail.summary, Modifier.width(112.dp).aspectRatio(2f / 3).clip(RoundedCornerShape(12.dp))
+                    .background(MaterialTheme.colorScheme.surfaceContainerHighest))
                 Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                    Text(detail.summary.title, style = MaterialTheme.typography.titleLarge)
                     Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                        Text(key.source.shortTitle, Modifier.weight(1f), color = MaterialTheme.colorScheme.primary)
+                        Text(key.source.shortTitle, Modifier.weight(1f), style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant)
                         IconButton(onClick = { retry++ }, enabled = !loading) { AppIcon(Glyph.Refresh, "刷新详情") }
                     }
-                    Text(detail.summary.title, style = MaterialTheme.typography.headlineSmall)
-                    Text(detail.summary.author)
-                    Text("${detail.chapters.size} 话")
                 }
             }
             error?.let { Note("刷新失败：$it") }
-            Row(Modifier.padding(horizontal = 20.dp), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                Button(onClick = { read(progress?.chapterId?.takeIf { id -> detail.chapters.any { it.id == id } } ?: detail.chapters.first().id) }, enabled = library.ready, modifier = Modifier.weight(1f)) { Text(if (progress == null) "开始阅读" else "继续阅读") }
-                FilledTonalIconButton(enabled = library.ready && !favoriteBusy, onClick = {
+            Row(Modifier.fillMaxWidth().padding(horizontal = 20.dp), horizontalArrangement = Arrangement.Center) {
+                TextButton(enabled = library.ready && !favoriteBusy, onClick = {
                     favoriteBusy = true
                     scope.launch {
                         try {
@@ -278,19 +283,83 @@ fun contentSort(ui: UiState) = when (ui.pref("pica.search", "新到旧")) { "旧
                         catch (_: Exception) { snackbar.showSnackbar("收藏保存失败，请重试") }
                         finally { favoriteBusy = false }
                     }
-                }) { AppIcon(if (key in library.favorites) Glyph.Check else Glyph.Heart, if (key in library.favorites) "取消收藏" else "收藏作品") }
-                FilledTonalIconButton(onClick = { selectDownloads = true }) { AppIcon(Glyph.Download, "下载章节") }
+                }) {
+                    AppIcon(if (key in library.favorites) Glyph.Check else Glyph.Heart, if (key in library.favorites) "取消收藏" else "收藏作品")
+                    Spacer(Modifier.width(8.dp))
+                    Text(if (key in library.favorites) "已收藏" else "收藏")
+                }
+            }
+            Row(Modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = 12.dp), horizontalArrangement = Arrangement.spacedBy(16.dp)) {
+                FilledTonalButton(onClick = { selectDownloads = true }, enabled = detail.chapters.isNotEmpty(),
+                    modifier = Modifier.weight(1f).heightIn(min = 52.dp).testTag("detail-download").semantics { contentDescription = "下载章节" }) {
+                    Text("下载")
+                }
+                FilledTonalButton(onClick = { read(progress?.chapterId?.takeIf { id -> detail.chapters.any { it.id == id } } ?: detail.chapters.first().id) },
+                    enabled = library.ready && detail.chapters.isNotEmpty(), modifier = Modifier.weight(1f).heightIn(min = 52.dp).testTag("detail-read")) {
+                    Text(if (progress == null) "开始阅读" else "继续阅读")
+                }
             }
             progress?.let { Note("上次读到第 ${it.page} 页") }
-            Text(detail.description, Modifier.padding(20.dp), style = MaterialTheme.typography.bodyMedium)
-            FlowRow(Modifier.padding(horizontal = 20.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) { detail.summary.tags.forEach { SuggestionChip(onClick = { searchTag(it) }, label = { Text(it) }) } }
-            SectionTitle("目录")
+            HorizontalDivider(Modifier.padding(top = 8.dp))
+            Column(Modifier.fillMaxWidth().padding(20.dp).testTag("detail-information"), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                Text("信息", Modifier.padding(bottom = 6.dp), style = MaterialTheme.typography.titleLarge)
+                DetailInfoGroup("ID", listOf(key.id), MaterialTheme.colorScheme.primaryContainer, MaterialTheme.colorScheme.onPrimaryContainer)
+                DetailInfoGroup("作者", detail.summary.author.split('、').map(String::trim).filter(String::isNotEmpty).ifEmpty { listOf("未提供") },
+                    MaterialTheme.colorScheme.secondaryContainer, MaterialTheme.colorScheme.onSecondaryContainer)
+                DetailInfoGroup("分类 / 标签", detail.summary.tags.filter(String::isNotBlank).distinct(),
+                    MaterialTheme.colorScheme.tertiaryContainer, MaterialTheme.colorScheme.onTertiaryContainer, searchTag)
+                detail.summary.language?.takeIf(String::isNotBlank)?.let {
+                    DetailInfoGroup("语言", listOf(it), MaterialTheme.colorScheme.secondaryContainer, MaterialTheme.colorScheme.onSecondaryContainer)
+                }
+                detail.summary.pageCount?.let {
+                    DetailInfoGroup("页数", listOf("$it 页"), MaterialTheme.colorScheme.secondaryContainer, MaterialTheme.colorScheme.onSecondaryContainer)
+                }
+                if (detail.description.isNotBlank()) {
+                    Text("简介", Modifier.padding(top = 8.dp), style = MaterialTheme.typography.titleMedium)
+                    Text(detail.description, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                }
+            }
+            HorizontalDivider()
+            Text("章节 · ${detail.chapters.size}", Modifier.padding(20.dp), style = MaterialTheme.typography.titleLarge)
         }
-        items(detail.chapters, key = { it.id }) { chapter -> SettingRow(chapter.title,
-            subtitle = if (downloads.any { it.key() == key && it.chapterId == chapter.id && it.state == "COMPLETED" }) "已下载 · 可在书架离线阅读" else "",
-            value = if (chapter.id == progress?.chapterId) "继续" else "", onClick = { read(chapter.id) }) }
+        items(chapterRows, key = { it.first().id }) { chapters ->
+            Row(Modifier.fillMaxWidth().padding(start = 20.dp, end = 20.dp, bottom = 12.dp).height(IntrinsicSize.Min), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                chapters.forEach { chapter ->
+                    val current = chapter.id == progress?.chapterId
+                    Surface(onClick = { read(chapter.id) }, modifier = Modifier.weight(1f).fillMaxHeight().testTag("detail-chapter-${chapter.id}"),
+                        shape = RoundedCornerShape(16.dp), color = if (current) MaterialTheme.colorScheme.secondaryContainer else MaterialTheme.colorScheme.surfaceContainerHigh) {
+                        Column(Modifier.heightIn(min = 56.dp).padding(12.dp), horizontalAlignment = Alignment.CenterHorizontally,
+                            verticalArrangement = Arrangement.Center) {
+                            Text(chapter.title, style = MaterialTheme.typography.bodyLarge, maxLines = 2, overflow = TextOverflow.Ellipsis, textAlign = TextAlign.Center)
+                            val status = listOfNotNull("继续".takeIf { current }, "已下载".takeIf { chapter.id in downloadedChapters }).joinToString(" · ")
+                            if (status.isNotEmpty()) Text(status, Modifier.padding(top = 4.dp), style = MaterialTheme.typography.labelSmall)
+                        }
+                    }
+                }
+                if (chapters.size == 1) Spacer(Modifier.weight(1f))
+            }
+        }
     }
     SnackbarHost(snackbar, Modifier.align(Alignment.BottomCenter))
+    }
+}
+@Composable private fun DetailInfoGroup(label: String, values: List<String>, labelColor: Color, labelTextColor: Color, select: ((String) -> Unit)? = null) {
+    if (values.isEmpty()) return
+    FlowRow(Modifier.fillMaxWidth().testTag("detail-info-$label"), horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        Surface(shape = RoundedCornerShape(14.dp), color = labelColor, contentColor = labelTextColor) {
+            Box(Modifier.heightIn(min = 48.dp).padding(horizontal = 12.dp, vertical = 10.dp), contentAlignment = Alignment.Center) {
+                Text(label, style = MaterialTheme.typography.bodyMedium)
+            }
+        }
+        values.forEach { value ->
+            val content: @Composable () -> Unit = {
+                Box(Modifier.heightIn(min = 48.dp).padding(horizontal = 12.dp, vertical = 10.dp), contentAlignment = Alignment.Center) {
+                    Text(value, style = MaterialTheme.typography.bodyMedium)
+                }
+            }
+            if (select == null) Surface(shape = RoundedCornerShape(14.dp), color = MaterialTheme.colorScheme.surfaceContainerHigh, content = content)
+            else Surface(onClick = { select(value) }, shape = RoundedCornerShape(14.dp), color = MaterialTheme.colorScheme.surfaceContainerHigh, content = content)
+        }
     }
 }
 @Composable fun ContentLibraryScreen(vm: AppViewModel, open: (ComicKey) -> Unit, offline: (String) -> Unit = {}) {
