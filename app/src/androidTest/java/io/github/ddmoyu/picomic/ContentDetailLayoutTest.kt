@@ -21,12 +21,12 @@ import org.junit.Test
 class ContentDetailLayoutTest {
     @get:Rule val ui = createAndroidComposeRule<ComponentActivity>()
 
-    @Test fun groupedTagsEqualActionsAndTwoColumnChaptersKeepTheirBehavior() {
+    @Test fun compactActionsPlainMetadataAndTwoColumnChaptersKeepTheirBehavior() {
         val vm = AppViewModel(ui.activity.application)
         val store = ViewModelStore().apply { put("detail-layout", vm) }
         val key = ComicKey(Source.PICACG, "detail-layout-${System.nanoTime()}")
         val longTag = "测试长标签自动换行".repeat(8)
-        val summary = ComicSummary(key, "测试作品标题与封面布局", "作者甲、作者乙", tags = listOf("测试分类", "测试标签", longTag), language = "中文", pageCount = 30)
+        val summary = ComicSummary(key, "测试作品长标题与封面布局".repeat(3), "作者甲、作者乙", tags = listOf("测试分类", "测试标签", longTag), language = "中文", pageCount = 30)
         val detail = ComicDetails(summary, "测试简介", (1..5).map { Chapter("$it", "第 $it 话", it) })
         val task = DownloadTask("${key.id}-download", SavedComic.from(summary), "2", "第 2 话", 2,
             "fixture", DownloadStorage.INTERNAL, state = DownloadState.COMPLETED.name, total = 30, completed = 30)
@@ -55,12 +55,14 @@ class ContentDetailLayoutTest {
             } }
             ui.waitUntil(5000) { ui.onAllNodesWithTag("content-detail").fetchSemanticsNodes().isNotEmpty() }
             val list = ui.onNodeWithTag("content-detail")
+            val favorite = ui.onNodeWithTag("detail-favorite").fetchSemanticsNode().boundsInRoot
             val download = ui.onNodeWithTag("detail-download").fetchSemanticsNode().boundsInRoot
             val read = ui.onNodeWithTag("detail-read").fetchSemanticsNode().boundsInRoot
+            assertTrue(favorite.right < download.left)
             assertTrue(download.right < read.left)
-            assertEquals(download.top, read.top, 1f)
-            assertEquals(download.width, read.width, 1f)
-            assertEquals(download.height, read.height, 1f)
+            assertEquals(favorite.center.y, read.center.y, 1f)
+            assertEquals(download.center.y, read.center.y, 1f)
+            assertTrue(read.width > download.width)
             ui.onNodeWithTag("detail-read").assertTextContains("继续阅读").performClick()
             ui.runOnIdle { assertEquals("2", selectedChapter) }
             ui.onNodeWithTag("detail-download").performClick()
@@ -68,6 +70,7 @@ class ContentDetailLayoutTest {
             ui.onNodeWithText("取消", substring = false).performClick()
             ui.onNodeWithContentDescription("收藏作品").performClick()
             ui.waitUntil(5000) { key in vm.library.state.value.favorites }
+            ui.onNodeWithTag("detail-favorite").assertIsOn()
             ui.onNodeWithContentDescription("取消收藏").assertIsDisplayed()
             ui.onNodeWithText("分享", substring = false).assertDoesNotExist()
             ui.onNodeWithText("评论", substring = false).assertDoesNotExist()

@@ -24,13 +24,11 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.platform.testTag
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.semantics.contentDescription
-import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import coil3.compose.AsyncImage
 import coil3.network.NetworkHeaders
@@ -291,11 +289,11 @@ fun contentSort(ui: UiState) = when (ui.pref("pica.search", "新到旧")) { "旧
     Box(Modifier.fillMaxSize()) {
     LazyColumn(Modifier.fillMaxSize().testTag("content-detail"), contentPadding = PaddingValues(bottom = 30.dp)) {
         item {
-            Row(Modifier.padding(20.dp), horizontalArrangement = Arrangement.spacedBy(20.dp)) {
+            Row(Modifier.padding(20.dp), horizontalArrangement = Arrangement.spacedBy(16.dp)) {
                 ContentCover(detail.summary, Modifier.width(112.dp).aspectRatio(2f / 3).clip(RoundedCornerShape(12.dp))
                     .background(MaterialTheme.colorScheme.surfaceContainerHighest))
-                Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                    Text(detail.summary.title, style = MaterialTheme.typography.titleLarge)
+                Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Text(detail.summary.title, style = MaterialTheme.typography.titleMedium.copy(fontSize = 18.sp, lineHeight = 26.sp))
                     Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
                         Text(key.source.shortTitle, Modifier.weight(1f), style = MaterialTheme.typography.bodyMedium,
                             color = MaterialTheme.colorScheme.onSurfaceVariant)
@@ -304,8 +302,10 @@ fun contentSort(ui: UiState) = when (ui.pref("pica.search", "新到旧")) { "旧
                 }
             }
             error?.let { Note("刷新失败：$it") }
-            Row(Modifier.fillMaxWidth().padding(horizontal = 20.dp), horizontalArrangement = Arrangement.Center) {
-                TextButton(enabled = library.ready && !favoriteBusy, onClick = {
+            Row(Modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = 8.dp),
+                horizontalArrangement = Arrangement.spacedBy(12.dp), verticalAlignment = Alignment.CenterVertically) {
+                IconToggleButton(checked = key in library.favorites, enabled = library.ready && !favoriteBusy,
+                    modifier = Modifier.size(48.dp).testTag("detail-favorite"), onCheckedChange = {
                     favoriteBusy = true
                     scope.launch {
                         try {
@@ -320,34 +320,28 @@ fun contentSort(ui: UiState) = when (ui.pref("pica.search", "新到旧")) { "旧
                     }
                 }) {
                     AppIcon(if (key in library.favorites) Glyph.Check else Glyph.Heart, if (key in library.favorites) "取消收藏" else "收藏作品")
-                    Spacer(Modifier.width(8.dp))
-                    Text(if (key in library.favorites) "已收藏" else "收藏")
                 }
-            }
-            Row(Modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = 12.dp), horizontalArrangement = Arrangement.spacedBy(16.dp)) {
-                FilledTonalButton(onClick = { selectDownloads = true }, enabled = detail.chapters.isNotEmpty(),
-                    modifier = Modifier.weight(1f).heightIn(min = 52.dp).testTag("detail-download").semantics { contentDescription = "下载章节" }) {
-                    Text("下载")
+                IconButton(onClick = { selectDownloads = true }, enabled = detail.chapters.isNotEmpty(),
+                    modifier = Modifier.size(48.dp).testTag("detail-download")) {
+                    AppIcon(Glyph.Download, "下载章节")
                 }
                 FilledTonalButton(onClick = { read(progress?.chapterId?.takeIf { id -> detail.chapters.any { it.id == id } } ?: detail.chapters.first().id) },
-                    enabled = library.ready && detail.chapters.isNotEmpty(), modifier = Modifier.weight(1f).heightIn(min = 52.dp).testTag("detail-read")) {
+                    enabled = library.ready && detail.chapters.isNotEmpty(), modifier = Modifier.weight(1f).heightIn(min = 48.dp).testTag("detail-read")) {
                     Text(if (progress == null) "开始阅读" else "继续阅读")
                 }
             }
             progress?.let { Note("上次读到第 ${it.page} 页") }
             HorizontalDivider(Modifier.padding(top = 8.dp))
-            Column(Modifier.fillMaxWidth().padding(20.dp).testTag("detail-information"), verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                Text("信息", Modifier.padding(bottom = 6.dp), style = MaterialTheme.typography.titleLarge)
-                DetailInfoGroup("ID", listOf(key.id), MaterialTheme.colorScheme.primaryContainer, MaterialTheme.colorScheme.onPrimaryContainer)
-                DetailInfoGroup("作者", detail.summary.author.split('、').map(String::trim).filter(String::isNotEmpty).ifEmpty { listOf("未提供") },
-                    MaterialTheme.colorScheme.secondaryContainer, MaterialTheme.colorScheme.onSecondaryContainer)
-                DetailInfoGroup("分类 / 标签", detail.summary.tags.filter(String::isNotBlank).distinct(),
-                    MaterialTheme.colorScheme.tertiaryContainer, MaterialTheme.colorScheme.onTertiaryContainer, searchTag)
+            Column(Modifier.fillMaxWidth().padding(20.dp).testTag("detail-information"), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                Text("信息", Modifier.padding(bottom = 6.dp), style = MaterialTheme.typography.titleMedium)
+                DetailInfoGroup("ID", listOf(key.id))
+                DetailInfoGroup("作者", detail.summary.author.split('、').map(String::trim).filter(String::isNotEmpty).ifEmpty { listOf("未提供") })
+                DetailInfoGroup("分类 / 标签", detail.summary.tags.filter(String::isNotBlank).distinct(), searchTag)
                 detail.summary.language?.takeIf(String::isNotBlank)?.let {
-                    DetailInfoGroup("语言", listOf(it), MaterialTheme.colorScheme.secondaryContainer, MaterialTheme.colorScheme.onSecondaryContainer)
+                    DetailInfoGroup("语言", listOf(it))
                 }
                 detail.summary.pageCount?.let {
-                    DetailInfoGroup("页数", listOf("$it 页"), MaterialTheme.colorScheme.secondaryContainer, MaterialTheme.colorScheme.onSecondaryContainer)
+                    DetailInfoGroup("页数", listOf("$it 页"))
                 }
                 if (detail.description.isNotBlank()) {
                     Text("简介", Modifier.padding(top = 8.dp), style = MaterialTheme.typography.titleMedium)
@@ -355,7 +349,7 @@ fun contentSort(ui: UiState) = when (ui.pref("pica.search", "新到旧")) { "旧
                 }
             }
             HorizontalDivider()
-            Text("章节 · ${detail.chapters.size}", Modifier.padding(20.dp), style = MaterialTheme.typography.titleLarge)
+            Text("章节 · ${detail.chapters.size}", Modifier.padding(20.dp), style = MaterialTheme.typography.titleMedium)
         }
         items(chapterRows, key = { it.first().id }) { chapters ->
             Row(Modifier.fillMaxWidth().padding(start = 20.dp, end = 20.dp, bottom = 12.dp).height(IntrinsicSize.Min), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
@@ -378,22 +372,16 @@ fun contentSort(ui: UiState) = when (ui.pref("pica.search", "新到旧")) { "旧
     SnackbarHost(snackbar, Modifier.align(Alignment.BottomCenter))
     }
 }
-@Composable private fun DetailInfoGroup(label: String, values: List<String>, labelColor: Color, labelTextColor: Color, select: ((String) -> Unit)? = null) {
+@Composable private fun DetailInfoGroup(label: String, values: List<String>, select: ((String) -> Unit)? = null) {
     if (values.isEmpty()) return
-    FlowRow(Modifier.fillMaxWidth().testTag("detail-info-$label"), horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-        Surface(shape = RoundedCornerShape(14.dp), color = labelColor, contentColor = labelTextColor) {
-            Box(Modifier.heightIn(min = 48.dp).padding(horizontal = 12.dp, vertical = 10.dp), contentAlignment = Alignment.Center) {
-                Text(label, style = MaterialTheme.typography.bodyMedium)
+    Row(Modifier.fillMaxWidth().testTag("detail-info-$label"), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+        Text(label, Modifier.width(76.dp).padding(vertical = 2.dp), style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant)
+        FlowRow(Modifier.weight(1f), horizontalArrangement = Arrangement.spacedBy(12.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+            values.forEach { value ->
+                Text(value, Modifier.then(if (select == null) Modifier else Modifier.clickable(onClickLabel = "搜索标签") { select(value) })
+                    .padding(vertical = 2.dp), style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurface)
             }
-        }
-        values.forEach { value ->
-            val content: @Composable () -> Unit = {
-                Box(Modifier.heightIn(min = 48.dp).padding(horizontal = 12.dp, vertical = 10.dp), contentAlignment = Alignment.Center) {
-                    Text(value, style = MaterialTheme.typography.bodyMedium)
-                }
-            }
-            if (select == null) Surface(shape = RoundedCornerShape(14.dp), color = MaterialTheme.colorScheme.surfaceContainerHigh, content = content)
-            else Surface(onClick = { select(value) }, shape = RoundedCornerShape(14.dp), color = MaterialTheme.colorScheme.surfaceContainerHigh, content = content)
         }
     }
 }

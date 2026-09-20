@@ -1,5 +1,19 @@
 # 更新记录
 
+## 未发布
+
+### 简体中文
+
+- 精简作品详情页：缩小标题，阅读主按钮与收藏、下载图标合并为一行；信息区改用统一色调的紧凑文字排版，去掉彩色按钮底色，分类标签仍可点击搜索。
+
+### English
+
+- Simplified comic details with a smaller title and one action row for reading, favorites and downloads. Metadata now uses compact text without colorful button backgrounds, while category tags remain searchable by tapping.
+
+### 日本語
+
+- 作品詳細のタイトルを小さくし、読書ボタン・お気に入り・ダウンロードを1行にまとめました。情報欄はカラフルなボタン背景をなくして簡潔なテキスト表示に変更し、分類タグからの検索は引き続き利用できます。
+
 ## 0.3.2
 
 2026-09-20 · Android 8.0+ · arm64-v8a · versionCode 3002
