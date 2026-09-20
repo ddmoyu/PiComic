@@ -6,6 +6,7 @@ import io.github.ddmoyu.picomic.network.origin
 import io.github.ddmoyu.picomic.source.html.*
 import okhttp3.HttpUrl
 import org.jsoup.nodes.Document
+import org.jsoup.nodes.Element
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 
@@ -54,7 +55,8 @@ class EhSource(private val client: EhClient, private val ex: Boolean = false, pr
             val cover = image?.let { it.attr("data-src").ifBlank { it.attr("src") } }?.takeIf(String::isNotBlank)?.let { secureUrl(base, it, EhClient.TITLE).also(EhClient::validateImage).toString() }
             val tags = row.select(".gt, .gtl").map { it.attr("title").ifBlank { it.text() } }.filter(String::isNotBlank).distinct()
             val language = tags.firstOrNull { it.startsWith("language:") }?.substringAfter(':')
-            ComicSummary(ComicKey(source, id.value), title.text().takeIf(String::isNotBlank) ?: throw parseChanged(EhClient.TITLE), cover = cover, tags = tags, language = language)
+            ComicSummary(ComicKey(source, id.value), title.text().takeIf(String::isNotBlank) ?: throw parseChanged(EhClient.TITLE),
+                cover = cover, tags = tags, language = language, pageCount = listPageCount(row))
         }
         if (result.isEmpty() && !document.text().contains("No hits found", true) && !document.text().contains("No unfiltered results", true)) throw parseChanged(EhClient.TITLE)
         val next = document.selectFirst("a#dnext[href]")?.let { base.resolve(it.attr("href")) ?: throw parseChanged(EhClient.TITLE) }
@@ -62,6 +64,13 @@ class EhSource(private val client: EhClient, private val ex: Boolean = false, pr
         val cursor = next?.queryParameter("next")?.takeIf { it.matches(Regex("[0-9]{1,12}(?:-[0-9]{1,4})?")) }
         if (next != null && (cursor == null || cursor == query.cursor)) throw parseChanged(EhClient.TITLE)
         return ContentPage(result.distinctBy { it.key }, if (cursor == null) null else query.page + 1, cursor)
+    }
+    private fun listPageCount(row: Element): Int? {
+        // Only metadata containers: a title or tag containing "123 pages" is not a page count.
+        val count = Regex("^([1-9][0-9]*|[1-9][0-9]{0,2}(?:,[0-9]{3})+)\\s+pages?$", RegexOption.IGNORE_CASE)
+        return row.select(".glhide, .glhide div, .gl3e > div, .gl5t > div > div, .glthumb div").firstNotNullOfOrNull {
+            count.matchEntire(it.ownText().trim())?.groupValues?.get(1)?.replace(",", "")?.toIntOrNull()?.takeIf { value -> value > 0 }
+        }
     }
     override suspend fun details(id: String): ComicDetails {
         val key = EhGalleryId.parse(id)

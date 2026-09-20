@@ -93,7 +93,11 @@ import kotlinx.coroutines.launch
                 }
             }
             Column(Modifier.padding(top = 8.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                Text(listOfNotNull("${comic.key.source.shortTitle} · ${comic.key.id}", comic.pageCount?.let { "$it 页" },
+                comic.pageCount?.takeIf { it > 0 }?.let { count ->
+                    Text("共 $count 张图片", Modifier.testTag("comic-page-count-${comic.key.stable}"),
+                        style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.primary)
+                }
+                Text(listOfNotNull("${comic.key.source.shortTitle} · ${comic.key.id}",
                     comic.language?.takeIf(String::isNotBlank)).joinToString(" · "),
                     style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant,
                     maxLines = 1, overflow = TextOverflow.Ellipsis)

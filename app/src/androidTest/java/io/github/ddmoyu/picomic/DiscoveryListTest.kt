@@ -32,7 +32,7 @@ class DiscoveryListTest {
         val source = Source.PICACG
         val first = ComicSummary(ComicKey(source, "fixture-1"), "这是非常长的测试漫画标题".repeat(20), "测试作者",
             tags = listOf("测试分类", "日常", "短篇", "不应挤出第四个标签"), pageCount = 24, language = "中文")
-        val second = ComicSummary(ComicKey(source, "fixture-2"), "第二本测试漫画")
+        val second = ComicSummary(ComicKey(source, "fixture-2"), "第二本测试漫画", pageCount = 0)
         val third = ComicSummary(ComicKey(source, "fixture-3"), "下一页的测试漫画", "另一位作者", tags = listOf("测试分类"))
         var selected: ComicKey? = null
         val requests = java.util.concurrent.CopyOnWriteArrayList<ContentQuery>()
@@ -81,6 +81,9 @@ class DiscoveryListTest {
             assertEquals(2, layout.single().lineCount)
             assertTrue(layout.single().isLineEllipsized(1))
             row.assertTextContains("测试作者").assertTextContains("测试分类").assertTextContains("日常").assertTextContains("短篇")
+            val count = ui.onNodeWithTag("comic-page-count-${first.key.stable}", useUnmergedTree = true)
+            count.assertTextEquals("共 24 张图片").assertIsDisplayed()
+            assertTrue(count.fetchSemanticsNode().boundsInRoot.left > cover.right)
             ui.onNodeWithText("不应挤出第四个标签", useUnmergedTree = true).assertDoesNotExist()
             if (!category) {
                 row.performClick()
@@ -89,10 +92,12 @@ class DiscoveryListTest {
             val list = ui.onNodeWithTag("content-list-PICACG")
             list.performScrollToNode(hasText("作者未提供"))
             ui.onNodeWithText("作者未提供", useUnmergedTree = true).assertIsDisplayed()
+            ui.onNodeWithTag("comic-page-count-${second.key.stable}", useUnmergedTree = true).assertDoesNotExist()
             list.performScrollToNode(hasText("加载更多"))
             ui.onNodeWithText("加载更多").performClick()
             ui.waitUntil(5000) { requests.any { it.page == 2 } }
             list.performScrollToNode(hasText(third.title))
+            ui.onNodeWithTag("comic-page-count-${third.key.stable}", useUnmergedTree = true).assertDoesNotExist()
             if (category) {
                 assertEquals(listOf(1, 2), requests.filter { it.category == "测试分类" }.map { it.page })
                 ui.onNodeWithContentDescription("返回").performClick()

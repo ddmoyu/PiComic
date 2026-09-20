@@ -11,6 +11,15 @@ import org.junit.Test
 import java.nio.ByteBuffer
 
 class HitomiContentTest {
+    @Test fun listKeepsTotalImagesFromGalleryMetadata() = runBlocking {
+        MockWebServer().use { server ->
+            server.start()
+            server.bytes(ByteBuffer.allocate(4).putInt(42).array(), 0, 4)
+            server.enqueue(MockResponse().setBody("""var galleryinfo = {"id":"42","title":"测试作品","files":[{"hash":"${"a".repeat(64)}"},{"hash":"${"b".repeat(64)}"}]};"""))
+            assertEquals(2, HitomiSource(client(server)).search(ContentQuery()).items.single().pageCount)
+            assertEquals(2, server.requestCount)
+        }
+    }
     private fun client(server: MockWebServer) = HitomiClient(NetworkEngine(), server.url("/"))
     private fun MockWebServer.bytes(data: ByteArray, start: Long, total: Long) { enqueue(MockResponse().setResponseCode(206).setHeader("Content-Range", "bytes $start-${start + data.size - 1}/$total").setBody(Buffer().write(data))) }
     @Test fun rangeChecksHeadersAndSmallWholeResponseFallback() = runBlocking {

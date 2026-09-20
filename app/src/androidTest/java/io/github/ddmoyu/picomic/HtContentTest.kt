@@ -17,6 +17,7 @@ class HtContentTest {
             server.enqueue(MockResponse().setBody("<div class=gallary_wrap><ul>$card</ul></div><div class=paginator><a href='?p=2'>2</a></div>")); server.start()
             val source = HtSource(client(server)); val page = source.search(ContentQuery("中文 & tag"))
             assertEquals(2, page.nextPage); assertEquals("42", page.items.single().key.id)
+            assertEquals(2, page.items.single().pageCount)
             assertEquals("中文 & tag", server.takeRequest().requestUrl!!.queryParameter("q"))
             server.enqueue(MockResponse().setBody("<div class=gallary_wrap></div><p class=result>0</p>"))
             assertTrue(source.search(ContentQuery("none")).items.isEmpty())

@@ -20,6 +20,7 @@ class NhContentTest {
             server.json("""{"result":[$listItem],"num_pages":3}"""); server.json(cdn); server.start()
             val results = NhSource(client(server)).search(ContentQuery("中文 & key"))
             assertEquals(2, results.nextPage); assertEquals("Chinese", results.items.single().language)
+            assertEquals(2, results.items.single().pageCount)
             assertEquals("https://t3.nhentai.net/galleries/123/thumb.webp.webp", results.items.single().cover)
             val request = server.takeRequest(); assertEquals("中文 & key", request.requestUrl!!.queryParameter("query")); assertNull(request.getHeader("Authorization"))
         }

@@ -10,6 +10,25 @@ import org.junit.Assert.*
 import org.junit.Test
 
 class EhContentTest {
+    @Test fun listPageCountsComeOnlyFromNativeMetadataWithoutDetailRequests() = runBlocking {
+        MockWebServer().use { eh -> MockWebServer().use { ex ->
+            eh.start(); ex.start()
+            val source = EhSource(client(eh, ex))
+            val title = "<a href='/g/42/abcdef0123/'><div class=glink>999 pages</div></a>"
+            val variants = listOf(
+                "<table class=itg><tr><td>$title</td><td class='gl4c glhide'><div><a>上传者</a></div><div>42 pages</div></td></tr></table>" to 42,
+                "<table class=itg><tr><td>$title<div class=gl3e><div>1,234 pages</div></div></td></tr></table>" to 1234,
+                "<div class=itg><div class=gl1t>$title<div class=gl5t><div><div>1 page</div></div></div></div></div>" to 1,
+                "<table class=itg><tr><td>$title<div class=glthumb><div><div>256 pages</div></div></div></td></tr></table>" to 256,
+                "<table class=itg><tr><td>$title<div class=gt>88 pages</div></td></tr></table>" to null,
+                "<table class=itg><tr><td>$title</td><td class=glhide><div>0 pages</div><div>unknown pages</div><div>999999999999 pages</div><div>1,23 pages</div></td></tr></table>" to null)
+            variants.forEach { (html, expected) ->
+                eh.enqueue(MockResponse().setBody(html))
+                assertEquals(expected, source.search(ContentQuery()).items.single().pageCount)
+            }
+            assertEquals(variants.size, eh.requestCount); assertEquals(0, ex.requestCount)
+        } }
+    }
     private val candidate get() = SessionCandidate(CredentialKind.COOKIE, "ipb_member_id=42; ipb_pass_hash=fixture; igneous=fixture-ex".toByteArray())
     private fun client(eh: MockWebServer, ex: MockWebServer, account: SessionCandidate? = null) = EhClient(NetworkEngine(), eh.url("/"), ex.url("/"), account)
     private val detail = """<h1 id=gn>主标题</h1><h1 id=gj>副标题</h1><div id=gdd><table><tr><td class=gdt2>3 pages</td></tr></table></div><div id=gdn><a>上传者</a></div><div id=gd1><div style="background:url(https://ehgt.org/fixture.jpg)"></div></div>"""

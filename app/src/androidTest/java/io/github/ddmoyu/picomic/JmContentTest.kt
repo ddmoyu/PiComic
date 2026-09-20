@@ -41,6 +41,7 @@ class JmContentTest {
             server.enqueue(encrypted("""{"content":[$book],"total":81}""")); server.enqueue(encrypted(setting)); server.start()
             val result = JmSource(client(server)).search(ContentQuery("中文 & 测试"))
             assertEquals(2, result.nextPage); assertEquals("500001", result.items.single().key.id)
+            assertNull(result.items.single().pageCount) // Result total is not the book's image count.
             val request = server.takeRequest()
             assertEquals("中文 & 测试", request.requestUrl!!.queryParameter("search_query"))
             assertEquals("$time,1.8.2", request.getHeader("tokenparam")); assertEquals(JmProtocol.token(time), request.getHeader("token"))

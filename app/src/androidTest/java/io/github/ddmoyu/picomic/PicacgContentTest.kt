@@ -13,7 +13,7 @@ import org.junit.Test
 class PicacgContentTest {
     private fun response(data: String) = MockResponse().setBody("""{"code":200,"message":"success","data":$data}""")
     private val thumb = """{"fileServer":"https://images.example.test","path":"folder/cover.png"}"""
-    private val comic = """{"_id":"comic-id","title":"契约作品","author":"作者","thumb":$thumb,"description":"简介","tags":["测试"],"categories":["分类"],"epsCount":2}"""
+    private val comic = """{"_id":"comic-id","title":"契约作品","author":"作者","thumb":$thumb,"description":"简介","tags":["测试"],"categories":["分类"],"epsCount":2,"pagesCount":240}"""
     private fun adapter(server: MockWebServer) = PicacgSource(PicacgClient(NetworkEngine(), server.url("/")), SessionCandidate(CredentialKind.USER_TOKEN, "fixture-token".toByteArray()))
     @Test fun searchAndCategoryUseDifferentRoutesWithEncodedParameters() = runBlocking {
         MockWebServer().use { server ->
@@ -21,6 +21,7 @@ class PicacgContentTest {
             val source = adapter(server)
             val first = source.search(ContentQuery("中文 & 特殊", sort = "ld"))
             assertEquals("comic-id", first.items.single().key.id); assertEquals(2, first.nextPage)
+            assertEquals(240, first.items.single().pageCount)
             val request = server.takeRequest()
             assertEquals("POST", request.method); assertEquals("/comics/advanced-search?page=1", request.path)
             assertEquals("中文 & 特殊", JSONObject(request.body.readUtf8()).getString("keyword"))

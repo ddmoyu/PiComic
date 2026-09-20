@@ -24,7 +24,7 @@ class LibraryListLayoutTest {
     @Test fun favoritesAndHistoryShareCoverRowsAndHistoryDeletionKeepsFavorites() {
         val vm = AppViewModel(ui.activity.application)
         val store = ViewModelStore().apply { put("library-list", vm) }
-        val comic = ComicSummary(ComicKey(Source.PICACG, "library-list-fixture"), "书架布局测试", "测试作者", tags = listOf("测试分类"))
+        val comic = ComicSummary(ComicKey(Source.PICACG, "library-list-fixture"), "书架布局测试", "测试作者", tags = listOf("测试分类"), pageCount = 350)
         var selected: ComicKey? = null
         try {
             runBlocking {
@@ -42,6 +42,7 @@ class LibraryListLayoutTest {
                 val cover = ui.onNode(hasTestTag("comic-cover-${comic.key.stable}") and hasAnyAncestor(hasTestTag(list)), useUnmergedTree = true).fetchSemanticsNode().boundsInRoot
                 val title = ui.onNode(hasTestTag("comic-title-${comic.key.stable}") and hasAnyAncestor(hasTestTag(list)), useUnmergedTree = true).fetchSemanticsNode().boundsInRoot
                 assertTrue(cover.right < title.left)
+                row(list).assertTextContains("共 350 张图片")
             }
             assertCoverOnLeft("favorites-list")
             row("favorites-list").assertTextContains("测试作者").assertTextContains("测试分类").performClick()
@@ -69,7 +70,7 @@ class LibraryListLayoutTest {
     }
 
     @Test fun narrowDownloadRowsKeepProgressPauseResumeDeleteAndOfflineReadActions() {
-        val comic = ComicSummary(ComicKey(Source.EHENTAI, "download-list-fixture"), "下载布局测试", "测试作者", tags = listOf("测试分类"))
+        val comic = ComicSummary(ComicKey(Source.EHENTAI, "download-list-fixture"), "下载布局测试", "测试作者", tags = listOf("测试分类"), pageCount = 350)
         var task by mutableStateOf(DownloadTask("download-row", SavedComic.from(comic), "chapter", "测试章节", 0,
             "fixture", DownloadStorage.INTERNAL, DownloadState.DOWNLOADING.name, total = 10, completed = 3, subtitle = "备用测试标题"))
         val actions = mutableListOf<String>()
@@ -84,6 +85,8 @@ class LibraryListLayoutTest {
         val title = ui.onNodeWithTag("comic-title-${comic.key.stable}", useUnmergedTree = true).fetchSemanticsNode().boundsInRoot
         assertTrue(cover.right < title.left)
         ui.onNodeWithText("备用测试标题").assertIsDisplayed()
+        ui.onNodeWithText("共 350 张图片").assertIsDisplayed()
+        ui.onNodeWithText("共 10 张图片").assertDoesNotExist()
         ui.onNodeWithText("正在下载 · 3 / 10 页").assertIsDisplayed()
         ui.onNode(hasProgressBarRangeInfo(androidx.compose.ui.semantics.ProgressBarRangeInfo(0.3f, 0f..1f))).assertIsDisplayed()
         ui.onNodeWithText("暂停", substring = false).performClick()
