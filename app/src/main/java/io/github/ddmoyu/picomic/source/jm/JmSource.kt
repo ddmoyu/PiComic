@@ -10,7 +10,7 @@ class JmSource(private val client: JmClient, private val imageLine: Int = 1) : C
     override val source = Source.JMCOMIC
     private var host: HttpUrl? = null
     private suspend fun imageHost(): HttpUrl = host ?: JmProtocol.imageHost(client.get("setting", mapOf("app_img_shunt" to imageLine.coerceIn(1, 4).toString(), "express" to "off")).optString("img_host")).also { host = it }
-    private data class CategoryRoute(val slug: String? = null, val keyword: String? = null)
+    private data class CategoryRoute(val label: String, val group: String, val slug: String? = null, val keyword: String? = null)
     private var catalog: Map<String, CategoryRoute>? = null
     private suspend fun categoryMap(): Map<String, CategoryRoute> {
         catalog?.let { return it }
@@ -20,22 +20,26 @@ class JmSource(private val client: JmClient, private val imageLine: Int = 1) : C
                 val name = category.text("name")
                 // The official default directory has id=0 and an empty slug.
                 val slug = if (category.optString("id") == "0" && category.opt("slug") == "") "0" else category.text("slug")
-                put(name, CategoryRoute(slug = slug))
+                put(name, CategoryRoute(label = name, group = "分类", slug = slug))
                 category.optJSONArray("sub_categories")?.objects()?.forEach {
                     // Different parents reuse child names; never overwrite another parent's route.
-                    put("$name / ${it.text("name")}", CategoryRoute(slug = it.text("slug")))
+                    val child = it.text("name")
+                    put("$name / $child", CategoryRoute(label = child, group = name, slug = it.text("slug")))
                 }
             }
             data.optJSONArray("blocks")?.objects()?.forEach { block ->
                 val title = block.text("title")
                 block.array("content").strings().forEach { tag ->
                     if (tag.isBlank() || tag.length > 2000) throw JmProtocol.malformed()
-                    put("$title / $tag", CategoryRoute(keyword = tag))
+                    put("$title / $tag", CategoryRoute(label = tag, group = title, keyword = tag))
                 }
             }
         }.also { if (it.isEmpty()) throw JmProtocol.malformed(); catalog = it }
     }
     override suspend fun categories() = categoryMap().keys.toList()
+    suspend fun categoryGroups() = categoryMap().entries.groupBy { it.value.group }.map { (title, routes) ->
+        ContentCategoryGroup(title, routes.map { (value, route) -> ContentCategory(value, route.label) })
+    }
     override suspend fun search(query: ContentQuery): ContentPage<ComicSummary> {
         require(query.page in 1..10000)
         val order = CategorySorts.resolve(source, query.sort).value

@@ -2,6 +2,9 @@ package io.github.ddmoyu.picomic.content
 
 import io.github.ddmoyu.picomic.data.Source
 
+data class ContentCategory(val value: String, val label: String = value)
+data class ContentCategoryGroup(val title: String, val items: List<ContentCategory>)
+
 /** Public directory metadata; reading a catalog must not require a valid account session. */
 object SourceCategories {
     val eh = linkedMapOf("同人志" to 2, "漫画" to 4, "画师 CG" to 8, "游戏 CG" to 16,
@@ -24,4 +27,20 @@ object SourceCategories {
         Source.NHENTAI -> nhTypes.keys.toList() + nhLanguages.keys
         else -> null
     }
+
+    fun groups(source: Source, values: List<String>): List<ContentCategoryGroup> = values.groupBy { name ->
+        when (source) {
+            Source.EHENTAI -> "内容类型"
+            Source.HITOMI -> if (name in hitomiLanguages) "语言" else "内容类型"
+            Source.NHENTAI -> if (name in nhLanguages) "语言" else "内容类型"
+            Source.HTCOMIC -> when (ht[name]) {
+                5, 1, 12, 16 -> "同人志"
+                6, 9, 13, 17 -> "单行本"
+                7, 10, 14, 18 -> "杂志短篇"
+                19, 20, 21 -> "韩漫"
+                else -> "其他"
+            }
+            else -> "分类"
+        }
+    }.map { (title, names) -> ContentCategoryGroup(title, names.map { ContentCategory(it) }) }
 }

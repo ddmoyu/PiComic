@@ -30,6 +30,13 @@ class ContentRepository(private val network: NetworkRepository,
         }
         return run(source) { adapter, _ -> adapter.categories() }
     }
+    suspend fun categoryGroups(source: Source): List<ContentCategoryGroup> {
+        if (source == Source.JMCOMIC) return withContext(Dispatchers.IO) {
+            network.awaitReady()
+            JmSource(jmClient()).categoryGroups()
+        }
+        return SourceCategories.groups(source, categories(source))
+    }
     suspend fun <T> run(source: Source, action: suspend (ComicSource, String) -> T): T = withContext(Dispatchers.IO) {
         network.awaitReady()
         val sessions = network.sessions

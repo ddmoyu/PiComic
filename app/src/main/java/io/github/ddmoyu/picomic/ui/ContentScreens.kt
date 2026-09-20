@@ -193,7 +193,7 @@ import kotlinx.coroutines.launch
     }
 }
 @Composable private fun ContentCategories(source: Source, vm: AppViewModel, category: (Source, String) -> Unit, login: (Source) -> Unit) {
-    var values by remember(source) { mutableStateOf<List<String>>(emptyList()) }
+    var groups by remember(source) { mutableStateOf<List<ContentCategoryGroup>>(emptyList()) }
     var error by remember(source) { mutableStateOf<String?>(null) }
     var loading by remember(source) { mutableStateOf(true) }
     var retry by remember(source) { mutableIntStateOf(0) }
@@ -201,17 +201,29 @@ import kotlinx.coroutines.launch
     val network by vm.network.state.collectAsStateWithLifecycle()
     val routes by vm.jmRoutes.state.collectAsStateWithLifecycle()
     LaunchedEffect(source, retry, revisions, network.generation, network.ready, routes.selected) {
-        loading = true; error = null; values = emptyList()
-        try { values = vm.content.categories(source) }
+        loading = true; error = null; groups = emptyList()
+        try { groups = vm.content.categoryGroups(source) }
         catch (e: CancellationException) { throw e }
         catch (e: Exception) { error = contentError(e) }
         finally { loading = false }
     }
     if (loading) { ContentLoading(); return }
-    Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(20.dp).testTag("categories-${source.name}"), verticalArrangement = Arrangement.spacedBy(16.dp)) {
+    Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(20.dp).testTag("categories-${source.name}"), verticalArrangement = Arrangement.spacedBy(24.dp)) {
         error?.let { ContentFailurePanel(it, { retry++ }, if (source == Source.PICACG) ({ login(source) }) else null) }
-        if (error == null && values.isEmpty()) ContentFailurePanel("来源暂未返回分类", { retry++ })
-        FlowRow(horizontalArrangement = Arrangement.spacedBy(10.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) { values.forEach { name -> AssistChip(onClick = { category(source, name) }, label = { Text(name) }) } }
+        if (error == null && groups.isEmpty()) ContentFailurePanel("来源暂未返回分类", { retry++ })
+        groups.forEach { group ->
+            Column(Modifier.fillMaxWidth().testTag("category-group-${source.name}-${group.title}"), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                Text(group.title, style = MaterialTheme.typography.titleMedium)
+                FlowRow(horizontalArrangement = Arrangement.spacedBy(10.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                    group.items.forEach { entry ->
+                        SuggestionChip(onClick = { category(source, entry.value) }, label = { Text(entry.label) },
+                            modifier = Modifier.testTag("category-${source.name}-${entry.value}"), shape = RoundedCornerShape(12.dp), border = null,
+                            colors = SuggestionChipDefaults.suggestionChipColors(containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
+                                labelColor = MaterialTheme.colorScheme.onSurface))
+                    }
+                }
+            }
+        }
     }
 }
 @Composable fun ContentSearchScreen(ui: UiState, vm: AppViewModel, back: () -> Unit, open: (ComicKey) -> Unit, login: (Source) -> Unit, initialQuery: String = "") {

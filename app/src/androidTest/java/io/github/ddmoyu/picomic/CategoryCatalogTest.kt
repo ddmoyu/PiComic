@@ -35,7 +35,7 @@ class CategoryCatalogTest {
         cipher.init(Cipher.ENCRYPT_MODE, SecretKeySpec(JmProtocol.token(time).toByteArray(), "AES"))
         return MockResponse().setBody(JSONObject().put("code", 200).put("data", Base64.getEncoder().encodeToString(cipher.doFinal(body.toByteArray()))).toString())
     }
-    private val catalog = """{"categories":[{"id":0,"name":"最新目录","slug":""},{"id":"1","name":"目录甲","slug":"a","sub_categories":[{"name":"译本","slug":"a-translated"}]},{"id":"2","name":"目录乙","slug":"b","sub_categories":[{"name":"译本","slug":"b-translated"}]}],"blocks":[{"title":"主题","content":["冒险","日常"]}]}"""
+    private val catalog = """{"categories":[{"id":0,"name":"最新目录","slug":""},{"id":"1","name":"目录甲","slug":"a","sub_categories":[{"name":"译本","slug":"a-translated"}]},{"id":"2","name":"目录乙","slug":"b","sub_categories":[{"name":"译本","slug":"b-translated"}]}],"blocks":[{"title":"主题","content":["冒险","日常"]},{"title":"主题 / 风格","content":["黑白 / 彩色"]}]}"""
     private val emptyJm = """{"content":[],"total":0}"""
     private val setting = """{"img_host":"https://cdn-msp2.jmdanjonproxy.vip"}"""
 
@@ -44,7 +44,12 @@ class CategoryCatalogTest {
             server.enqueue(encrypted(catalog)); server.start()
             val source = JmSource(JmClient(NetworkEngine(), server.url("/")) { time })
             val values = source.categories()
-            assertEquals(7, values.size)
+            assertEquals(8, values.size)
+            val groups = source.categoryGroups()
+            assertEquals(values.toSet(), groups.flatMap { it.items }.map { it.value }.toSet())
+            assertEquals(ContentCategory("目录甲 / 译本", "译本"), groups.single { it.title == "目录甲" }.items.single())
+            assertEquals(ContentCategory("目录乙 / 译本", "译本"), groups.single { it.title == "目录乙" }.items.single())
+            assertEquals(ContentCategory("主题 / 风格 / 黑白 / 彩色", "黑白 / 彩色"), groups.single { it.title == "主题 / 风格" }.items.single())
             assertEquals("/categories", server.takeRequest().path)
             for ((index, route) in listOf("最新目录" to "0", "目录甲 / 译本" to "a-translated", "目录乙 / 译本" to "b-translated").withIndex()) {
                 server.enqueue(encrypted(emptyJm))
@@ -60,7 +65,10 @@ class CategoryCatalogTest {
             val tag = server.takeRequest()
             assertEquals("/search", tag.requestUrl!!.encodedPath)
             assertEquals("冒险", tag.requestUrl!!.queryParameter("search_query"))
-            assertEquals(6, server.requestCount)
+            server.enqueue(encrypted(emptyJm))
+            source.search(ContentQuery(category = "主题 / 风格 / 黑白 / 彩色"))
+            assertEquals("黑白 / 彩色", server.takeRequest().requestUrl!!.queryParameter("search_query"))
+            assertEquals(7, server.requestCount)
         }
     }
     @Test fun jmBlankSlugIsOnlyValidForTheOfficialZeroIdDirectory() = runBlocking {
@@ -137,6 +145,10 @@ class CategoryCatalogTest {
         val repository = ContentRepository(NetworkRepository.get(context))
         for ((source, count) in listOf(Source.EHENTAI to 10, Source.HTCOMIC to 19, Source.HITOMI to 9, Source.NHENTAI to 5)) {
             assertEquals(count, repository.categories(source).size)
+            val groups = repository.categoryGroups(source)
+            assertEquals(count, groups.sumOf { it.items.size })
+            assertEquals(SourceCategories.fixed(source)!!.toSet(), groups.flatMap { it.items }.map { it.value }.toSet())
+            if (source in listOf(Source.HITOMI, Source.NHENTAI)) assertEquals(listOf("内容类型", "语言"), groups.map { it.title })
         }
         val mask: Int = SourceCategories.eh.values.fold(0) { bits, category -> bits or category }
         assertEquals(1023, mask)

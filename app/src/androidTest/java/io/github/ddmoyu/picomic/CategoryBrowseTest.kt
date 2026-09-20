@@ -41,7 +41,7 @@ class CategoryBrowseTest {
             val time = 1700000000L
             val cipher = Cipher.getInstance("AES/ECB/PKCS5Padding")
             cipher.init(Cipher.ENCRYPT_MODE, SecretKeySpec(JmProtocol.token(time).toByteArray(), "AES"))
-            val payload = """{"categories":[{"id":0,"name":"最新目录","slug":""},{"id":1,"name":"测试目录","slug":"test"}],"blocks":[{"title":"主题","content":["日常"]}]}"""
+            val payload = """{"categories":[{"id":0,"name":"最新目录","slug":""},{"id":1,"name":"目录甲","slug":"a","sub_categories":[{"name":"译本","slug":"a-translated"}]},{"id":2,"name":"目录乙","slug":"b","sub_categories":[{"name":"译本","slug":"b-translated"}]}],"blocks":[{"title":"主题","content":["日常"]},{"title":"主题 / 风格","content":["日常","黑白 / 彩色"]}]}"""
             val encrypted = JSONObject().put("code", 200).put("data", Base64.getEncoder().encodeToString(cipher.doFinal(payload.toByteArray()))).toString()
             server.dispatcher = object : Dispatcher() {
                 override fun dispatch(request: RecordedRequest) = if (request.requestUrl!!.encodedPath == "/categories") MockResponse().setBody(encrypted) else MockResponse().setResponseCode(404)
@@ -69,8 +69,22 @@ class CategoryBrowseTest {
                     val tag = "categories-${source.name}"
                     ui.waitUntil(10000) { ui.onAllNodesWithTag(tag).fetchSemanticsNodes().isNotEmpty() }
                     val last = when (source) { Source.PICACG -> names.last(); Source.JMCOMIC -> "主题 / 日常"; else -> SourceCategories.fixed(source)!!.last() }
-                    ui.onNode(hasText(last) and hasAnyAncestor(hasTestTag(tag))).performScrollTo().assertIsDisplayed().performClick()
+                    ui.onNodeWithTag("category-${source.name}-$last").performScrollTo().assertIsDisplayed()
+                        .assertTextEquals(if (source == Source.JMCOMIC) "日常" else last).performClick()
                     ui.runOnIdle { assertEquals(source to last, selected) }
+                    if (source == Source.JMCOMIC) {
+                        ui.onNodeWithText("主题 / 日常").assertDoesNotExist()
+                        for ((value, label) in listOf("目录甲 / 译本" to "译本", "目录乙 / 译本" to "译本",
+                            "主题 / 风格 / 日常" to "日常", "主题 / 风格 / 黑白 / 彩色" to "黑白 / 彩色")) {
+                            ui.onNodeWithTag("category-${source.name}-$value").performScrollTo().assertIsDisplayed().assertTextEquals(label).performClick()
+                            ui.runOnIdle { assertEquals(source to value, selected) }
+                        }
+                        ui.onNodeWithTag("category-group-JMCOMIC-主题 / 风格").assertExists()
+                    }
+                    if (source in listOf(Source.HITOMI, Source.NHENTAI)) {
+                        ui.onNodeWithTag("category-group-${source.name}-内容类型").assertExists()
+                        ui.onNodeWithTag("category-group-${source.name}-语言").assertExists()
+                    }
                     ui.onNodeWithText("所有分类").assertDoesNotExist()
                 }
             } finally {
