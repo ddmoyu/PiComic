@@ -76,6 +76,20 @@ class HitomiClient internal constructor(private val engine: NetworkEngine, val b
             parsed
         }
     }
+    private val randomLock = Mutex()
+    private var randomKey: Triple<Long, List<String>, Long>? = null
+    private var randomSnapshot = intArrayOf()
+    /** Pin the shuffled category index across page requests, including a return from details. */
+    suspend fun randomIds(path: List<String>, seed: Long): IntArray = randomLock.withLock {
+        val generation = engine.status.generation
+        val key = Triple(generation, path, seed)
+        if (randomKey == key) return@withLock randomSnapshot
+        val ids = HitomiProtocol.ids(range(path).bytes)
+        ids.shuffle(kotlin.random.Random(seed))
+        engine.withGeneration(generation) { randomKey = key; randomSnapshot = ids }
+        ids
+    }
+
     suspend fun searchIds(keyword: String, language: String): IntArray = queryLock.withLock {
         val generation = engine.status.generation; val now = android.os.SystemClock.elapsedRealtime(); val cacheKey = "$language/$keyword"
         queryCache[cacheKey]?.takeIf { it.first == generation && now - it.second in 0..300000 }?.let { return@withLock it.third }

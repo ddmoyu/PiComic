@@ -6,6 +6,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.lazy.grid.*
 import androidx.compose.foundation.pager.*
 import androidx.compose.foundation.rememberScrollState
@@ -108,6 +109,26 @@ import kotlinx.coroutines.launch
         OutlinedButton(onClick = retry) { Text("重新加载") }
     }
 }
+@Composable fun ContentCategoryScreen(source: Source, category: String, ui: UiState, vm: AppViewModel, open: (ComicKey) -> Unit, login: (Source) -> Unit) {
+    val options = remember(source) { CategorySorts.options(source) }
+    var selected by rememberSaveable(source, category) { mutableStateOf(options.first().value) }
+    val randomSeed = rememberSaveable(source, category) { kotlin.random.Random.nextLong() }
+    Column(Modifier.fillMaxSize()) {
+        FlowRow(Modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = 8.dp).testTag("category-sorts-${source.name}"),
+            horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            options.forEach { option ->
+                FilterChip(selected = selected == option.value, onClick = { selected = option.value },
+                    label = { Text(option.label) }, modifier = Modifier.testTag("category-sort-${option.value}"))
+            }
+        }
+        HorizontalDivider()
+        Box(Modifier.weight(1f)) {
+            ContentListScreen(source, ContentQuery(category = category, sort = selected, randomSeed = randomSeed),
+                "category/$category", ui, vm, open, login, listLayout = true)
+        }
+    }
+}
+
 @Composable fun ContentListScreen(source: Source, query: ContentQuery, slot: String, ui: UiState, vm: AppViewModel, open: (ComicKey) -> Unit, login: (Source) -> Unit, listLayout: Boolean = false) {
     val controller = remember(source, slot) { vm.contentList("$slot/${source.name}") }
     val state by controller.state.collectAsStateWithLifecycle()
@@ -117,6 +138,16 @@ import kotlinx.coroutines.launch
     val htRoutes by vm.htRoutes.state.collectAsStateWithLifecycle()
     val sourceConfig = when (source) { Source.JMCOMIC -> "${routes.selected}/${ui.pref("jm.image")}"; Source.NHENTAI -> ui.pref("nh.auth"); Source.HTCOMIC -> htRoutes.selected; Source.EHENTAI -> "${ui.pref("eh.site")}/${ui.pref("eh.warning")}"; else -> "" }
     val grid = rememberLazyGridState()
+    val list = rememberLazyListState()
+    // Save the query with scroll state: a sort change resets it, returning from details does not.
+    var scrollQuery by rememberSaveable(source, slot) { mutableStateOf(listOf(query.keyword, query.category.orEmpty(), query.sort)) }
+    LaunchedEffect(query.keyword, query.category, query.sort, listLayout) {
+        val current = listOf(query.keyword, query.category.orEmpty(), query.sort)
+        if (scrollQuery != current) {
+            scrollQuery = current
+            if (listLayout) list.scrollToItem(0) else grid.scrollToItem(0)
+        }
+    }
     LaunchedEffect(source, query, network.ready, network.generation, revisions, sourceConfig) {
         if (network.ready) controller.load(source, query, context = "${network.generation}/${revisions}/$sourceConfig")
     }
@@ -130,7 +161,7 @@ import kotlinx.coroutines.launch
             if (state.nextPage != null && !state.loading && state.error == null) OutlinedButton(onClick = controller::more) { Text("加载更多") }
         }
     }
-    if (listLayout) LazyColumn(Modifier.fillMaxSize().testTag("content-list-${source.name}"),
+    if (listLayout) LazyColumn(Modifier.fillMaxSize().testTag("content-list-${source.name}"), state = list,
         contentPadding = PaddingValues(horizontal = 20.dp, vertical = 16.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
         items(visible, key = { it.key.stable }) { ContentComicRow(it, open) }
         item { footer() }

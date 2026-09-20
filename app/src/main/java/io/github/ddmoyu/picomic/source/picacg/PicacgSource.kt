@@ -12,7 +12,7 @@ class PicacgSource(private val client: PicacgClient, private val token: SessionC
     override val source = Source.PICACG
     override suspend fun search(query: ContentQuery): ContentPage<ComicSummary> {
         require(query.page in 1..10000 && query.keyword.length <= 300)
-        val body = JSONObject().put("keyword", query.keyword).put("sort", query.sort.takeIf { it in setOf("dd", "da", "ld", "vd") } ?: "dd")
+        val body = JSONObject().put("keyword", query.keyword).put("sort", CategorySorts.resolve(source, query.sort).value)
         val root = if (query.category != null || query.keyword.isEmpty()) client.content(listOf("comics"),
             buildMap { put("page", query.page.toString()); put("s", body.getString("sort")); query.category?.let { put("c", it) } }, token)
         else client.content(listOf("comics", "advanced-search"), mapOf("page" to query.page.toString()), token, body)

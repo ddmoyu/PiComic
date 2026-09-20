@@ -38,7 +38,7 @@ class JmSource(private val client: JmClient, private val imageLine: Int = 1) : C
     override suspend fun categories() = categoryMap().keys.toList()
     override suspend fun search(query: ContentQuery): ContentPage<ComicSummary> {
         require(query.page in 1..10000)
-        val order = query.sort.takeIf { it in setOf("mr", "mv", "mp", "tf") } ?: "mr"
+        val order = CategorySorts.resolve(source, query.sort).value
         val params = mutableMapOf("page" to query.page.toString(), "o" to order)
         val selected = query.category?.let { categoryMap()[it] ?: throw ContentFailure(ContentFailureKind.NOT_FOUND, "JM 分类已变化，请重新选择") }
         val keyword = listOfNotNull(selected?.keyword, query.keyword.takeIf(String::isNotBlank)).joinToString(" ")

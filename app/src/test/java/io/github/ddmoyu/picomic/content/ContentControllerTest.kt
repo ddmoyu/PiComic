@@ -7,6 +7,26 @@ import org.junit.Assert.*
 import org.junit.Test
 
 class ContentControllerTest {
+    @Test fun changingSortResetsPaginationAndDiscardsLatePreviousSort() = runBlocking {
+        val started = CompletableDeferred<Unit>(); val release = CompletableDeferred<Unit>()
+        val requests = mutableListOf<ContentQuery>()
+        val controller = ContentListController(this) { _, query ->
+            requests += query
+            if (query.sort == "mr" && query.page == 2) withContext(NonCancellable) { started.complete(Unit); release.await() }
+            ContentPage(listOf(item("${query.sort}-${query.page}")), if (query.page == 1) 2 else null,
+                if (query.page == 1) "${query.sort}-cursor" else null)
+        }
+        controller.load(Source.PICACG, ContentQuery(category = "测试分类", sort = "mr"))
+        controller.state.first { it.loaded }; controller.more(); started.await()
+        controller.load(Source.PICACG, ContentQuery(category = "测试分类", sort = "mv_w"))
+        assertTrue(controller.state.value.items.isEmpty())
+        controller.state.first { it.loaded }; controller.more(); controller.state.first { !it.loading }
+        release.complete(Unit); yield(); delay(20)
+        assertEquals(listOf("mv_w-1", "mv_w-2"), controller.state.value.items.map { it.key.id })
+        assertTrue(requests.all { it.category == "测试分类" })
+        assertEquals(listOf(1, 2, 1, 2), requests.map { it.page })
+        assertEquals(listOf(null, "mr-cursor", null, "mv_w-cursor"), requests.map { it.cursor })
+    }
     private fun item(id: String, source: Source = Source.PICACG) = ComicSummary(ComicKey(source, id), "作品 $id")
     @Test fun sourceSwitchDiscardsLateResultsEvenIfTransportIgnoresCancellation() = runBlocking {
         val started = CompletableDeferred<Unit>(); val release = CompletableDeferred<Unit>()

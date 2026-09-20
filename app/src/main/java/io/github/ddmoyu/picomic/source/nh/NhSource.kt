@@ -40,7 +40,7 @@ class NhSource(private val client: NhClient) : ComicSource {
             query.category != null -> { params["tag_id"] = languages[query.category] ?: throw NhClient.malformed(); listOf("galleries", "tagged") }
             else -> listOf("galleries")
         }
-        params["sort"] = query.sort.takeIf { it in setOf("date", "popular", "popular-today", "popular-week", "popular-month") } ?: "date"
+        params["sort"] = CategorySorts.resolve(source, query.sort).value
         val data = client.get(path, params)
         hosts()
         val rows = data.optJSONArray("result") ?: throw NhClient.malformed()

@@ -21,10 +21,16 @@ class HitomiSource(private val client: HitomiClient) : ComicSource {
         val offset = (query.page - 1) * PAGE_SIZE
         val ids: IntArray; val more: Boolean
         if (query.keyword.isBlank()) {
-            val path = if (type == null) listOf("index-$language.nozomi") else listOf("type", "$type-all.nozomi")
-            val range = client.range(path, offset.toLong() * 4, PAGE_SIZE * 4)
-            if (range.total % 4 != 0L) throw parseChanged("Hitomi")
-            ids = HitomiProtocol.ids(range.bytes); more = (offset + ids.size).toLong() * 4 < range.total
+            val path = HitomiCategoryOrder.path(type, language, query.sort)
+            if (query.sort == "random") {
+                val all = client.randomIds(path, query.randomSeed)
+                ids = all.copyOfRange(offset.coerceAtMost(all.size), (offset + PAGE_SIZE).coerceAtMost(all.size))
+                more = offset + ids.size < all.size
+            } else {
+                val range = client.range(path, offset.toLong() * 4, PAGE_SIZE * 4)
+                if (range.total % 4 != 0L) throw parseChanged("Hitomi")
+                ids = HitomiProtocol.ids(range.bytes); more = (offset + ids.size).toLong() * 4 < range.total
+            }
         } else {
             val keyword = listOfNotNull(type?.let { "type:$it" }, query.keyword).joinToString(" ")
             val all = client.searchIds(keyword, language)

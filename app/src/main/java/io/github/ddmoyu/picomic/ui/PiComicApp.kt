@@ -93,7 +93,7 @@ import kotlinx.coroutines.launch
                     }
                     systemBackPage("category/{category}", nav, back) { target ->
                         if (demo) ComicGrid(DemoCatalog.filter("",target.arguments?.getString("category")?:"全部",ui.keywords,ui.languages),{open(ui.source,it)})
-                        else ContentListScreen(ui.source,ContentQuery(category=target.arguments?.getString("category"), sort=contentSort(ui)),"category/${target.arguments?.getString("category")}",ui,vm,openContent,login,listLayout=true)
+                        else ContentCategoryScreen(ui.source,target.arguments?.getString("category").orEmpty(),ui,vm,openContent,login)
                     }
                     systemBackPage("library", nav, back) { if (demo) LibraryScreen(ui,vm,open) { h -> read(h.source,DemoCatalog.comic(h.comicId),h.chapter,h.page) } else ContentLibraryScreen(vm,openContent) { go("offline-reader/$it") } }
                     systemBackPage("offline-reader/{id}", nav, back) { target -> OfflineReaderScreen(target.arguments!!.getString("id")!!, ui, vm, back) }

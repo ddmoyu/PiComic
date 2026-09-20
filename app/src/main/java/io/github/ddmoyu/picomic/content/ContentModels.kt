@@ -19,7 +19,7 @@ data class Chapter(val id: String, val title: String, val order: Int, val pageCo
 data class JmImageRule(val photoId: Long, val scrambleId: Long, val filename: String, val alreadyDecoded: Boolean = false, val version: Int = 1)
 data class PageRef(val id: String, val index: Int, val url: String, val width: Int? = null, val height: Int? = null, val jm: JmImageRule? = null, val resolver: String? = null)
 data class ContentPage<T>(val items: List<T>, val nextPage: Int? = null, val nextCursor: String? = null)
-data class ContentQuery(val keyword: String = "", val category: String? = null, val sort: String = "dd", val page: Int = 1, val cursor: String? = null)
+data class ContentQuery(val keyword: String = "", val category: String? = null, val sort: String = "dd", val page: Int = 1, val cursor: String? = null, val randomSeed: Long = 0)
 data class ContentProgress(
     val key: ComicKey, val chapterId: String, val pageId: String, val page: Int,
     val offset: Float, val mode: String, val updatedAt: Long = System.currentTimeMillis()

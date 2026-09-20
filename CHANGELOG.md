@@ -4,6 +4,7 @@
 
 ### 简体中文
 
+- 分类结果页增加各平台原生排序：JM 的最新、总/月/周/日排行、最多图片和最多喜欢；哔咔的新旧、喜欢数和浏览数；nhentai 的最新与各时段热门；Hitomi 的收录/发布时间、日/周/月/年热门和随机。切换排序保留分类并回到第一页，翻页沿用所选排序，返回页面保留选择和位置。EH、绅士漫画沿用官网分类默认顺序。
 - 哔咔、JM、EH、绅士漫画和 nhentai 登录页新增“忘记密码”，在应用内网页打开平台找回或账号入口，支持网页后退、重新加载与返回登录；哔咔网页未提供找回选项时提示使用官方客户端。
 - 调整作品详情布局：ID、作者和分类标签分组展示，下载与阅读按钮左右等宽排列，章节采用双列按钮；保留收藏、续读和已下载提示，不显示分享与评论入口。
 - 发现、分类结果、收藏、下载和阅读历史统一为左封面、右信息的列表，标题最多显示两行，并展示已有的作者、分类和来源信息；分类入口仍保留标签布局，下载控制与历史删除操作继续可用。
@@ -19,6 +20,7 @@
 
 ### English
 
+- Added source-specific sorting to category results: all seven JM orders, Pica date/likes/views, nhentai date and popularity periods, and Hitomi added/published dates, daily/weekly/monthly/yearly popularity and random order. Changing order retains the category and restarts pagination; subsequent pages and restored screens keep the selection. EH and Wnacg retain their native category order.
 - Added “Forgot password” to Pica, JM, EH, Wnacg and nhentai login pages. Recovery or account pages open inside the app with back, reload and return-to-login controls. Pica users are directed to the official client if web recovery is unavailable.
 - Redesigned details with grouped ID, author and category tags, equal-width Download and Read buttons, and two-column chapter buttons. Favorites, reading progress and downloaded indicators remain available, without share or comment actions.
 - Discovery, category results, favorites, downloads and reading history now use rows with a cover on the left and details on the right. Titles are limited to two lines, with available author, category and source metadata. Category selection keeps its chip layout, and download controls and history deletion remain available.
@@ -34,6 +36,7 @@
 
 ### 日本語
 
+- 分類の結果画面に配信元ごとの並び替えを追加しました。JM の7種類、Pica の新旧・いいね・閲覧数、nhentai の新着・期間別人気、Hitomi の追加日・公開日・日/週/月/年の人気・ランダムに対応します。変更時は分類を維持して先頭ページへ戻り、ページ送りと画面復帰でも選択を保持します。EH と Wnacg は公式の分類順を使用します。
 - Pica、JM、EH、Wnacg、nhentai のログイン画面に「パスワードを忘れた」を追加しました。アプリ内で再設定またはアカウントページを開き、ページを戻る・再読み込み・ログインに戻る操作ができます。Pica のウェブ版に再設定項目がない場合は公式クライアントを案内します。
 - 詳細画面の ID・作者・分類タグをグループ化し、ダウンロードと読書ボタンを同じ幅で横並びに、章ボタンを2列に配置しました。お気に入り、続きを読む、ダウンロード済み表示を維持し、共有・コメントの操作は表示しません。
 - 発見、分類の検索結果、お気に入り、ダウンロード、読書履歴を、左に表紙、右に情報を表示するリストに統一しました。タイトルは最大2行とし、取得済みの作者・分類・配信元を表示します。分類の選択画面はチップ形式を維持し、ダウンロード操作や履歴削除も引き続き利用できます。
