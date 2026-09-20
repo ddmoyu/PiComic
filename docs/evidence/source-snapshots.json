@@ -1,0 +1,402 @@
+{
+  "inspectedOn": "2026-09-17",
+  "verification": "static source inspection only",
+  "repositories": {
+    "PicaComic": {
+      "url": "https://github.com/wgh136/PicaComic",
+      "sha": "155cf0c6d7018f9521f8c375b142bafd85e47a4d",
+      "commitDate": "2024-12-21T17:48:05+08:00",
+      "licenseFiles": [
+        "LICENSE"
+      ]
+    },
+    "Hazuki": {
+      "url": "https://github.com/LuckyLxi/Hazuki",
+      "sha": "4264814afc5ff1ae5eb4a0bb772286d3e7c5e79d",
+      "commitDate": "2026-09-11T18:18:19Z",
+      "licenseFiles": [
+        "LICENSE"
+      ]
+    },
+    "jm-mobile": {
+      "url": "https://github.com/Dedicatus546/jm-mobile",
+      "sha": "25a957b65220b9f66f18e759ddb45e963a27c950",
+      "commitDate": "2026-09-17T17:26:54+08:00",
+      "licenseFiles": [
+        "LICENSE"
+      ]
+    },
+    "Breeze-plugin-list": {
+      "url": "https://github.com/deretame/Breeze-plugin-list",
+      "sha": "9737a4e7fe8bc4e33ee691b67f0624ef6faeb23c",
+      "commitDate": "2026-09-16T21:54:18Z",
+      "licenseFiles": []
+    },
+    "Breeze": {
+      "url": "https://github.com/deretame/Breeze",
+      "sha": "2b39df0bf277329d535b29abe83869e8240cb934",
+      "commitDate": "2026-09-14T17:34:20+08:00",
+      "licenseFiles": [
+        "LICENSE"
+      ]
+    },
+    "venera-configs": {
+      "url": "https://github.com/venera-app/venera-configs",
+      "sha": "d8a71168a83a6797482a5be9c000989dabf21c08",
+      "commitDate": "2026-09-06T16:47:24Z",
+      "licenseFiles": []
+    },
+    "Breeze-plugin-JmComic": {
+      "url": "https://github.com/deretame/Breeze-plugin-JmComic",
+      "sha": "37c8b86a602553ac6e41008c5afa07b9446e7590",
+      "commitDate": "2026-08-19T22:55:53+08:00",
+      "licenseFiles": []
+    },
+    "Breeze-plugin-bikaComic": {
+      "url": "https://github.com/deretame/Breeze-plugin-bikaComic",
+      "sha": "700aa3393d433d1957e16607e0db99a28e44ceee",
+      "commitDate": "2026-07-07T23:17:44+08:00",
+      "licenseFiles": []
+    },
+    "Breeze-plugin-ehentai": {
+      "url": "https://github.com/deretame/Breeze-plugin-ehentai",
+      "sha": "5e3ee17c6ee414afbcb5802d44e1863d88094fca",
+      "commitDate": "2026-09-14T08:45:53Z",
+      "licenseFiles": []
+    },
+    "Breeze-plugin-nhentai": {
+      "url": "https://github.com/deretame/Breeze-plugin-nhentai",
+      "sha": "2b9b7ac1f7e01f6452489d656271c004ae4ec8d1",
+      "commitDate": "2026-09-02T12:05:35+08:00",
+      "licenseFiles": []
+    },
+    "Breeze-plugin-shenShiManHua": {
+      "url": "https://github.com/deretame/Breeze-plugin-shenShiManHua",
+      "sha": "8e3b10b398b10bd1f1d796b8198d7c74161b09d5",
+      "commitDate": "2026-09-04T20:38:33+08:00",
+      "licenseFiles": []
+    }
+  },
+  "evidence": [
+    {
+      "id": "PICA-UI",
+      "repo": "PicaComic",
+      "file": "lib/main.dart",
+      "line": 161,
+      "anchor": "_generateColorSchemes",
+      "url": "https://github.com/wgh136/PicaComic/blob/155cf0c6d7018f9521f8c375b142bafd85e47a4d/lib/main.dart#L161"
+    },
+    {
+      "id": "PICA-READ",
+      "repo": "PicaComic",
+      "file": "lib/pages/reader/reading_data.dart",
+      "line": 3,
+      "anchor": "abstract class ReadingData",
+      "url": "https://github.com/wgh136/PicaComic/blob/155cf0c6d7018f9521f8c375b142bafd85e47a4d/lib/pages/reader/reading_data.dart#L3"
+    },
+    {
+      "id": "PICA-VIEW",
+      "repo": "PicaComic",
+      "file": "lib/pages/reader/image_view.dart",
+      "line": 27,
+      "anchor": "buildComicView",
+      "url": "https://github.com/wgh136/PicaComic/blob/155cf0c6d7018f9521f8c375b142bafd85e47a4d/lib/pages/reader/image_view.dart#L27"
+    },
+    {
+      "id": "PICA-PICA",
+      "repo": "PicaComic",
+      "file": "lib/network/picacg_network/methods.dart",
+      "line": 145,
+      "anchor": "Future<Res<String>> login",
+      "url": "https://github.com/wgh136/PicaComic/blob/155cf0c6d7018f9521f8c375b142bafd85e47a4d/lib/network/picacg_network/methods.dart#L145"
+    },
+    {
+      "id": "PICA-SIGN",
+      "repo": "PicaComic",
+      "file": "lib/network/picacg_network/headers.dart",
+      "line": 15,
+      "anchor": "createSignature",
+      "url": "https://github.com/wgh136/PicaComic/blob/155cf0c6d7018f9521f8c375b142bafd85e47a4d/lib/network/picacg_network/headers.dart#L15"
+    },
+    {
+      "id": "PICA-EH",
+      "repo": "PicaComic",
+      "file": "lib/network/eh_network/eh_main_network.dart",
+      "line": 36,
+      "anchor": "getCookies",
+      "url": "https://github.com/wgh136/PicaComic/blob/155cf0c6d7018f9521f8c375b142bafd85e47a4d/lib/network/eh_network/eh_main_network.dart#L36"
+    },
+    {
+      "id": "PICA-JM",
+      "repo": "PicaComic",
+      "file": "lib/network/jm_network/jm_network.dart",
+      "line": 70,
+      "anchor": "class JmNetwork",
+      "url": "https://github.com/wgh136/PicaComic/blob/155cf0c6d7018f9521f8c375b142bafd85e47a4d/lib/network/jm_network/jm_network.dart#L70"
+    },
+    {
+      "id": "PICA-IMAGE",
+      "repo": "PicaComic",
+      "file": "lib/foundation/image_loader/image_recombine.dart",
+      "line": 11,
+      "anchor": "_getSegmentationNum",
+      "url": "https://github.com/wgh136/PicaComic/blob/155cf0c6d7018f9521f8c375b142bafd85e47a4d/lib/foundation/image_loader/image_recombine.dart#L11"
+    },
+    {
+      "id": "PICA-HITOMI",
+      "repo": "PicaComic",
+      "file": "lib/network/hitomi_network/image.dart",
+      "line": 8,
+      "anchor": "gg.js",
+      "url": "https://github.com/wgh136/PicaComic/blob/155cf0c6d7018f9521f8c375b142bafd85e47a4d/lib/network/hitomi_network/image.dart#L8"
+    },
+    {
+      "id": "PICA-HT",
+      "repo": "PicaComic",
+      "file": "lib/network/htmanga_network/htmanga_main_network.dart",
+      "line": 18,
+      "anchor": "class HtmangaNetwork",
+      "url": "https://github.com/wgh136/PicaComic/blob/155cf0c6d7018f9521f8c375b142bafd85e47a4d/lib/network/htmanga_network/htmanga_main_network.dart#L18"
+    },
+    {
+      "id": "HAZ-CATALOG",
+      "repo": "Hazuki",
+      "file": "lib/services/source/runtime/source_catalog_resolver.dart",
+      "line": 10,
+      "anchor": "class SourceCatalogResolver",
+      "url": "https://github.com/LuckyLxi/Hazuki/blob/4264814afc5ff1ae5eb4a0bb772286d3e7c5e79d/lib/services/source/runtime/source_catalog_resolver.dart#L10"
+    },
+    {
+      "id": "HAZ-CONFIG",
+      "repo": "Hazuki",
+      "file": "lib/services/source/runtime/source_config_url_resolver.dart",
+      "line": 3,
+      "anchor": "_jsDelivrBaseUrl",
+      "url": "https://github.com/LuckyLxi/Hazuki/blob/4264814afc5ff1ae5eb4a0bb772286d3e7c5e79d/lib/services/source/runtime/source_config_url_resolver.dart#L3"
+    },
+    {
+      "id": "HAZ-ASSEMBLY",
+      "repo": "Hazuki",
+      "file": "lib/services/source/runtime/source_runtime_assembly.dart",
+      "line": 55,
+      "anchor": "jm.js",
+      "url": "https://github.com/LuckyLxi/Hazuki/blob/4264814afc5ff1ae5eb4a0bb772286d3e7c5e79d/lib/services/source/runtime/source_runtime_assembly.dart#L55"
+    },
+    {
+      "id": "HAZ-SESSION",
+      "repo": "Hazuki",
+      "file": "lib/services/source/runtime/source_secure_session_storage.dart",
+      "line": 13,
+      "anchor": "class SourceSecureSessionStorageKeys",
+      "url": "https://github.com/LuckyLxi/Hazuki/blob/4264814afc5ff1ae5eb4a0bb772286d3e7c5e79d/lib/services/source/runtime/source_secure_session_storage.dart#L13"
+    },
+    {
+      "id": "HAZ-RELOGIN",
+      "repo": "Hazuki",
+      "file": "lib/services/source/account/source_relogin_coordinator.dart",
+      "line": 69,
+      "anchor": "runWithReloginRetry",
+      "url": "https://github.com/LuckyLxi/Hazuki/blob/4264814afc5ff1ae5eb4a0bb772286d3e7c5e79d/lib/services/source/account/source_relogin_coordinator.dart#L69"
+    },
+    {
+      "id": "JM-HTTP",
+      "repo": "jm-mobile",
+      "file": "app/src/main/java/com/par9uet/jm/retrofit/Retrofit.kt",
+      "line": 39,
+      "anchor": "private val cookieJar",
+      "url": "https://github.com/Dedicatus546/jm-mobile/blob/25a957b65220b9f66f18e759ddb45e963a27c950/app/src/main/java/com/par9uet/jm/retrofit/Retrofit.kt#L39"
+    },
+    {
+      "id": "JM-TOKEN",
+      "repo": "jm-mobile",
+      "file": "app/src/main/java/com/par9uet/jm/retrofit/interceptor/TokenInterceptor.kt",
+      "line": 10,
+      "anchor": "class TokenInterceptor",
+      "url": "https://github.com/Dedicatus546/jm-mobile/blob/25a957b65220b9f66f18e759ddb45e963a27c950/app/src/main/java/com/par9uet/jm/retrofit/interceptor/TokenInterceptor.kt#L10"
+    },
+    {
+      "id": "JM-CONSTANT",
+      "repo": "jm-mobile",
+      "file": "app/src/main/java/com/par9uet/jm/retrofit/Constant.kt",
+      "line": 5,
+      "anchor": "API_TS",
+      "url": "https://github.com/Dedicatus546/jm-mobile/blob/25a957b65220b9f66f18e759ddb45e963a27c950/app/src/main/java/com/par9uet/jm/retrofit/Constant.kt#L5"
+    },
+    {
+      "id": "JM-URL",
+      "repo": "jm-mobile",
+      "file": "app/src/main/java/com/par9uet/jm/retrofit/interceptor/BaseUrlInterceptor.kt",
+      "line": 10,
+      "anchor": "class BaseUrlInterceptor",
+      "url": "https://github.com/Dedicatus546/jm-mobile/blob/25a957b65220b9f66f18e759ddb45e963a27c950/app/src/main/java/com/par9uet/jm/retrofit/interceptor/BaseUrlInterceptor.kt#L10"
+    },
+    {
+      "id": "JM-LOGIN",
+      "repo": "jm-mobile",
+      "file": "app/src/main/java/com/par9uet/jm/retrofit/service/UserService.kt",
+      "line": 22,
+      "anchor": "suspend fun login",
+      "url": "https://github.com/Dedicatus546/jm-mobile/blob/25a957b65220b9f66f18e759ddb45e963a27c950/app/src/main/java/com/par9uet/jm/retrofit/service/UserService.kt#L22"
+    },
+    {
+      "id": "JM-USER",
+      "repo": "jm-mobile",
+      "file": "app/src/main/java/com/par9uet/jm/store/UserManager.kt",
+      "line": 58,
+      "anchor": "autoLogin",
+      "url": "https://github.com/Dedicatus546/jm-mobile/blob/25a957b65220b9f66f18e759ddb45e963a27c950/app/src/main/java/com/par9uet/jm/store/UserManager.kt#L58"
+    },
+    {
+      "id": "JM-COOKIE",
+      "repo": "jm-mobile",
+      "file": "app/src/main/java/com/par9uet/jm/storage/CookieStorage.kt",
+      "line": 64,
+      "anchor": "class CookieStorage",
+      "url": "https://github.com/Dedicatus546/jm-mobile/blob/25a957b65220b9f66f18e759ddb45e963a27c950/app/src/main/java/com/par9uet/jm/storage/CookieStorage.kt#L64"
+    },
+    {
+      "id": "JM-API",
+      "repo": "jm-mobile",
+      "file": "app/src/main/java/com/par9uet/jm/retrofit/service/ProxyApiService.kt",
+      "line": 7,
+      "anchor": "getApiList",
+      "url": "https://github.com/Dedicatus546/jm-mobile/blob/25a957b65220b9f66f18e759ddb45e963a27c950/app/src/main/java/com/par9uet/jm/retrofit/service/ProxyApiService.kt#L7"
+    },
+    {
+      "id": "JM-API-VM",
+      "repo": "jm-mobile",
+      "file": "app/src/main/java/com/par9uet/jm/ui/viewModel/ApiSelectViewModel.kt",
+      "line": 26,
+      "anchor": "pullApiList",
+      "url": "https://github.com/Dedicatus546/jm-mobile/blob/25a957b65220b9f66f18e759ddb45e963a27c950/app/src/main/java/com/par9uet/jm/ui/viewModel/ApiSelectViewModel.kt#L26"
+    },
+    {
+      "id": "JM-DECODE",
+      "repo": "jm-mobile",
+      "file": "app/src/main/java/com/par9uet/jm/retrofit/DataDecode.kt",
+      "line": 118,
+      "anchor": "scramble_id",
+      "url": "https://github.com/Dedicatus546/jm-mobile/blob/25a957b65220b9f66f18e759ddb45e963a27c950/app/src/main/java/com/par9uet/jm/retrofit/DataDecode.kt#L118"
+    },
+    {
+      "id": "JM-IMAGE",
+      "repo": "jm-mobile",
+      "file": "app/src/main/java/com/par9uet/jm/utils/DecodeComicPic.kt",
+      "line": 16,
+      "anchor": "scrambleId",
+      "url": "https://github.com/Dedicatus546/jm-mobile/blob/25a957b65220b9f66f18e759ddb45e963a27c950/app/src/main/java/com/par9uet/jm/utils/DecodeComicPic.kt#L16"
+    },
+    {
+      "id": "BREEZE-INDEX",
+      "repo": "Breeze-plugin-list",
+      "file": "plugins_data.json",
+      "line": 3,
+      "anchor": "Breeze-plugin-JmComic",
+      "url": "https://github.com/deretame/Breeze-plugin-list/blob/9737a4e7fe8bc4e33ee691b67f0624ef6faeb23c/plugins_data.json#L3"
+    },
+    {
+      "id": "BREEZE-WEB",
+      "repo": "Breeze",
+      "file": "lib/page/plugin_settings/method/plugin_settings_web_login.dart",
+      "line": 584,
+      "anchor": "buildCookieHeader",
+      "url": "https://github.com/deretame/Breeze/blob/2b39df0bf277329d535b29abe83869e8240cb934/lib/page/plugin_settings/method/plugin_settings_web_login.dart#L584"
+    },
+    {
+      "id": "VEN-JM",
+      "repo": "venera-configs",
+      "file": "jm.js",
+      "line": 74,
+      "anchor": "getApiHeaders",
+      "url": "https://github.com/venera-app/venera-configs/blob/d8a71168a83a6797482a5be9c000989dabf21c08/jm.js#L74"
+    },
+    {
+      "id": "VEN-PICA",
+      "repo": "venera-configs",
+      "file": "picacg.js",
+      "line": 24,
+      "anchor": "buildHeaders",
+      "url": "https://github.com/venera-app/venera-configs/blob/d8a71168a83a6797482a5be9c000989dabf21c08/picacg.js#L24"
+    },
+    {
+      "id": "VEN-NH",
+      "repo": "venera-configs",
+      "file": "nhentai.js",
+      "line": 18,
+      "anchor": "apiBaseUrl",
+      "url": "https://github.com/venera-app/venera-configs/blob/d8a71168a83a6797482a5be9c000989dabf21c08/nhentai.js#L18"
+    },
+    {
+      "id": "VEN-HITOMI",
+      "repo": "venera-configs",
+      "file": "hitomi.js",
+      "line": 463,
+      "anchor": "gg.js",
+      "url": "https://github.com/venera-app/venera-configs/blob/d8a71168a83a6797482a5be9c000989dabf21c08/hitomi.js#L463"
+    },
+    {
+      "id": "BZ-JM-CLIENT",
+      "repo": "Breeze-plugin-JmComic",
+      "file": "src/client.ts",
+      "line": 127,
+      "anchor": "jwttoken",
+      "url": "https://github.com/deretame/Breeze-plugin-JmComic/blob/37c8b86a602553ac6e41008c5afa07b9446e7590/src/client.ts#L127"
+    },
+    {
+      "id": "BZ-JM-CONFIG",
+      "repo": "Breeze-plugin-JmComic",
+      "file": "src/constants.ts",
+      "line": 14,
+      "anchor": "JM_FALLBACK_API_BASE",
+      "url": "https://github.com/deretame/Breeze-plugin-JmComic/blob/37c8b86a602553ac6e41008c5afa07b9446e7590/src/constants.ts#L14"
+    },
+    {
+      "id": "BZ-PICA-LOGIN",
+      "repo": "Breeze-plugin-bikaComic",
+      "file": "src/bika-settings.ts",
+      "line": 317,
+      "anchor": "export async function loginWithPassword",
+      "url": "https://github.com/deretame/Breeze-plugin-bikaComic/blob/700aa3393d433d1957e16607e0db99a28e44ceee/src/bika-settings.ts#L317"
+    },
+    {
+      "id": "BZ-PICA-CLIENT",
+      "repo": "Breeze-plugin-bikaComic",
+      "file": "src/client.ts",
+      "line": 273,
+      "anchor": "headers.set(\"signature\"",
+      "url": "https://github.com/deretame/Breeze-plugin-bikaComic/blob/700aa3393d433d1957e16607e0db99a28e44ceee/src/client.ts#L273"
+    },
+    {
+      "id": "BZ-EH-SESSION",
+      "repo": "Breeze-plugin-ehentai",
+      "file": "src/services/settings.service.ts",
+      "line": 190,
+      "anchor": "tryResolveExhentaiIgneous",
+      "url": "https://github.com/deretame/Breeze-plugin-ehentai/blob/5e3ee17c6ee414afbcb5802d44e1863d88094fca/src/services/settings.service.ts#L190"
+    },
+    {
+      "id": "BZ-EH-ROUTE",
+      "repo": "Breeze-plugin-ehentai",
+      "file": "src/services/site-routing.service.ts",
+      "line": 77,
+      "anchor": "remapGalleryHostForSite",
+      "url": "https://github.com/deretame/Breeze-plugin-ehentai/blob/5e3ee17c6ee414afbcb5802d44e1863d88094fca/src/services/site-routing.service.ts#L77"
+    },
+    {
+      "id": "BZ-NH",
+      "repo": "Breeze-plugin-nhentai",
+      "file": "src/index.ts",
+      "line": 49,
+      "anchor": "const API_BASE",
+      "url": "https://github.com/deretame/Breeze-plugin-nhentai/blob/2b9b7ac1f7e01f6452489d656271c004ae4ec8d1/src/index.ts#L49"
+    },
+    {
+      "id": "BZ-HT",
+      "repo": "Breeze-plugin-shenShiManHua",
+      "file": "src/index.ts",
+      "line": 73,
+      "anchor": "FALLBACK_BASE_URL",
+      "url": "https://github.com/deretame/Breeze-plugin-shenShiManHua/blob/8e3b10b398b10bd1f1d796b8198d7c74161b09d5/src/index.ts#L73"
+    }
+  ]
+}
