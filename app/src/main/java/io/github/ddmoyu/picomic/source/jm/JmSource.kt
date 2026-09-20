@@ -10,22 +10,40 @@ class JmSource(private val client: JmClient, private val imageLine: Int = 1) : C
     override val source = Source.JMCOMIC
     private var host: HttpUrl? = null
     private suspend fun imageHost(): HttpUrl = host ?: JmProtocol.imageHost(client.get("setting", mapOf("app_img_shunt" to imageLine.coerceIn(1, 4).toString(), "express" to "off")).optString("img_host")).also { host = it }
-    private suspend fun categoryMap(): Map<String, String> {
-        val data = client.get("categories").array("categories")
+    private data class CategoryRoute(val slug: String? = null, val keyword: String? = null)
+    private var catalog: Map<String, CategoryRoute>? = null
+    private suspend fun categoryMap(): Map<String, CategoryRoute> {
+        catalog?.let { return it }
+        val data = client.get("categories")
         return buildMap {
-            data.objects().forEach { category ->
-                put(category.text("name"), category.text("slug"))
-                category.optJSONArray("sub_categories")?.objects()?.forEach { put(it.text("name"), it.text("slug")) }
+            data.array("categories").objects().forEach { category ->
+                val name = category.text("name")
+                // The official default directory has id=0 and an empty slug.
+                val slug = if (category.optString("id") == "0" && category.opt("slug") == "") "0" else category.text("slug")
+                put(name, CategoryRoute(slug = slug))
+                category.optJSONArray("sub_categories")?.objects()?.forEach {
+                    // Different parents reuse child names; never overwrite another parent's route.
+                    put("$name / ${it.text("name")}", CategoryRoute(slug = it.text("slug")))
+                }
             }
-        }
+            data.optJSONArray("blocks")?.objects()?.forEach { block ->
+                val title = block.text("title")
+                block.array("content").strings().forEach { tag ->
+                    if (tag.isBlank() || tag.length > 2000) throw JmProtocol.malformed()
+                    put("$title / $tag", CategoryRoute(keyword = tag))
+                }
+            }
+        }.also { if (it.isEmpty()) throw JmProtocol.malformed(); catalog = it }
     }
     override suspend fun categories() = categoryMap().keys.toList()
     override suspend fun search(query: ContentQuery): ContentPage<ComicSummary> {
         require(query.page in 1..10000)
         val order = query.sort.takeIf { it in setOf("mr", "mv", "mp", "tf") } ?: "mr"
         val params = mutableMapOf("page" to query.page.toString(), "o" to order)
-        val path = if (query.keyword.isNotBlank()) { params["search_query"] = query.keyword; "search" }
-        else { params["c"] = query.category?.let { categoryMap()[it] ?: throw ContentFailure(ContentFailureKind.NOT_FOUND, "JM 分类已变化，请重新选择") } ?: "0"; "categories/filter" }
+        val selected = query.category?.let { categoryMap()[it] ?: throw ContentFailure(ContentFailureKind.NOT_FOUND, "JM 分类已变化，请重新选择") }
+        val keyword = listOfNotNull(selected?.keyword, query.keyword.takeIf(String::isNotBlank)).joinToString(" ")
+        val path = if (keyword.isNotBlank()) { params["search_query"] = keyword; selected?.slug?.let { params["c"] = it }; "search" }
+        else { params["c"] = selected?.slug ?: "0"; "categories/filter" }
         val data = client.get(path, params)
         val images = imageHost()
         val items = data.array("content").objects().map { summary(it, images) }

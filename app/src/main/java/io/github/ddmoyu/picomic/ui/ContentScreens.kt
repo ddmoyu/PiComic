@@ -118,17 +118,17 @@ import kotlinx.coroutines.launch
     val network by vm.network.state.collectAsStateWithLifecycle()
     val routes by vm.jmRoutes.state.collectAsStateWithLifecycle()
     LaunchedEffect(source, retry, revisions, network.generation, network.ready, routes.selected) {
-        if (!network.ready) return@LaunchedEffect
         loading = true; error = null; values = emptyList()
-        try { values = vm.content.run(source) { adapter, _ -> adapter.categories() } }
+        try { values = vm.content.categories(source) }
         catch (e: CancellationException) { throw e }
         catch (e: Exception) { error = contentError(e) }
         finally { loading = false }
     }
     if (loading) { ContentLoading(); return }
-    Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(20.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
+    Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(20.dp).testTag("categories-${source.name}"), verticalArrangement = Arrangement.spacedBy(16.dp)) {
         error?.let { ContentFailurePanel(it, { retry++ }, if (source == Source.PICACG) ({ login(source) }) else null) }
-        FlowRow(horizontalArrangement = Arrangement.spacedBy(10.dp)) { values.forEach { name -> AssistChip(onClick = { category(source, name) }, label = { Text(name) }) } }
+        if (error == null && values.isEmpty()) ContentFailurePanel("来源暂未返回分类", { retry++ })
+        FlowRow(horizontalArrangement = Arrangement.spacedBy(10.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) { values.forEach { name -> AssistChip(onClick = { category(source, name) }, label = { Text(name) }) } }
     }
 }
 @Composable fun ContentSearchScreen(ui: UiState, vm: AppViewModel, back: () -> Unit, open: (ComicKey) -> Unit, login: (Source) -> Unit, initialQuery: String = "") {

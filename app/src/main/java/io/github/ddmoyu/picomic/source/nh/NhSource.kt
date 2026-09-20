@@ -9,7 +9,8 @@ import org.json.JSONObject
 
 class NhSource(private val client: NhClient) : ComicSource {
     override val source = Source.NHENTAI
-    private val languages = mapOf("Chinese" to "29963", "English" to "12227", "Japanese" to "6346")
+    private val languages = SourceCategories.nhLanguages
+    private val types = SourceCategories.nhTypes
     private var imageHost: HttpUrl? = null
     private var thumbHost: HttpUrl? = null
     private var gallery: JSONObject? = null
@@ -28,11 +29,13 @@ class NhSource(private val client: NhClient) : ComicSource {
         val images = host("image_servers", "i"); val thumbs = host("thumb_servers", "t")
         imageHost = images; thumbHost = thumbs
     }
-    override suspend fun categories() = languages.keys.toList()
+    override suspend fun categories() = SourceCategories.fixed(source)!!
     override suspend fun search(query: ContentQuery): ContentPage<ComicSummary> {
         require(query.page in 1..10000)
         val params = mutableMapOf("page" to query.page.toString())
+        val type = query.category?.let { types[it] }
         val path = when {
+            type != null -> { params["query"] = listOf("category:$type", query.keyword).filter(String::isNotBlank).joinToString(" "); listOf("search") }
             query.keyword.isNotBlank() -> { params["query"] = query.keyword; listOf("search") }
             query.category != null -> { params["tag_id"] = languages[query.category] ?: throw NhClient.malformed(); listOf("galleries", "tagged") }
             else -> listOf("galleries")

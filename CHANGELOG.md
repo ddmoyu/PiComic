@@ -1,5 +1,25 @@
 # 更新记录
 
+## 未发布
+
+### 简体中文
+
+- 修复 JM 分类接口中默认目录空 slug 导致整页加载失败的问题，完整读取主目录、子目录和标签分组；同名子目录按所属主目录区分，点击标签分类使用对应搜索请求。
+- 补齐 EH、绅士漫画、Hitomi 和 nhentai 的目录类型，并为新增类型接入对应筛选参数；公开固定目录不再被账号会话失效阻挡。哔咔继续读取账号接口返回的完整分类列表。
+- 分类页保留来源原有目录，不新增“所有分类”入口；空响应显示重新加载提示，避免页面空白。
+
+### English
+
+- Fixed JM's empty slug for its default directory, which previously caused the entire category page to fail. Load all parent directories, child directories and tag groups, keep same-named children distinct, and route tag selections to search.
+- Completed directory types for EH, Wnacg, Hitomi and nhentai with matching filters. Public fixed directories no longer depend on a valid account session. Pica continues to load the full category list returned by its authenticated API.
+- Retained source-provided directories without adding an “All categories” shortcut. Empty category responses now show a retry action.
+
+### 日本語
+
+- JM の既定ディレクトリで slug が空の場合に、分類ページ全体が読み込めなくなる問題を修正しました。親・子ディレクトリとタググループを取得し、同名の子分類を区別して、タグには検索リクエストを使用します。
+- EH、Wnacg、Hitomi、nhentai の不足していた分類と対応する絞り込みを追加しました。公開の固定ディレクトリはセッション失効時も表示できます。Pica は引き続き認証済み API の分類一覧を取得します。
+- 独自の「すべての分類」ボタンは追加せず、各サービスのディレクトリを表示します。分類が空の場合は再読み込みを案内します。
+
 ## 0.3.1
 
 2026-09-20 · Android 8.0+ · arm64-v8a · versionCode 3001

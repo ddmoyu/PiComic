@@ -31,7 +31,7 @@ class EhImageGate {
 class EhSource(private val client: EhClient, private val ex: Boolean = false, private val original: Boolean = false,
     private val subtitle: Boolean = false, private val images: EhImageGate = EhImageGate()) : ComicSource {
     override val source = Source.EHENTAI
-    private val categories = linkedMapOf("同人志" to 2, "漫画" to 4, "画师 CG" to 8, "游戏 CG" to 16, "西方" to 512, "普通内容" to 256, "图集" to 32, "角色扮演" to 64, "其他" to 1)
+    private val categories = SourceCategories.eh
     private var detailCache: Pair<String, Document>? = null
     override suspend fun categories() = categories.keys.toList()
     override suspend fun search(query: ContentQuery): ContentPage<ComicSummary> {

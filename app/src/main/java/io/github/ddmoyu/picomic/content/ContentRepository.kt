@@ -21,6 +21,15 @@ class ContentRepository(private val network: NetworkRepository,
     private val htClient: () -> HtClient = { HtClient(network.engine) },
     private val ehSettings: () -> EhSettings = { EhSettings() },
     private val picacgFactory: (SessionCandidate) -> ComicSource = { PicacgSource(PicacgClient(network.engine), it) }) {
+    suspend fun categories(source: Source): List<String> {
+        SourceCategories.fixed(source)?.let { return it }
+        // JM publishes its complete directory anonymously. An expired saved account must not hide it.
+        if (source == Source.JMCOMIC) return withContext(Dispatchers.IO) {
+            network.awaitReady()
+            JmSource(jmClient()).categories()
+        }
+        return run(source) { adapter, _ -> adapter.categories() }
+    }
     suspend fun <T> run(source: Source, action: suspend (ComicSource, String) -> T): T = withContext(Dispatchers.IO) {
         network.awaitReady()
         val sessions = network.sessions

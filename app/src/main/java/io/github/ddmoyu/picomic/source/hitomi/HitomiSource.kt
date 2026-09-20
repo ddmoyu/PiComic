@@ -10,20 +10,24 @@ import org.json.JSONObject
 
 class HitomiSource(private val client: HitomiClient) : ComicSource {
     override val source = Source.HITOMI
-    private val languages = linkedMapOf("中文" to "chinese", "英文" to "english", "日文" to "japanese")
+    private val languages = SourceCategories.hitomiLanguages
+    private val types = SourceCategories.hitomiTypes
     private var loaded: Pair<String, JSONObject>? = null
-    override suspend fun categories() = languages.keys.toList()
+    override suspend fun categories() = SourceCategories.fixed(source)!!
     override suspend fun search(query: ContentQuery): ContentPage<ComicSummary> {
         require(query.page in 1..10000)
-        val language = query.category?.let { languages[it] ?: throw parseChanged("Hitomi") } ?: "all"
+        val type = query.category?.let { types[it] }
+        val language = query.category?.let { languages[it] ?: if (type != null) "all" else throw parseChanged("Hitomi") } ?: "all"
         val offset = (query.page - 1) * PAGE_SIZE
         val ids: IntArray; val more: Boolean
         if (query.keyword.isBlank()) {
-            val range = client.range(listOf("index-$language.nozomi"), offset.toLong() * 4, PAGE_SIZE * 4)
+            val path = if (type == null) listOf("index-$language.nozomi") else listOf("type", "$type-all.nozomi")
+            val range = client.range(path, offset.toLong() * 4, PAGE_SIZE * 4)
             if (range.total % 4 != 0L) throw parseChanged("Hitomi")
             ids = HitomiProtocol.ids(range.bytes); more = (offset + ids.size).toLong() * 4 < range.total
         } else {
-            val all = client.searchIds(query.keyword, language)
+            val keyword = listOfNotNull(type?.let { "type:$it" }, query.keyword).joinToString(" ")
+            val all = client.searchIds(keyword, language)
             ids = all.copyOfRange(offset.coerceAtMost(all.size), (offset + PAGE_SIZE).coerceAtMost(all.size)); more = offset + ids.size < all.size
         }
         val gate = Semaphore(3)

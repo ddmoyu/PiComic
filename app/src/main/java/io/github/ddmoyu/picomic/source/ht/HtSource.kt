@@ -12,7 +12,7 @@ import org.jsoup.nodes.Element
 class HtSource(private val client: HtClient) : ComicSource {
     override val source = Source.HTCOMIC
     private val base get() = client.base
-    private val categoryIds = linkedMapOf("同人汉化" to 1, "日文同人" to 12, "中文单行本" to 9, "日文单行本" to 13)
+    private val categoryIds = SourceCategories.ht
     override suspend fun categories() = categoryIds.keys.toList()
     override suspend fun search(query: ContentQuery): ContentPage<ComicSummary> {
         require(query.page in 1..10000)
