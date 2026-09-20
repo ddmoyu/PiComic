@@ -74,10 +74,14 @@ class ThemeBehaviorTest {
     }
 
     private fun backgroundBeside(text: String, expected: Int) {
-        val row = ui.onNodeWithText(text).fetchSemanticsNode().boundsInRoot
-        val bitmap = ui.onRoot().captureToImage().asAndroidBitmap()
-        try { assertEquals("页面背景应与所选主题一致", expected, bitmap.getPixel(2, row.center.y.toInt())) }
-        finally { bitmap.recycle() }
+        // Dialog window dimming can outlive Compose's idle state for a few frames.
+        // Wait for the exact color instead of accepting a blended transition frame.
+        ui.waitUntil(5000) {
+            val row = ui.onNodeWithText(text).fetchSemanticsNode().boundsInRoot
+            val bitmap = ui.onRoot().captureToImage().asAndroidBitmap()
+            try { bitmap.getPixel(2, row.center.y.toInt()) == expected }
+            finally { bitmap.recycle() }
+        }
     }
 
     private fun lightSystemBars() = ui.runOnUiThread {

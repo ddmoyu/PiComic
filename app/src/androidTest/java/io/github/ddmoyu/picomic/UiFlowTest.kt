@@ -96,12 +96,18 @@ class UiFlowTest {
         ui.onNodeWithContentDescription("返回").performClick()
         ui.onNodeWithText("外观").performScrollTo().performClick()
         ui.onNodeWithText("主题模式").performClick()
-        ui.onNodeWithText("深色模式").performClick()
+        ui.onNode(hasText("深色模式") and hasAnyAncestor(isDialog())).performClick()
         shot("10-dark-appearance")
         ui.onNodeWithContentDescription("返回").performClick()
         ui.onNodeWithText("更新").performScrollTo().performClick()
-        ui.onNodeWithText("检查更新").assertIsNotEnabled()
-        ui.onNodeWithText("公开发布渠道尚未配置").assertExists()
+        val check = ui.onNodeWithText("检查更新").assertIsDisplayed()
+        if (BuildConfig.RELEASE_OWNER.isNotEmpty() && BuildConfig.RELEASE_REPO.isNotEmpty()) {
+            check.assertIsEnabled()
+            ui.onNodeWithText("GitHub Releases · 稳定版").assertExists()
+        } else {
+            check.assertIsNotEnabled()
+            ui.onNodeWithText("公开发布渠道尚未配置").assertExists()
+        }
         shot("11-updates")
     }
     @Test fun continuousReaderPullsToNextChapter() {

@@ -42,6 +42,9 @@ class SettingsLayoutTest {
         ui.onNodeWithContentDescription("返回").performClick()
         ui.onNodeWithContentDescription("返回").performClick()
         ui.onNodeWithText("更新").performScrollTo().performClick()
-        ui.onNodeWithText("检查更新").performScrollTo().assertIsDisplayed().assertIsNotEnabled()
+        // Update actions stay in a fixed footer, outside the scrolling settings content.
+        val check = ui.onNodeWithText("检查更新").assertIsDisplayed()
+        if (BuildConfig.RELEASE_OWNER.isNotEmpty() && BuildConfig.RELEASE_REPO.isNotEmpty()) check.assertIsEnabled()
+        else check.assertIsNotEnabled()
     }
 }
