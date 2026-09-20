@@ -28,7 +28,7 @@ class JmContentTest {
         listOf("127.0.0.1", "www.cdnsite.cc.evil.test", "www.cdnsite.cc:443", "www.cdnsite.cc/path").forEach { assertFalse(JmDomainFeed.validHost(it)) }
     }
     private val time = 1700000000L
-    private val setting = """{"version":"1.8.2","img_host":"https://cdn-msp.jmapiproxy3.cc"}"""
+    private val setting = """{"version":"1.8.2","img_host":"https://cdn-msp2.jmdanjonproxy.vip"}"""
     private val book = """{"id":"500001","name":"契约作品","author":["作者"],"tags":["测试"],"series":[],"description":"简介"}"""
     private fun encrypted(data: String, timestamp: Long = time): MockResponse {
         val cipher = Cipher.getInstance("AES/ECB/PKCS5Padding")
@@ -69,7 +69,7 @@ class JmContentTest {
             val pages = source.pages("500001", detail.chapters.single())
             assertEquals(listOf("00001.jpg", "00002.GIF"), pages.map { it.id })
             assertEquals(500001L, pages.first().jm!!.photoId); assertEquals(220980L, pages.first().jm!!.scrambleId)
-            assertEquals("https://cdn-msp.jmapiproxy3.cc/media/photos/500001/00001.jpg", pages.first().url)
+            assertEquals("https://cdn-msp2.jmdanjonproxy.vip/media/photos/500001/00001.jpg", pages.first().url)
         }
     }
     @Test fun missingOrWrongScrambleMetadataCannotPublishPages() = runBlocking {
@@ -93,6 +93,38 @@ class JmContentTest {
             val validation = server.takeRequest(); assertEquals("GET", validation.method); assertEquals("/login", validation.path); assertEquals("AVS=fixture-session", validation.getHeader("Cookie"))
             MockWebServer().use { other -> other.start(); assertTrue(runCatching { client(other).install(candidate) }.exceptionOrNull() is ContentFailure); assertEquals(0, other.requestCount) }
             candidate.value.fill(0)
+        }
+    }
+    @Test fun loginAndRestorationDoNotDependOnImageRouting() = runBlocking {
+        MockWebServer().use { server ->
+            val profile = """{"uid":"42","username":"夹具账号"}"""
+            server.enqueue(encrypted("""{"version":"1.8.2","img_host":"https://unrecognized-image.example/"}"""))
+            server.enqueue(encrypted(profile).addHeader("Set-Cookie", "AVS=fixture-session; Path=/; HttpOnly"))
+            server.enqueue(encrypted(profile))
+            server.enqueue(encrypted("""{"version":"1.8.2"}"""))
+            server.enqueue(encrypted(profile)); server.start()
+            val api = client(server)
+            api.probe()
+            val candidate = api.signIn("fixture", "fixture-password".toCharArray())
+            try {
+                assertEquals("42", api.validate(candidate).accountId)
+                val restored = client(server)
+                restored.probe()
+                assertEquals("42", restored.validate(candidate).accountId)
+                assertEquals("/setting", server.takeRequest().path)
+                assertEquals("POST", server.takeRequest().method)
+                assertEquals("AVS=fixture-session", server.takeRequest().getHeader("Cookie"))
+                assertNull(server.takeRequest().getHeader("Cookie"))
+                assertEquals("AVS=fixture-session", server.takeRequest().getHeader("Cookie"))
+                assertEquals(5, server.requestCount)
+            } finally { candidate.value.fill(0) }
+        }
+    }
+    @Test fun loginProbeStillRejectsDifferentProtocolVersions() = runBlocking {
+        MockWebServer().use { server ->
+            server.enqueue(encrypted("""{"version":"2.0.20","img_host":"https://cdn-msp2.jmdanjonproxy.vip"}""")); server.start()
+            assertEquals(ContentFailureKind.PARSE, (runCatching { client(server).probe() }.exceptionOrNull() as ContentFailure).kind)
+            assertEquals(1, server.requestCount)
         }
     }
     @Test fun redirectsAndRateLimitsDoNotReplayRequests() = runBlocking {

@@ -31,7 +31,8 @@ object JmProtocol {
         val url = runCatching { value.toHttpUrl() }.getOrNull() ?: throw malformed()
         if (url.scheme != "https" || url.port != 443 || url.username.isNotEmpty() || url.password.isNotEmpty() ||
             url.query != null || url.fragment != null || url.encodedPath != "/" ||
-            !url.host.matches(Regex("cdn-[a-z0-9-]+\\.jmapiproxy[1-4]\\.cc"))) throw malformed()
+            // /setting currently publishes both the legacy and jmdanjonproxy image routes.
+            !url.host.matches(Regex("cdn-[a-z0-9-]+\\.(jmapiproxy[1-4]\\.cc|jmdanjonproxy\\.(vip|xyz))"))) throw malformed()
         return url
     }
     fun id(value: String): String = value.takeIf { it.matches(Regex("[1-9][0-9]{0,11}")) } ?: throw malformed()

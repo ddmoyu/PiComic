@@ -28,7 +28,11 @@ class JmClient internal constructor(engine: NetworkEngine, private val base: Htt
         if (cookies.loadForRequest(base).none { it.name == "AVS" }) throw ContentFailure(ContentFailureKind.EXPIRED, "JM 会话已失效，请重新登录")
         installed = true
     }
-    override suspend fun probe() { val settings = get("setting"); if (settings.optString("version") != JmProtocol.VERSION) throw JmProtocol.malformed(); JmProtocol.imageHost(settings.optString("img_host")) }
+    override suspend fun probe() {
+        val settings = get("setting")
+        if (settings.optString("version") != JmProtocol.VERSION) throw JmProtocol.malformed()
+        // API authentication does not depend on the image route. JmSource validates it before use.
+    }
     override suspend fun signIn(email: String, password: CharArray): SessionCandidate {
         require(email.isNotBlank() && email.length <= 320 && password.isNotEmpty() && password.size <= 1024)
         val body = FormBody.Builder().add("username", email).add("password", String(password)).build()
