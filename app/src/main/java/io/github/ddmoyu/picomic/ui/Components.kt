@@ -61,6 +61,12 @@ enum class Glyph(val path: String) {
 @Composable fun IconAction(glyph: Glyph, description: String, action: () -> Unit) {
     IconButton(onClick = action) { AppIcon(glyph, description) }
 }
+@Composable fun ContentLoading(modifier: Modifier = Modifier.fillMaxSize()) {
+    // Page roots may receive exact screen constraints. The container keeps those off the spinner.
+    Box(modifier, contentAlignment = Alignment.Center) {
+        CircularProgressIndicator(Modifier.size(40.dp).semantics { contentDescription = "正在加载" })
+    }
+}
 @Composable fun PageTop(title: String, back: (() -> Unit)? = null, search: (() -> Unit)? = null, settings: (() -> Unit)? = null) {
     TopAppBar(title = { Text(title, fontSize = 22.sp, fontWeight = FontWeight.SemiBold) },
         navigationIcon = { if(back != null) IconAction(Glyph.Back,"返回",back) },

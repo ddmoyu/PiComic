@@ -1,7 +1,6 @@
 package io.github.ddmoyu.picomic.ui
 
 import androidx.compose.foundation.layout.*
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Modifier
@@ -59,7 +58,7 @@ private data class OpenChapter(val details: ComicDetails, val index: Int, val pa
     }
     val current = chapter
     if (current == null) {
-        if (error == null) CircularProgressIndicator(Modifier.padding(32.dp))
+        if (error == null) ContentLoading()
         else ContentFailurePanel(error!!, { retry++ }, { login(comicKey.source) })
     } else key(comicKey, selected, current.partition) {
         val snackbar = remember { androidx.compose.material3.SnackbarHostState() }

@@ -45,7 +45,7 @@ import kotlinx.coroutines.launch
         }
     }
     val back: () -> Unit = {
-        if (route == "login/{source}") { vm.picacgAccount.cancel(); vm.jmAccount.cancel(); vm.htAccount.cancel(); vm.ehAccount.cancel(); vm.nhKeyAccount.cancel(); vm.nhWebAccount.cancel() }
+        if (nav.currentDestination?.route == "login/{source}") { vm.picacgAccount.cancel(); vm.jmAccount.cancel(); vm.htAccount.cancel(); vm.ehAccount.cancel(); vm.nhKeyAccount.cancel(); vm.nhWebAccount.cancel() }
         nav.popBackStack(); Unit
     }
     val open: (Source,Comic) -> Unit = { source,comic -> go("detail/${source.name}/${comic.id}") }
@@ -82,45 +82,45 @@ import kotlinx.coroutines.launch
             }}) { padding ->
             Box(Modifier.fillMaxSize().padding(padding),contentAlignment=Alignment.TopCenter) {
                 NavHost(nav,startDestination="discover",modifier=Modifier.widthIn(max=if(reading) 10000.dp else 900.dp).fillMaxSize()) {
-                    composable("discover") {
+                    systemBackPage("discover", nav, back) {
                         if (demo) BrowseScreen(false,ui,vm,open) { source,label -> vm.source(source);go("category/${Uri.encode(label)}") }
                         else ContentBrowseScreen(false,ui,vm,openContent,{ source,label -> vm.source(source);go("category/${Uri.encode(label)}") },login)
                     }
-                    composable("categories") {
+                    systemBackPage("categories", nav, back) {
                         if (demo) BrowseScreen(true,ui,vm,open) { source,label -> vm.source(source);go("category/${Uri.encode(label)}") }
                         else ContentBrowseScreen(true,ui,vm,openContent,{ source,label -> vm.source(source);go("category/${Uri.encode(label)}") },login)
                     }
-                    composable("category/{category}") { target ->
+                    systemBackPage("category/{category}", nav, back) { target ->
                         if (demo) ComicGrid(DemoCatalog.filter("",target.arguments?.getString("category")?:"全部",ui.keywords,ui.languages),{open(ui.source,it)})
                         else ContentListScreen(ui.source,ContentQuery(category=target.arguments?.getString("category"), sort=contentSort(ui)),"category/${target.arguments?.getString("category")}",ui,vm,openContent,login)
                     }
-                    composable("library") { if (demo) LibraryScreen(ui,vm,open) { h -> read(h.source,DemoCatalog.comic(h.comicId),h.chapter,h.page) } else ContentLibraryScreen(vm,openContent) { go("offline-reader/$it") } }
-                    composable("offline-reader/{id}") { target -> OfflineReaderScreen(target.arguments!!.getString("id")!!, ui, vm, back) }
-                    composable("search?query={query}", arguments = listOf(androidx.navigation.navArgument("query") { type = androidx.navigation.NavType.StringType; defaultValue = "" })) { target ->
+                    systemBackPage("library", nav, back) { if (demo) LibraryScreen(ui,vm,open) { h -> read(h.source,DemoCatalog.comic(h.comicId),h.chapter,h.page) } else ContentLibraryScreen(vm,openContent) { go("offline-reader/$it") } }
+                    systemBackPage("offline-reader/{id}", nav, back) { target -> OfflineReaderScreen(target.arguments!!.getString("id")!!, ui, vm, back) }
+                    systemBackPage("search?query={query}", nav, back, arguments = listOf(androidx.navigation.navArgument("query") { type = androidx.navigation.NavType.StringType; defaultValue = "" })) { target ->
                         if (demo) SearchScreen(ui,vm,back) { open(ui.source,it) } else ContentSearchScreen(ui,vm,back,openContent,login,target.arguments?.getString("query").orEmpty())
                     }
-                    composable("detail/{source}/{id}") { target ->
+                    systemBackPage("detail/{source}/{id}", nav, back) { target ->
                         val source=Source.valueOf(target.arguments!!.getString("source")!!)
                         val comic=DemoCatalog.comic(target.arguments!!.getString("id")!!.toInt())
                         if (demo) DetailScreen(source,comic,ui,vm,{chapter,page->read(source,comic,chapter,page)},notice)
                     }
-                    composable("reader/{source}/{id}/{chapter}/{page}/{offset}") { target ->
+                    systemBackPage("reader/{source}/{id}/{chapter}/{page}/{offset}", nav, back) { target ->
                         val args=target.arguments!!
                         if (demo) ReaderScreen(Source.valueOf(args.getString("source")!!),DemoCatalog.comic(args.getString("id")!!.toInt()),args.getString("chapter")!!.toInt(),args.getString("page")!!.toInt(),args.getString("offset")?.toFloatOrNull()?:0f,ui,vm,back)
                     }
-                    composable("content-detail/{source}/{id}") { target ->
+                    systemBackPage("content-detail/{source}/{id}", nav, back) { target ->
                         val key = ComicKey(Source.valueOf(target.arguments!!.getString("source")!!), target.arguments!!.getString("id")!!)
                         ContentDetailScreen(key,ui,vm,{ chapter -> go("content-reader/${key.source.name}/${Uri.encode(key.id)}/${Uri.encode(chapter)}") },login) { tag -> vm.source(key.source); go("search?query=${Uri.encode(tag)}") }
                     }
-                    composable("content-reader/{source}/{id}/{chapter}") { target ->
+                    systemBackPage("content-reader/{source}/{id}/{chapter}", nav, back) { target ->
                         val key = ComicKey(Source.valueOf(target.arguments!!.getString("source")!!), target.arguments!!.getString("id")!!)
                         ContentReaderScreen(key,target.arguments!!.getString("chapter")!!,ui,vm,back,login)
                     }
-                    composable("settings") { SettingsHome(ui,vm,go) }
-                    composable("accounts") { AccountsScreen(ui,vm) { go("login/${it.name}") } }
-                    composable("sources") { SourcesScreen(ui,vm,notice) }
-                    composable("filters") { FiltersScreen(ui,vm) }
-                    composable("login/{source}") { target ->
+                    systemBackPage("settings", nav, back) { SettingsHome(ui,vm,go) }
+                    systemBackPage("accounts", nav, back) { AccountsScreen(ui,vm) { go("login/${it.name}") } }
+                    systemBackPage("sources", nav, back) { SourcesScreen(ui,vm,notice) }
+                    systemBackPage("filters", nav, back) { FiltersScreen(ui,vm) }
+                    systemBackPage("login/{source}", nav, back) { target ->
                         val source=Source.valueOf(target.arguments!!.getString("source")!!)
                         if (source in setOf(Source.PICACG, Source.JMCOMIC, Source.HTCOMIC)) {
                             val network by vm.network.state.collectAsStateWithLifecycle()
@@ -129,7 +129,7 @@ import kotlinx.coroutines.launch
                         else if (source == Source.EHENTAI) EhLoginScreen(vm) { go("network") }
                         else LoginScreen(source)
                     }
-                    listOf("reading","appearance","updates","data","logs","network","about","webdav").forEach { id -> composable(id) { SettingsPage(id,ui,vm,go,notice) } }
+                    listOf("reading","appearance","updates","data","logs","network","about","webdav").forEach { id -> systemBackPage(id, nav, back) { SettingsPage(id,ui,vm,go,notice) } }
                 }
             }
         }

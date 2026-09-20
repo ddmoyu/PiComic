@@ -307,7 +307,7 @@ data class ReaderLocation(val chapter: Int, val page: Int, val offsetRatio: Floa
         }
         AnimatedVisibility(changing, enter = slideInVertically(tween(640)) { it }, exit = fadeOut(tween(0))) {
             Column(Modifier.fillMaxSize().background(Color(0xFF11141B)), horizontalAlignment = Alignment.CenterHorizontally) {
-                if (comic.remote) CircularProgressIndicator(Modifier.padding(24.dp))
+                if (comic.remote) ContentLoading()
                 else for (i in 0..1) Image(painterResource(readerPages[i]), null, Modifier.widthIn(max = 850.dp).fillMaxWidth().wrapContentHeight(Alignment.Top, unbounded = true).aspectRatio(640f / 930), contentScale = ContentScale.FillWidth)
             }
         }

@@ -130,7 +130,7 @@ private fun downloadLabel(value: String) = when (value) {
     }
     val current = chapter
     if (current == null) {
-        if (error == null) CircularProgressIndicator(Modifier.padding(32.dp))
+        if (error == null) ContentLoading()
         else Column(Modifier.padding(20.dp)) { Text(error!!); TextButton(onClick = back) { Text("返回下载管理") } }
     } else key(selected) {
         val task = current.task; val pages = current.pages

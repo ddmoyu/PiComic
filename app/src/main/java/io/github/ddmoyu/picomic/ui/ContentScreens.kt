@@ -84,7 +84,7 @@ import kotlinx.coroutines.launch
         items(visible, key = { it.key.stable }) { ContentCard(it, open) }
         item(span = { GridItemSpan(maxLineSpan) }) {
             Column(Modifier.fillMaxWidth(), horizontalAlignment = Alignment.CenterHorizontally) {
-                if (state.loading || !network.ready) CircularProgressIndicator(Modifier.padding(20.dp))
+                if (state.loading || !network.ready) ContentLoading(Modifier.fillMaxWidth().padding(vertical = 20.dp))
                 state.error?.let { ContentFailurePanel(it, controller::retry, if (state.needsLogin) ({ login(source) }) else null) }
                 if (state.loaded && visible.isEmpty() && !state.loading) Text(if (state.items.isEmpty()) "没有找到作品" else "当前结果已被内容筛选隐藏")
                 if (state.nextPage != null && !state.loading && state.error == null) OutlinedButton(onClick = controller::more) { Text("加载更多") }
@@ -125,8 +125,8 @@ import kotlinx.coroutines.launch
         catch (e: Exception) { error = contentError(e) }
         finally { loading = false }
     }
+    if (loading) { ContentLoading(); return }
     Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(20.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
-        if (loading) CircularProgressIndicator()
         error?.let { ContentFailurePanel(it, { retry++ }, if (source == Source.PICACG) ({ login(source) }) else null) }
         FlowRow(horizontalArrangement = Arrangement.spacedBy(10.dp)) { values.forEach { name -> AssistChip(onClick = { category(source, name) }, label = { Text(name) }) } }
     }
@@ -179,7 +179,7 @@ fun contentSort(ui: UiState) = when (ui.pref("pica.search", "新到旧")) { "旧
         catch (e: Exception) { error = contentError(e) }
     }
     val detail = value
-    if (detail == null) { if (error == null) CircularProgressIndicator(Modifier.padding(32.dp)) else ContentFailurePanel(error!!, { retry++ }, { login(key.source) }); return }
+    if (detail == null) { if (error == null) ContentLoading() else ContentFailurePanel(error!!, { retry++ }, { login(key.source) }); return }
     val progress = library.progress.firstOrNull { it.key == key }
     if (selectDownloads) DownloadSelection(detail, vm) { selectDownloads = false }
     Box(Modifier.fillMaxSize()) {
@@ -240,7 +240,7 @@ fun contentSort(ui: UiState) = when (ui.pref("pica.search", "新到旧")) { "旧
         } }
         error?.let { Note(it) }
         HorizontalPager(pager, Modifier.weight(1f).testTag("library-pages"), verticalAlignment = Alignment.Top) { tab ->
-            if (!state.ready) CircularProgressIndicator(Modifier.padding(24.dp))
+            if (!state.ready) ContentLoading()
             else if (tab == 0) {
                 val favorites = state.favorites.mapNotNull { state.comics[it] }
                 if (favorites.isEmpty()) EmptyState("书架还是空的", "在作品详情中收藏作品。", Glyph.Heart)
