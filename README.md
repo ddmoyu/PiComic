@@ -1,6 +1,10 @@
 # PiComic
 
-Android 手机漫画阅读 App · Kotlin / Jetpack Compose · 0.3.0-alpha
+Android 手机漫画阅读 App · Kotlin / Jetpack Compose · 最新正式版 0.3.1
+
+[下载 Android APK](https://github.com/ddmoyu/PiComic/releases/download/v0.3.1/PiComic-0.3.1.apk) · [中英日更新日志](https://github.com/ddmoyu/PiComic/releases/tag/v0.3.1)
+
+支持 Android 8.0+、arm64 设备。旧测试签名版本请先备份，再卸载重装；同一正式发行证书的版本可覆盖安装。
 
 项目目录：`E:\ddmoyu\PiComic`。首版功能代码已涵盖六组来源、账号、搜索/分类/详情、阅读器、收藏/历史、持久下载与离线、备份/WebDAV、设置/日志和 GitHub 更新。真实平台账号、实体设备、WebDAV 服务商及正式发布验收仍需外部条件，当前保持开发版标识。正常页面使用真实来源，原创示意目录仅在显式开启 Debug 演示模式时使用。源码与安装包使用同一公开仓库 [ddmoyu/PiComic](https://github.com/ddmoyu/PiComic)。
 
@@ -28,7 +32,7 @@ Debug APK：`app/build/outputs/apk/debug/app-debug.apk`。当前功能、测试�
 
 Release 启用 R8 代码优化、混淆和资源裁剪，关闭调试；Release 只提供真实内容入口，Debug 可显式启用原创示意目录。`localReleaseSigning=true` 仅用于本机验收，沿用 Debug 证书；配置 `PICOMIC_KEYSTORE_*` 等环境变量后可使用专用发行证书，未配置时普通 Release 未签名。
 
-GitHub Actions **仅在推送 `vX.Y.Z` 标签时**构建并发布正式签名 APK、更新清单和摘要；普通提交、PR 不触发打包。App 默认使用本仓库 Releases，连接失败或限流时自动尝试 GH-Proxy / GHProxy.net 备用线路，可在设置中关闭。发布操作、版本规则和签名备份见 [Actions 发布说明](docs/24-GitHub-Actions发布与镜像更新.md)，客户端验证见 [更新模块与发布验证](docs/22-更新模块与发布验证.md)。首次标签的云端构建及正式旧版升级仍需实际发布验证。
+GitHub Actions **仅在推送 `vX.Y.Z` 标签时**构建并发布正式签名 APK、更新清单和摘要；普通提交、PR 不触发打包。App 默认使用本仓库 Releases，连接失败或限流时自动尝试 GH-Proxy / GHProxy.net 备用线路，可在设置中关闭。发布操作、版本规则和签名备份见 [Actions 发布说明](docs/24-GitHub-Actions发布与镜像更新.md)，客户端验证见 [更新模块与发布验证](docs/22-更新模块与发布验证.md)。`v0.3.1` 已完成云端构建、公开下载与签名复核；实体手机正式旧版覆盖升级尚未验证。
 
 哔咔、JM、绅士漫画支持加密记住账号密码及过期后一键重新登录；手动导出生成带密码保护的 `.picomic` 配置，可携带账号并跨设备导入。已有账号需重新登录一次才能保存密码；WebDAV 仍仅同步普通数据。详见 [加密配置与账号备份](docs/25-加密配置与账号备份.md)。
 
