@@ -4,6 +4,7 @@
 
 ### 简体中文
 
+- 详情页章节目录改为一章一行的简洁文字列表，去掉两列按钮样式；保留续读与已下载标记，并按可见范围虚拟滚动，支持数千章节。
 - 设置 → 阅读新增默认关闭的“跳过详情页”：开启后点击作品直接阅读，新作品从首章第一页开始，有历史记录时恢复章节、页码和滚动位置；退出回到原列表。该偏好随配置备份保存，历史章节已失效时提示并从首章开始。
 - 修复 JM 部分多章节作品始终提示“格式改变”的问题：来源可能为不同章节提供重复排序号，现在保留全部真实章节，稳定排列并生成独立位置，确保阅读与离线章节顺序一致。
 - 分类页按分组展示短标签：JM 保留来源原始目录与标签分组，不再逐个重复组名前缀；Hitomi、nhentai 区分内容类型和语言，绅士漫画按目录类型分组。统一使用柔和底色，保留完整查询条件与同名分类的区分。
@@ -11,6 +12,7 @@
 
 ### English
 
+- Replaced the two-column chapter buttons on the details screen with plain, single-row entries. Resume and downloaded indicators remain, and lazy rendering supports thousands of chapters.
 - Added an optional “Skip details” switch in Settings → Reading, off by default. Open new titles at the first chapter and page, or restore the saved chapter, page and scroll position. Leaving the reader returns to the original list. The preference is included in backups; missing historical chapters fall back to the first chapter with a notice.
 - Fixed persistent “format changed” errors for some multi-chapter JM albums. Different chapters may share a source sort value; retain every distinct chapter and assign stable local positions so online and offline reading keep the same order.
 - Group category chips under headings with shorter labels. JM retains its native directory and tag groups, Hitomi and nhentai separate content types from languages, and Wnacg groups directory types. Use subtle chip backgrounds while preserving complete query values and distinct routes for duplicate names.
@@ -18,6 +20,7 @@
 
 ### 日本語
 
+- 詳細画面の章一覧を、2列のボタンから1章1行のシンプルなリストに変更しました。続きから読む・ダウンロード済みの表示を維持し、遅延描画で数千章に対応します。
 - 設定 → 読書に、初期状態でオフの「詳細をスキップ」を追加しました。新しい作品は最初の章・ページから、履歴のある作品は保存した章・ページ・スクロール位置から開きます。終了すると元の一覧へ戻ります。設定はバックアップ対象で、保存した章がなくなった場合は案内して最初の章から開きます。
 - 一部の複数章作品で JM が常に「形式が変わった」と表示する問題を修正しました。配信元の並び順番号が重複していても各章を保持し、安定した順序と個別の位置を割り当て、オンライン・オフラインの読書順序を揃えます。
 - 分類を見出しごとにまとめ、短いラベルで表示します。JM の元のディレクトリ・タググループを維持し、Hitomi と nhentai は作品種別と言語、Wnacg はディレクトリ種別ごとに整理しました。背景色を控えめにし、検索条件や同名分類の区別は維持します。

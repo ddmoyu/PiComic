@@ -3,6 +3,7 @@ package io.github.ddmoyu.picomic
 import androidx.activity.ComponentActivity
 import androidx.compose.foundation.layout.*
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.semantics.SemanticsActions
 import androidx.compose.ui.test.*
 import androidx.compose.ui.test.junit4.v2.createAndroidComposeRule
 import androidx.compose.ui.unit.dp
@@ -21,13 +22,13 @@ import org.junit.Test
 class ContentDetailLayoutTest {
     @get:Rule val ui = createAndroidComposeRule<ComponentActivity>()
 
-    @Test fun compactActionsPlainMetadataAndTwoColumnChaptersKeepTheirBehavior() {
+    @Test fun compactActionsPlainMetadataAndVirtualChapterListKeepTheirBehavior() {
         val vm = AppViewModel(ui.activity.application)
         val store = ViewModelStore().apply { put("detail-layout", vm) }
         val key = ComicKey(Source.PICACG, "detail-layout-${System.nanoTime()}")
         val longTag = "测试长标签自动换行".repeat(8)
         val summary = ComicSummary(key, "测试作品长标题与封面布局".repeat(3), "作者甲、作者乙", tags = listOf("测试分类", "测试标签", longTag), language = "中文", pageCount = 30)
-        val detail = ComicDetails(summary, "测试简介", (1..5).map { Chapter("$it", "第 $it 话", it) })
+        val detail = ComicDetails(summary, "测试简介", (1..5000).map { Chapter("$it", "第 $it 话", it) })
         val task = DownloadTask("${key.id}-download", SavedComic.from(summary), "2", "第 2 话", 2,
             "fixture", DownloadStorage.INTERNAL, state = DownloadState.COMPLETED.name, total = 30, completed = 30)
         var selectedChapter: String? = null
@@ -72,6 +73,10 @@ class ContentDetailLayoutTest {
             ui.waitUntil(5000) { key in vm.library.state.value.favorites }
             ui.onNodeWithTag("detail-favorite").assertIsOn()
             ui.onNodeWithContentDescription("取消收藏").assertIsDisplayed()
+            // The undo snackbar is indefinite; dismiss it before tapping the bottom chapter row.
+            ui.onNode(SemanticsMatcher.keyIsDefined(SemanticsActions.Dismiss))
+                .performSemanticsAction(SemanticsActions.Dismiss) { it() }
+            ui.onNodeWithText("已收藏", substring = false).assertDoesNotExist()
             ui.onNodeWithText("分享", substring = false).assertDoesNotExist()
             ui.onNodeWithText("评论", substring = false).assertDoesNotExist()
             list.performScrollToNode(hasTestTag("detail-info-作者"))
@@ -87,16 +92,19 @@ class ContentDetailLayoutTest {
             list.performScrollToNode(hasTestTag("detail-chapter-1"))
             val first = ui.onNodeWithTag("detail-chapter-1").fetchSemanticsNode().boundsInRoot
             val second = ui.onNodeWithTag("detail-chapter-2").fetchSemanticsNode().boundsInRoot
-            assertEquals(first.top, second.top, 1f)
+            assertTrue(first.bottom <= second.top)
+            assertEquals(first.left, second.left, 1f)
             assertEquals(first.width, second.width, 1f)
             assertEquals(first.height, second.height, 1f)
-            assertTrue(first.right < second.left)
+            assertEquals(list.fetchSemanticsNode().boundsInRoot.width, first.width, 1f)
             ui.onNodeWithTag("detail-chapter-2").assertTextContains("继续 · 已下载")
-            list.performScrollToNode(hasTestTag("detail-chapter-5"))
-            val last = ui.onNodeWithTag("detail-chapter-5").fetchSemanticsNode().boundsInRoot
+            ui.onNodeWithTag("detail-chapter-5000").assertDoesNotExist()
+            list.performScrollToKey("5000")
+            val last = ui.onNodeWithTag("detail-chapter-5000").assertIsDisplayed().fetchSemanticsNode().boundsInRoot
             assertEquals(first.width, last.width, 1f)
-            ui.onNodeWithTag("detail-chapter-5").performClick()
-            ui.runOnIdle { assertEquals("5", selectedChapter) }
+            ui.onNodeWithTag("detail-chapter-1").assertDoesNotExist()
+            ui.onNodeWithTag("detail-chapter-5000").performClick()
+            ui.runOnIdle { assertEquals("5000", selectedChapter) }
         } finally {
             runBlocking {
                 vm.library.deleteHistory(key); vm.library.favorite(summary, false); vm.library.flush()

@@ -25,7 +25,6 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.input.ImeAction
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -295,7 +294,6 @@ fun contentSort(ui: UiState) = when (ui.pref("pica.search", "新到旧")) { "旧
     val detail = value
     if (detail == null) { if (error == null) ContentLoading() else ContentFailurePanel(error!!, { retry++ }, { login(key.source) }); return }
     val progress = library.progress.firstOrNull { it.key == key }
-    val chapterRows = remember(detail.chapters) { detail.chapters.chunked(2) }
     val downloadedChapters = downloads.filter { it.key() == key && it.state == "COMPLETED" }.map { it.chapterId }.toSet()
     if (selectDownloads) DownloadSelection(detail, vm) { selectDownloads = false }
     Box(Modifier.fillMaxSize()) {
@@ -363,21 +361,18 @@ fun contentSort(ui: UiState) = when (ui.pref("pica.search", "新到旧")) { "旧
             HorizontalDivider()
             Text("章节 · ${detail.chapters.size}", Modifier.padding(20.dp), style = MaterialTheme.typography.titleMedium)
         }
-        items(chapterRows, key = { it.first().id }) { chapters ->
-            Row(Modifier.fillMaxWidth().padding(start = 20.dp, end = 20.dp, bottom = 12.dp).height(IntrinsicSize.Min), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                chapters.forEach { chapter ->
-                    val current = chapter.id == progress?.chapterId
-                    Surface(onClick = { read(chapter.id) }, modifier = Modifier.weight(1f).fillMaxHeight().testTag("detail-chapter-${chapter.id}"),
-                        shape = RoundedCornerShape(16.dp), color = if (current) MaterialTheme.colorScheme.secondaryContainer else MaterialTheme.colorScheme.surfaceContainerHigh) {
-                        Column(Modifier.heightIn(min = 56.dp).padding(12.dp), horizontalAlignment = Alignment.CenterHorizontally,
-                            verticalArrangement = Arrangement.Center) {
-                            Text(chapter.title, style = MaterialTheme.typography.bodyLarge, maxLines = 2, overflow = TextOverflow.Ellipsis, textAlign = TextAlign.Center)
-                            val status = listOfNotNull("继续".takeIf { current }, "已下载".takeIf { chapter.id in downloadedChapters }).joinToString(" · ")
-                            if (status.isNotEmpty()) Text(status, Modifier.padding(top = 4.dp), style = MaterialTheme.typography.labelSmall)
-                        }
-                    }
-                }
-                if (chapters.size == 1) Spacer(Modifier.weight(1f))
+        items(detail.chapters, key = { it.id }, contentType = { "chapter" }) { chapter ->
+            val current = chapter.id == progress?.chapterId
+            Row(Modifier.fillMaxWidth().testTag("detail-chapter-${chapter.id}")
+                .clickable(onClickLabel = "阅读章节") { read(chapter.id) }
+                .heightIn(min = 56.dp).padding(horizontal = 20.dp, vertical = 14.dp),
+                horizontalArrangement = Arrangement.spacedBy(16.dp), verticalAlignment = Alignment.CenterVertically) {
+                Text(chapter.title, Modifier.weight(1f), style = MaterialTheme.typography.bodyLarge,
+                    color = if (current) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface,
+                    maxLines = 1, overflow = TextOverflow.Ellipsis)
+                val status = listOfNotNull("继续".takeIf { current }, "已下载".takeIf { chapter.id in downloadedChapters }).joinToString(" · ")
+                if (status.isNotEmpty()) Text(status, style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
         }
     }
