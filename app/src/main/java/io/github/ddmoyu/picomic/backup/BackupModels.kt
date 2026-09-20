@@ -15,6 +15,7 @@ data class BackupDocument(val deviceId: String, val revision: Long, val exported
 object PortablePreferences {
     private val flags = setOf("volume", "keepAwake", "doubleTap", "longPress", "dark", "pureBlack", "highRefresh", "unknownLanguage", "downloadWifi", "checkOnStart", "pica.avatar", "pica.checkin", "jm.checkin", "eh.original", "eh.subtitle", "eh.warning")
     private val options = mapOf(
+        "themeMode" to io.github.ddmoyu.picomic.data.ThemeMode.entries.map { it.label }.toSet(),
         "readingMode" to setOf("纵向连续", "从左向右", "从右向左"),
         "readerBackground" to setOf("深灰", "纯黑", "米白"), "readerOrientation" to setOf("跟随系统", "竖屏", "横屏"),
         "readerBrightness" to (setOf("跟随系统") + (0..100).map { it.toString() }),

@@ -20,6 +20,7 @@ import kotlinx.coroutines.launch
 
 @Composable fun PiComicApp(vm: AppViewModel = viewModel()) {
     val ui by vm.state.collectAsStateWithLifecycle()
+    val dark = ui.isDarkTheme()
     val accountChanges by vm.network.sessions.changes.collectAsStateWithLifecycle()
     androidx.lifecycle.compose.LifecycleEventEffect(androidx.lifecycle.Lifecycle.Event.ON_RESUME) { vm.checkins.foreground(true); vm.updates.foreground(true, ui.enabled("checkOnStart")) }
     androidx.lifecycle.compose.LifecycleEventEffect(androidx.lifecycle.Lifecycle.Event.ON_PAUSE) { vm.checkins.foreground(false); vm.updates.foreground(false) }
@@ -61,11 +62,11 @@ import kotlinx.coroutines.launch
     LaunchedEffect(downloadsRequest) { if (downloadsRequest > 0) { vm.downloadTab.value++; go("library"); activity?.downloadsRequest?.value = 0 } }
     SideEffect {
         (view.context as? Activity)?.window?.let {
-            WindowCompat.getInsetsController(it,view).isAppearanceLightStatusBars=!ui.enabled("dark")&&!reading
-            WindowCompat.getInsetsController(it,view).isAppearanceLightNavigationBars=!ui.enabled("dark")&&!reading
+            WindowCompat.getInsetsController(it,view).isAppearanceLightStatusBars=!dark
+            WindowCompat.getInsetsController(it,view).isAppearanceLightNavigationBars=!dark
         }
     }
-    PiComicTheme(ui.enabled("dark")||reading, ui.enabled("pureBlack")) {
+    PiComicTheme(dark, ui.enabled("pureBlack")) {
         Scaffold(containerColor=MaterialTheme.colorScheme.background,
             contentWindowInsets=if(reading) WindowInsets(0,0,0,0) else ScaffoldDefaults.contentWindowInsets,
             snackbarHost={SnackbarHost(snackbar)},

@@ -95,6 +95,7 @@ class UiFlowTest {
         shot("09-sources")
         ui.onNodeWithContentDescription("返回").performClick()
         ui.onNodeWithText("外观").performScrollTo().performClick()
+        ui.onNodeWithText("主题模式").performClick()
         ui.onNodeWithText("深色模式").performClick()
         shot("10-dark-appearance")
         ui.onNodeWithContentDescription("返回").performClick()

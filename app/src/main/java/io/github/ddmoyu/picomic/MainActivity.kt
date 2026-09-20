@@ -6,6 +6,7 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import io.github.ddmoyu.picomic.ui.PiComicApp
+import io.github.ddmoyu.picomic.data.ThemeMode
 
 class MainActivity : ComponentActivity() {
     val downloadsRequest = kotlinx.coroutines.flow.MutableStateFlow(0)
@@ -27,6 +28,15 @@ class MainActivity : ComponentActivity() {
         return super.onKeyUp(keyCode, event)
     }
     override fun onCreate(savedInstanceState: Bundle?) {
+        val preferences = getSharedPreferences("picomic_ui", 0)
+        val mode = ThemeMode.fromPreferences(listOf("themeMode", "dark").mapNotNull { key ->
+            preferences.getString("pref.$key", null)?.let { key to it }
+        }.toMap())
+        setTheme(when (mode) {
+            ThemeMode.SYSTEM -> R.style.Theme_PiComic
+            ThemeMode.LIGHT -> R.style.Theme_PiComic_Light
+            ThemeMode.DARK -> R.style.Theme_PiComic_Dark
+        })
         super.onCreate(savedInstanceState)
         if (savedInstanceState == null) io.github.ddmoyu.picomic.data.EventLog.get(this).record(io.github.ddmoyu.picomic.data.EventCode.APP_START)
         enableEdgeToEdge()

@@ -306,22 +306,22 @@ data class ReaderLocation(val chapter: Int, val page: Int, val offsetRatio: Floa
             Image(painterResource(readerPages[0]), null, Modifier.widthIn(max = 850.dp).fillMaxWidth().wrapContentHeight(Alignment.Top, unbounded = true).aspectRatio(640f / 930), contentScale = ContentScale.FillWidth, alignment = Alignment.TopCenter)
         }
         AnimatedVisibility(changing, enter = slideInVertically(tween(640)) { it }, exit = fadeOut(tween(0))) {
-            Column(Modifier.fillMaxSize().background(Color(0xFF11141B)), horizontalAlignment = Alignment.CenterHorizontally) {
+            Column(Modifier.fillMaxSize().background(background), horizontalAlignment = Alignment.CenterHorizontally) {
                 if (comic.remote) ContentLoading()
                 else for (i in 0..1) Image(painterResource(readerPages[i]), null, Modifier.widthIn(max = 850.dp).fillMaxWidth().wrapContentHeight(Alignment.Top, unbounded = true).aspectRatio(640f / 930), contentScale = ContentScale.FillWidth)
             }
         }
         if (tools) {
-            Row(Modifier.align(Alignment.TopCenter).fillMaxWidth().background(Color(0xED11141B)).windowInsetsPadding(WindowInsets.safeDrawing.only(WindowInsetsSides.Top + WindowInsetsSides.Horizontal)), verticalAlignment = Alignment.CenterVertically) {
+            Row(Modifier.align(Alignment.TopCenter).fillMaxWidth().background(MaterialTheme.colorScheme.surface.copy(alpha = .94f)).windowInsetsPadding(WindowInsets.safeDrawing.only(WindowInsetsSides.Top + WindowInsetsSides.Horizontal)), verticalAlignment = Alignment.CenterVertically) {
                 IconAction(Glyph.Back, "退出阅读", ::exit)
-                Column(Modifier.weight(1f)) { Text(comic.title, fontSize = 14.sp, maxLines = 1); Text("${comic.chapterTitles[chapter - 1]} · $mode", fontSize = 11.sp, color = Color.LightGray) }
+                Column(Modifier.weight(1f)) { Text(comic.title, fontSize = 14.sp, maxLines = 1); Text("${comic.chapterTitles[chapter - 1]} · $mode", fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant) }
                 IconAction(if (auto) Glyph.Pause else Glyph.Play, if (auto) "停止自动翻页" else "开始自动翻页") { auto = !auto; if (auto) tools = false }
                 IconAction(if (zoomed) Glyph.Close else Glyph.Search, if (zoomed) "还原缩放" else "放大图片") {
                     activeZoom?.let { state -> scope.launch { state.scale(if (zoomed) state.minScale else state.mediumScale, animated = true) } }
                 }
                 IconAction(Glyph.Settings, "阅读设置") { if (!changing) panel = "settings" }
             }
-            Column(Modifier.align(Alignment.BottomCenter).fillMaxWidth().background(Color(0xED11141B)).windowInsetsPadding(WindowInsets.safeDrawing.only(WindowInsetsSides.Bottom + WindowInsetsSides.Horizontal)).padding(horizontal = 20.dp)) {
+            Column(Modifier.align(Alignment.BottomCenter).fillMaxWidth().background(MaterialTheme.colorScheme.surface.copy(alpha = .94f)).windowInsetsPadding(WindowInsets.safeDrawing.only(WindowInsetsSides.Bottom + WindowInsetsSides.Horizontal)).padding(horizontal = 20.dp)) {
                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                     Text("${seeking?.toInt() ?: currentPage}", fontSize = 12.sp)
                     Slider(value = seeking ?: currentPage.toFloat(), onValueChange = { seeking = it; interaction++ },

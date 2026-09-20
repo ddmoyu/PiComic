@@ -1,1 +1,17 @@
-<resources><style name="Theme.PiComic" parent="android:style/Theme.Material.Light.NoActionBar"><item name="android:fontFamily">sans</item><item name="android:windowLightStatusBar">true</item><item name="android:colorAccent">#405FAD</item><item name="android:windowActionModeOverlay">true</item></style></resources>
+<resources>
+    <style name="Theme.PiComic" parent="Theme.PiComic.Light"/>
+    <style name="Theme.PiComic.Light" parent="android:style/Theme.Material.Light.NoActionBar">
+        <item name="android:fontFamily">sans</item>
+        <item name="android:windowBackground">#F8F9FD</item>
+        <item name="android:windowLightStatusBar">true</item>
+        <item name="android:colorAccent">#405FAD</item>
+        <item name="android:windowActionModeOverlay">true</item>
+    </style>
+    <style name="Theme.PiComic.Dark" parent="android:style/Theme.Material.NoActionBar">
+        <item name="android:fontFamily">sans</item>
+        <item name="android:windowBackground">#12151E</item>
+        <item name="android:windowLightStatusBar">false</item>
+        <item name="android:colorAccent">#AEC6FF</item>
+        <item name="android:windowActionModeOverlay">true</item>
+    </style>
+</resources>

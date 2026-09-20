@@ -1,6 +1,7 @@
 package io.github.ddmoyu.picomic.ui
 
 import androidx.compose.material3.*
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.graphics.Color
 
@@ -11,6 +12,7 @@ private val Light = lightColorScheme(primary=Color(0xFF405FAD), onPrimary=Color.
 private val Dark = darkColorScheme(primary=Color(0xFFAEC6FF), onPrimary=Color(0xFF15274E),
     secondaryContainer=Color(0xFF263959), onSecondaryContainer=Color(0xFFAEC6FF), primaryContainer=Color(0xFF263959), background=Color(0xFF12151E), surface=Color(0xFF12151E),
     surfaceContainer=Color(0xFF1B202D), surfaceContainerHigh=Color(0xFF212838), onSurface=Color(0xFFE5E9F2), onSurfaceVariant=Color(0xFFA6B0C4))
+@Composable fun UiState.isDarkTheme(): Boolean = themeMode.isDark(isSystemInDarkTheme())
 @Composable fun PiComicTheme(dark: Boolean, pureBlack: Boolean, content: @Composable () -> Unit) {
     val colors = if(dark) { if(pureBlack) Dark.copy(background=Color.Black,surface=Color.Black) else Dark } else Light
     MaterialTheme(colorScheme=colors, typography=Typography(), content=content)

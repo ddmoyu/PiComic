@@ -29,6 +29,7 @@ data class UiState(
 ) {
     fun pref(key: String, default: String = "") = preferences[key] ?: default
     fun enabled(key: String, default: Boolean = false) = pref(key, default.toString()).toBoolean()
+    val themeMode: ThemeMode get() = ThemeMode.fromPreferences(preferences)
 }
 
 class AppViewModel(application: Application) : AndroidViewModel(application) {

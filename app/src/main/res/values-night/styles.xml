@@ -1,0 +1,3 @@
+<resources>
+    <style name="Theme.PiComic" parent="Theme.PiComic.Dark"/>
+</resources>

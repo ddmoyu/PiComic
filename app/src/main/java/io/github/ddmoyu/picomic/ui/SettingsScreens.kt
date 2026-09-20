@@ -18,6 +18,7 @@ import androidx.compose.ui.unit.dp
 import io.github.ddmoyu.picomic.BuildConfig
 import io.github.ddmoyu.picomic.R
 import io.github.ddmoyu.picomic.data.Source
+import io.github.ddmoyu.picomic.data.ThemeMode
 
 val settingsTitles = mapOf("settings" to "设置", "accounts" to "账号管理", "sources" to "漫画源", "filters" to "内容筛选", "reading" to "阅读", "appearance" to "外观", "updates" to "更新", "data" to "数据与同步", "logs" to "日志", "network" to "设置代理", "about" to "关于 PiComic", "webdav" to "WebDAV 同步")
 
@@ -30,7 +31,7 @@ val settingsTitles = mapOf("settings" to "设置", "accounts" to "账号管理",
         SettingRow("内容筛选","${ui.keywords.size} 个屏蔽词 · ${if(ui.languages.isEmpty()) "语言不限" else ui.languages.joinToString()}",Glyph.Filter,onClick={go("filters")})
         SectionTitle("阅读体验")
         SettingRow("阅读",ui.pref("readingMode","纵向连续"),Glyph.Book,onClick={go("reading")})
-        SettingRow("外观",if(ui.enabled("dark")) "深色模式" else "浅色模式",Glyph.Moon,onClick={go("appearance")})
+        SettingRow("外观",ui.themeMode.label,Glyph.Moon,onClick={go("appearance")})
         SectionTitle("APP")
         SettingRow("更新","GitHub Releases",Glyph.Refresh,onClick={go("updates")})
         SettingRow("数据与同步","下载偏好、缓存与备份",Glyph.Folder,onClick={go("data")})
@@ -84,8 +85,8 @@ val settingsTitles = mapOf("settings" to "设置", "accounts" to "账号管理",
             }
             "appearance" -> {
                 SectionTitle("主题")
-                PreferenceToggle("深色模式","dark",ui,vm)
-                PreferenceToggle("纯黑色模式","pureBlack",ui,vm,"深色模式下生效",enabled=ui.enabled("dark"))
+                PreferenceChoice("主题模式","themeMode",ThemeMode.entries.map { it.label },ui,vm,default=ui.themeMode.label)
+                PreferenceToggle("纯黑色模式","pureBlack",ui,vm,"深色模式下生效",enabled=ui.isDarkTheme())
                 SectionTitle("显示")
                 PreferenceToggle("高刷新率模式","highRefresh",ui,vm,"优先请求设备支持的较高刷新率，仍受系统和省电影响")
             }

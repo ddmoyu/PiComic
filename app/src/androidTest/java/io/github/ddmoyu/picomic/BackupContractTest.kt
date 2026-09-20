@@ -7,6 +7,14 @@ import org.junit.Assert.*
 import org.junit.Test
 
 class BackupContractTest {
+    @Test fun allThemeChoicesSurvivePortableBackupAlongsideLegacyPreferences() {
+        for (mode in io.github.ddmoyu.picomic.data.ThemeMode.entries) {
+            val data = BackupData(preferences = listOf(TransferPreference("themeMode", mode.label, 100), TransferPreference("dark", "true", 90)))
+            val restored = BackupCodec.decode(BackupCodec.encode(document(data))).data.preferences.associate { it.key to it.value }
+            assertEquals(mode, io.github.ddmoyu.picomic.data.ThemeMode.fromPreferences(restored))
+        }
+        assertFalse(PortablePreferences.valid("themeMode", "unknown"))
+    }
     private val comic = SavedComic("FUTURE_SOURCE", "opaque:id/1", "未知来源作品", "作者", "https://secret-query.invalid/image?token=secret", "[\"标签\"]", "Chinese", 1, 2)
     private val favorite = FavoriteEntity(comic.source, comic.id, 100)
     private val progress = ContentProgressEntity(comic.source, comic.id, "chapter-original", "page-original", 2, .37f, "纵向连续", 100)
