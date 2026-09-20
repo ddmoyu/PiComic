@@ -4,6 +4,7 @@
 
 ### 简体中文
 
+- 图片加载改为低调的浅色细线动画，提示随长图的可见区域移动；错误文字和重试按钮适配阅读背景。点击重试按当前可见图片及后续预加载张数恢复失败任务，保留成功和正在加载的图片，不重试整章或之前的失败页。
 - 修复翻页反复取消预加载的问题：持续补齐可见区域之后设定数量的图片，翻页保留已开始的下载，快速跳页只移除过时的排队任务；等待图片时显示加载提示。
 - 修复预加载选项和阅读设置弹层需要返回两次的问题，返回一次直接关闭当前弹层。
 - 修复 JM 随机切换到 Tencent 图片线路时，详情和阅读页偶发误报“格式改变”的问题；不支持的图片线路改为明确提示切换分流。
@@ -13,6 +14,7 @@
 
 ### English
 
+- Added a subtle loading animation that stays within the visible part of long images, with error text and retry controls adapted to the reader background. Retry failed images in the current visible area and configured look-ahead window, preserving successful and ongoing loads without retrying earlier failures or the whole chapter.
 - Fixed page turns repeatedly cancelling preloads. Keep the configured number of images ahead of the visible area, finish started downloads and discard only outdated queued work after jumps. Show a loading indicator while images are pending.
 - Fixed preload choices and reader settings requiring two back actions. One back action now dismisses the current sheet.
 - Fixed intermittent “format changed” errors when JM rotates to its Tencent image route. Unsupported image routes now display a specific message suggesting another image route.
@@ -22,6 +24,7 @@
 
 ### 日本語
 
+- 長い画像でも表示範囲内に留まる控えめな読み込みアニメーションを追加し、エラー表示と再試行ボタンを読書背景に合わせました。再試行は現在の表示範囲と設定した先読み枚数内の失敗画像だけを対象とし、読み込み済み・処理中の画像や以前の失敗ページ、章全体を再取得しません。
 - ページ移動で先読みが繰り返し中断される問題を修正しました。表示範囲の先に設定枚数を先読みし、開始済みのダウンロードは継続します。離れたページへ移動した場合は不要な待機タスクだけを取り除き、画像の読み込み中はインジケーターを表示します。
 - 先読み枚数と読書設定のシートで、戻る操作を二度必要とする問題を修正しました。一度の操作で現在のシートが閉じます。
 - JM が Tencent の画像配信先を選んだ際、詳細・読書画面で「形式が変わった」と誤表示する問題を修正しました。未対応の配信先では画像経路の切り替えを案内します。

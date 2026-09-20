@@ -89,6 +89,7 @@ data class ReaderLocation(val chapter: Int, val page: Int, val offsetRatio: Floa
     val scroll = mode == "纵向连续"
     val rtl = mode == "从右向左"
     val background = when (ui.pref("readerBackground", "深灰")) { "纯黑" -> Color.Black; "米白" -> Color(0xFFF5F3ED); else -> Color(0xFF11141B) }
+    val statusColor = if (ui.pref("readerBackground", "深灰") == "米白") Color(0xFF606060) else Color(0xFFB4B4B4)
     ReaderDisplayEffect(ui.pref("readerBrightness", "跟随系统"), ui.pref("readerOrientation", "跟随系统"))
     val list = rememberLazyListState((initialPage - 1).coerceIn(0, comic.pages - 1))
     val pager = rememberPagerState(initialPage = (initialPage - 1).coerceIn(0, comic.pages - 1), pageCount = { comic.pages })
@@ -233,6 +234,13 @@ data class ReaderLocation(val chapter: Int, val page: Int, val offsetRatio: Floa
             ReaderImages.loader(context).execute(ReaderImages.request(context, pages[page - 1], imageWidth)) is coil3.request.SuccessResult
         }
     }
+    val retrySignals = remember(pages) { mutableStateMapOf<Int, Int>() }
+    fun retryReadingWindow() {
+        val window = ReaderMath.retryPages(visiblePages, preload, pages.size)
+        window.forEach { page -> retrySignals[page] = (retrySignals[page] ?: 0) + 1 }
+        // Reuse completed/in-flight preloads; retry missing/failed work only in the current window.
+        prefetcher.update(window.filter { it !in visiblePages }, visiblePages)
+    }
     DisposableEffect(prefetcher) { onDispose { prefetcher.clear() } }
     LaunchedEffect(prefetcher, visiblePages, preload, resumed, viewportWidth) {
         if (!resumed || viewportWidth == 0) prefetcher.clear()
@@ -296,17 +304,26 @@ data class ReaderLocation(val chapter: Int, val page: Int, val offsetRatio: Floa
         if (scroll) Box(Modifier.fillMaxSize().zoom(continuousZoom, onTap = onReaderTap, onLongPress = longPress?.let { callback -> { point -> callback(continuousZoom, point) } })) {
             LazyColumn(state = list, userScrollEnabled = !zoomed, modifier = Modifier.fillMaxSize().testTag("reader-pages").nestedScroll(connection).graphicsLayer { translationY = -distance }, horizontalAlignment = Alignment.CenterHorizontally) {
                 items(pages, key = { it.id }) { page ->
+                    val number = pages.indexOf(page) + 1
                     val size = dimensions[page.id] ?: (page.width to page.height)
-                    val frame = Modifier.widthIn(max = 850.dp).fillMaxWidth().aspectRatio(size.first.toFloat() / size.second)
-                    if (viewportWidth > 0) ReaderImage(page, "第 $chapter 话，第 ${pages.indexOf(page) + 1} 页", imageWidth, frame,
+                    val frame = Modifier.widthIn(max = 850.dp).fillMaxWidth().aspectRatio(size.first.toFloat() / size.second).testTag("reader-page-$number")
+                    if (viewportWidth > 0) ReaderImage(page, "第 $chapter 话，第 $number 页", imageWidth, frame,
+                        retrySignal = retrySignals[number] ?: 0, onRetry = ::retryReadingWindow, statusColor = statusColor,
+                        statusCenter = {
+                            val layout = list.layoutInfo
+                            val item = layout.visibleItemsInfo.firstOrNull { it.index == number - 1 }
+                            if (item == null) 0 else ReaderMath.visibleCenter(item.offset, item.size, layout.viewportStartOffset, layout.viewportEndOffset)
+                        },
                         onDimensions = { w, h -> if (!page.dimensionsKnown) dimensions[page.id] = w to h })
                     else Spacer(frame)
                 }
             }
         } else HorizontalPager(state = pager, reverseLayout = rtl, modifier = Modifier.fillMaxSize().testTag("reader-paged-pages")) { page ->
-            ReaderImage(pages[page], "第 $chapter 话，第 ${page + 1} 页", imageWidth, Modifier.fillMaxSize(),
+            if (viewportWidth > 0) ReaderImage(pages[page], "第 $chapter 话，第 ${page + 1} 页", imageWidth, Modifier.fillMaxSize().testTag("reader-page-${page + 1}"),
+                retrySignal = retrySignals[page + 1] ?: 0, onRetry = ::retryReadingWindow, statusColor = statusColor,
                 zoomable = true, doubleTap = ui.enabled("doubleTap", true), active = page == pager.currentPage,
                 onZoomState = { if (page == pager.currentPage) pagedZoom = it }, onTap = onReaderTap, onLongPress = longPress)
+            else Spacer(Modifier.fillMaxSize())
         }
         if (pull > 0 && !changing && !comic.remote) Box(Modifier.align(Alignment.BottomCenter).fillMaxWidth().height(with(density) { distance.toDp() }).clipToBounds().background(Color(0xFFF5F3ED))) {
             Image(painterResource(readerPages[0]), null, Modifier.widthIn(max = 850.dp).fillMaxWidth().wrapContentHeight(Alignment.Top, unbounded = true).aspectRatio(640f / 930), contentScale = ContentScale.FillWidth, alignment = Alignment.TopCenter)

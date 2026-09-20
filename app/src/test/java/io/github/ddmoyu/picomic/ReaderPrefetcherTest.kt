@@ -88,4 +88,33 @@ class ReaderPrefetcherTest {
         assertEquals(listOf(9, 10, 3), ReaderMath.prefetchPages(4, 3, 10, lastVisible = 8))
         assertEquals(listOf(7), ReaderMath.prefetchPages(8, 3, 10, lastVisible = 10))
     }
+
+    @Test fun retryWindowIncludesVisibleAndThreeAheadButNotEarlierFailuresOrOtherChapters() {
+        assertEquals(listOf(27, 28, 29, 30), ReaderMath.retryPages(setOf(27), 3, 40))
+        assertEquals(listOf(27, 28, 29, 30, 31), ReaderMath.retryPages(setOf(27, 28), 3, 40))
+        assertEquals(listOf(39, 40), ReaderMath.retryPages(setOf(39), 3, 40))
+        assertTrue(ReaderMath.retryPages(emptySet(), 3, 40).isEmpty())
+    }
+
+    @Test fun retryKeepsSuccessfulAndRunningImagesAndDoesNotRetryEarlierFailure() = runBlocking {
+        val calls = mutableMapOf<Int, Int>()
+        val slow = CompletableDeferred<Unit>()
+        val loader = ReaderPrefetcher<Int>(this) { page ->
+            calls[page] = (calls[page] ?: 0) + 1
+            when (page) { 28 -> true; 29 -> { slow.await(); true }; else -> false }
+        }
+        try {
+            loader.update(listOf(28, 29, 30, 26), setOf(27))
+            withTimeout(1000) { while (calls[26] != 1) yield() }
+            loader.update(ReaderMath.retryPages(setOf(27), 3, 40).filter { it != 27 }, setOf(27))
+            withTimeout(1000) { while (calls[30] != 2) yield() }
+            assertEquals(mapOf(28 to 1, 29 to 1, 30 to 2, 26 to 1), calls)
+        } finally { loader.clear() }
+    }
+
+    @Test fun longImageStatusRemainsInsideVisiblePart() {
+        assertEquals(100, ReaderMath.visibleCenter(800, 3000, 0, 1000))
+        assertEquals(2000, ReaderMath.visibleCenter(-1500, 3000, 0, 1000))
+        assertEquals(2750, ReaderMath.visibleCenter(-2500, 3000, 0, 1000))
+    }
 }

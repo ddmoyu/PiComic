@@ -20,6 +20,9 @@ import com.github.panpf.zoomimage.rememberCoilZoomState
 import com.github.panpf.zoomimage.compose.zoom.ZoomableState
 import com.github.panpf.zoomimage.zoom.GestureType
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.onSizeChanged
+import androidx.compose.ui.unit.IntOffset
 import io.github.ddmoyu.picomic.ui.readerPages
 import io.github.ddmoyu.picomic.content.ContentFailure
 import io.github.ddmoyu.picomic.content.ContentFailureKind
@@ -64,7 +67,9 @@ object ReaderImages {
     zoomable: Boolean = false, doubleTap: Boolean = true, active: Boolean = true,
     onZoomState: (ZoomableState?) -> Unit = {}, onTap: (Offset) -> Unit = {},
     onLongPress: ((ZoomableState, Offset) -> Unit)? = null,
-    onDimensions: (Int, Int) -> Unit = { _, _ -> }
+    onDimensions: (Int, Int) -> Unit = { _, _ -> },
+    retrySignal: Int = 0, onRetry: (() -> Unit)? = null,
+    statusCenter: (() -> Int)? = null, statusColor: Color = Color.Gray
 ) {
     val context = LocalContext.current
     val loader = remember { ReaderImages.loader(context) }
@@ -77,6 +82,10 @@ object ReaderImages {
     }
     var failed by remember(request, retry) { mutableStateOf<Throwable?>(null) }
     var loading by remember(request, retry) { mutableStateOf(true) }
+    // A window retry only restarts failed painters. Successful images and active loads stay intact.
+    LaunchedEffect(retrySignal) {
+        if (failed != null) { failed = null; retry++ }
+    }
     // A memory-cache result can be delivered while an image painter is composing.
     // Apply callbacks from an effect so they never write the same snapshot inside and outside composition.
     val events = remember(request, retry) { Channel<AsyncImagePainter.State>(Channel.CONFLATED) }
@@ -109,15 +118,26 @@ object ReaderImages {
             modifier = Modifier.fillMaxSize(), contentScale = ContentScale.FillWidth,
             onLoading = { events.trySend(it) }, onError = { events.trySend(it) }, onSuccess = { events.trySend(it) }
         ) }
-        if (loading) CircularProgressIndicator(Modifier.size(32.dp).semantics { contentDescription = "图片正在加载" }, strokeWidth = 3.dp)
-        failed?.let { error -> Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.padding(12.dp)) {
-            Text(if (error is ContentFailure) error.message.orEmpty() else "图片加载失败")
-            TextButton(onClick = {
-                if ((error as? ContentFailure)?.kind == ContentFailureKind.QUOTA) (page.model as? SourceImage)?.repository?.ehImages?.retry()
-                failed = null; retry++
-            }) { Text(if ((error as? ContentFailure)?.kind == ContentFailureKind.QUOTA) "已恢复额度，重新加载" else "重试") }
-            if ((page.model as? SourceImage)?.page?.resolver == "eh-original" && !ordinary && (error as? ContentFailure)?.kind != ContentFailureKind.QUOTA)
-                TextButton(onClick = { ordinary = true; failed = null; retry++ }) { Text("加载普通图片") }
-        } }
+        if (loading || failed != null) {
+            var statusHeight by remember { mutableIntStateOf(0) }
+            val placement = if (statusCenter == null) Modifier.align(Alignment.Center)
+                else Modifier.align(Alignment.TopCenter).offset { IntOffset(0, (statusCenter() - statusHeight / 2).coerceAtLeast(0)) }
+            Column(placement.onSizeChanged { statusHeight = it.height }.padding(12.dp), horizontalAlignment = Alignment.CenterHorizontally) {
+                if (loading) CircularProgressIndicator(Modifier.size(24.dp).semantics { contentDescription = "图片正在加载" },
+                    color = statusColor.copy(alpha = .55f), strokeWidth = 2.dp, trackColor = Color.Transparent)
+                failed?.let { error ->
+                    Text(if (error is ContentFailure) error.message.orEmpty() else "图片加载失败，请重试", color = statusColor)
+                    TextButton(onClick = {
+                        if ((error as? ContentFailure)?.kind == ContentFailureKind.QUOTA) (page.model as? SourceImage)?.repository?.ehImages?.retry()
+                        if (onRetry != null) onRetry() else { failed = null; retry++ }
+                    }, colors = ButtonDefaults.textButtonColors(contentColor = statusColor)) {
+                        Text(if ((error as? ContentFailure)?.kind == ContentFailureKind.QUOTA) "已恢复额度，重新加载" else "重试")
+                    }
+                    if (onRetry != null) Text("重试当前图片及后续预加载范围", color = statusColor, style = MaterialTheme.typography.labelSmall)
+                    if ((page.model as? SourceImage)?.page?.resolver == "eh-original" && !ordinary && (error as? ContentFailure)?.kind != ContentFailureKind.QUOTA)
+                        TextButton(onClick = { ordinary = true; failed = null; retry++ }, colors = ButtonDefaults.textButtonColors(contentColor = statusColor)) { Text("加载普通图片") }
+                }
+            }
+        }
     }
 }
