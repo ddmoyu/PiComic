@@ -1,8 +1,8 @@
 # 更新记录
 
-## 0.3.0
+## 0.3.1
 
-2026-09-20 · Android 8.0+ · arm64-v8a · versionCode 3000
+2026-09-20 · Android 8.0+ · arm64-v8a · versionCode 3001
 
 ### 简体中文
 
@@ -18,7 +18,7 @@
 
 **安装与账号说明**
 
-- 下载 `PiComic-0.3.0.apk`，适用于 Android 8.0 及以上的 arm64 设备。
+- 下载 `PiComic-0.3.1.apk`，适用于 Android 8.0 及以上的 arm64 设备。
 - 使用旧测试证书的版本需要先导出备份，再卸载重装；已使用同一正式发行证书的版本可覆盖安装。后续正式版本继续沿用此证书。
 - 备份密码长度为 8–128 个字符，请妥善保存；忘记密码无法解密备份。导入的账号需要重新验证会话。
 - EH/EX 和 nhentai 使用 Cookie/Token 会话，不提供原始密码记忆。各平台的验证码、账号权限与网络限制仍然适用；本版本不宣称已验证所有平台账号，nhentai 密码登录实测仍受 CAPTCHA 阻挡。
@@ -37,7 +37,7 @@
 
 **Installation and accounts**
 
-- Download `PiComic-0.3.0.apk` for arm64 devices running Android 8.0 or later.
+- Download `PiComic-0.3.1.apk` for arm64 devices running Android 8.0 or later.
 - Builds signed with the old test certificate require a backup, uninstall and fresh installation. Builds using the same production certificate can be updated in place. Future official releases will retain this certificate.
 - Keep your backup password (8–128 characters): a forgotten password cannot decrypt the backup. Imported account sessions require validation.
 - EH/EX and nhentai use Cookie/Token sessions rather than saved raw passwords. Platform CAPTCHAs, permissions and network restrictions still apply. Not all platform accounts have been verified; the nhentai password-login test is still blocked by CAPTCHA.
@@ -56,7 +56,7 @@
 
 **インストールとアカウントについて**
 
-- Android 8.0 以降の arm64 端末向けに `PiComic-0.3.0.apk` をダウンロードしてください。
+- Android 8.0 以降の arm64 端末向けに `PiComic-0.3.1.apk` をダウンロードしてください。
 - 旧テスト証明書のビルドから移行する場合は、バックアップ後にアンインストールして入れ直してください。同じ正式証明書のビルドは上書き更新できます。今後の正式版も同じ証明書を使用します。
 - バックアップのパスワードは 8～128 文字です。忘れると復号できないため、大切に保管してください。取り込んだアカウントのセッションは再検証が必要です。
 - EH/EX と nhentai は Cookie/Token セッションを使用し、元のパスワードは記憶しません。各サービスの CAPTCHA、権限、通信制限は引き続き適用されます。すべてのサービスのアカウントを検証済みではなく、nhentai のパスワードログイン試験は CAPTCHA により未完了です。
