@@ -6,10 +6,13 @@ import android.graphics.Color
 import android.graphics.Paint
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.test.junit4.createComposeRule
+import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.test.platform.app.InstrumentationRegistry
-import com.github.panpf.zoomimage.CoilZoomAsyncImage
+import io.github.ddmoyu.picomic.reader.ReaderZoomImage
 import com.github.panpf.zoomimage.CoilZoomState
 import com.github.panpf.zoomimage.rememberCoilZoomState
 import io.github.ddmoyu.picomic.reader.ReaderImages
@@ -35,16 +38,24 @@ class LongImageTest {
         bitmap.recycle()
         lateinit var state: CoilZoomState
         lateinit var scope: CoroutineScope
+        var requestWidth by mutableIntStateOf(1080)
         try {
             ui.setContent {
                 state = rememberCoilZoomState()
                 scope = rememberCoroutineScope()
-                CoilZoomAsyncImage(
-                    model = ReaderImages.request(context, ReaderPage("long-test", file, 640, 16000), 1080),
-                    imageLoader = ReaderImages.loader(context), contentDescription = "原创长图测试", modifier = Modifier.fillMaxSize(), zoomState = state
+                ReaderZoomImage(
+                    request = androidx.compose.runtime.remember(requestWidth) { ReaderImages.request(context, ReaderPage("long-test", file, 640, 16000), requestWidth) },
+                    loader = ReaderImages.loader(context), description = "原创长图测试", state = state, onTap = {}, onLongPress = null, onResult = {}
                 )
             }
             ui.waitUntil(15000) { state.subsampling.ready }
+            // Switch request sizes, then return to cached sizes without mutating a live Coil painter
+            // during composition. The full-resolution tile source must remain usable after resize.
+            repeat(6) { index ->
+                ui.runOnIdle { requestWidth = if (index % 2 == 0) 720 else 1080 }
+                ui.waitForIdle()
+                ui.waitUntil(15000) { state.subsampling.ready }
+            }
             ui.runOnIdle {
                 assertTrue(state.subsampling.tileGridSizeMap.isNotEmpty())
                 scope.launch { state.zoomable.scale(state.zoomable.mediumScale) }

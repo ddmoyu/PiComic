@@ -76,3 +76,35 @@
 - `assembleRelease` / `assembleDebug` / `lintRelease` 通过；Release Lint 0 错误、8 警告；JVM 6 / 6、阅读器原生回归 6 / 6 通过。
 - 同优化配置的 x86_64 Release 已在模拟器完成覆盖安装、既有进度恢复、切换模式、图片缩放、换章保存、进程重启续读检查。`artifacts/0.2.1-release-smoke.log` 留有各步骤结果。
 - 安装包、校验值、映射文件、构建命令和验证范围见 [Release 与 Debug 构建](../../15-Release与Debug构建.md)。未连接实体手机，未上传 GitHub Releases。
+
+## 0.2.2-alpha · D1 网络与认证基础
+
+2026-09-20，versionCode 6。新增代理设置与连接测试、网络切换取消、Keystore 加密存储、会话候选验证合同和受控 WebView。
+
+- JVM 单元测试 19 / 19，Android 模拟器仪器测试 23 / 23，均无失败。
+- Debug 构建通过；Lint 0 错误、17 警告，无错误 baseline。
+- 原生验证包括代理路由、HttpOnly Cookie、登录取消、密文篡改和代理设置交互；原有阅读/导航回归通过。
+- 受影响的 Compose 测试采用 v2 队列调度；UI 用例显式恢复阅读模式，避免共享偏好污染。
+- 最终日志：`artifacts/d1-network-final-validation.log`。测试不使用真实平台或账号，未做实体手机联调。
+- APK、校验值及能力边界见 [D1 网络与认证基础](../../16-D1网络与认证基础.md)。没有正式发布或上传 APK。
+
+## 0.2.3-alpha · 哔咔账号登录联调
+
+2026-09-20，versionCode 7。新增哔咔签名客户端、原生账号输入、登录后资料校验、加密会话恢复/失效清理和退出；密码不保存。
+
+- JVM 30 / 30；Android 全量常规用例 33 / 33；另 1 项真实探测在普通回归默认跳过。按 JUnit XML 统计，不采用 Gradle 尾行重复计数。
+- 启动时网络配置无法读取的边界修正后，重新执行全部 JVM 与哔咔 API / 表单 / 页面流程 15 项定向回归，通过。
+- Windows 与 Android 模拟器均实测匿名 `users/profile`，收到预期 401 JSON；模拟器真实探测显式运行 1 / 1，通过，没有提交账号密码。
+- Debug 构建通过，Lint 0 错误、17 警告，无 baseline。APK v2 签名、16 KB 对齐、版本及 SHA-256 已核对。
+- 日志：`artifacts/picacg-final-validation.log`、`artifacts/picacg-final-followup.log`、`artifacts/picacg-live-emulator.log`；截图：[哔咔登录](screenshots/22-picacg-login.png)。
+- 安装包、校验值、固定协议来源及真实账号待测边界见 [哔咔账号登录联调](../../17-哔咔账号登录联调.md)。此历史版本搜索/详情/阅读仍是本地示例，未连接实体手机，未发布安装包。
+
+## 0.3.0-alpha · 首版功能集成
+
+2026-09-20，versionCode 8。六来源、账号、阅读、书架、下载/离线、备份/WebDAV、设置/日志及更新模块代码实现完成。
+
+- JVM 56 / 56 通过；Android 8 / API 26 与 Android 16 / API 36 各 114 项，其中 109 通过、5 项默认跳过、0 失败。跳过项为 4 项显式联网和 1 项 SAF；系统目录授权专项另 1 / 1 通过。
+- Debug / R8 Release / Lint 通过；Lint 0 错误，Debug 46 警告、Release 39 警告，各 1 提示，无错误 baseline。
+- API 26/36 的 R8 实际启动、API 26 同版本 Debug→R8 覆盖保留合成收藏及进程重启检查通过；360 dp/1.6 倍字号和 600/800 dp 入口布局已检查。
+- 开发签名通用 Release APK 3,256,838 字节；元数据、SHA-256、v2 签名和 16 KB ZIP 对齐已核对。未创建正式签名或发布 GitHub Release。
+- 日志、具体功能与真实账号/真机/服务商/发布缺口统一见 [首版功能与集成验证](../../23-首版功能与集成验证.md)。

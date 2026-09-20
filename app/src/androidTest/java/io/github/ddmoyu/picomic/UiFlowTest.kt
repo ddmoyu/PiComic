@@ -4,7 +4,7 @@ import android.graphics.Bitmap
 import android.content.pm.ActivityInfo
 import androidx.compose.ui.graphics.asAndroidBitmap
 import androidx.compose.ui.test.*
-import androidx.compose.ui.test.junit4.createAndroidComposeRule
+import androidx.compose.ui.test.junit4.v2.createAndroidComposeRule
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import org.junit.Rule
 import org.junit.Before
@@ -17,13 +17,20 @@ import java.io.File
 @RunWith(AndroidJUnit4::class)
 class UiFlowTest {
     @get:Rule val ui=createAndroidComposeRule<MainActivity>()
-    @Before fun clearHistory() { runBlocking { ReadingProgressRepository.get(ui.activity).clear() }; ui.waitForIdle() }
+    @Before fun clearHistory() {
+        ui.runOnIdle { androidx.lifecycle.ViewModelProvider(ui.activity)[io.github.ddmoyu.picomic.ui.AppViewModel::class.java].preference("debugDemo", "true") }
+        runBlocking { ReadingProgressRepository.get(ui.activity).clear() }
+        // Reader-control tests persist other modes; each UI flow starts with its own declared baseline.
+        ui.runOnIdle { androidx.lifecycle.ViewModelProvider(ui.activity)[io.github.ddmoyu.picomic.ui.AppViewModel::class.java].preference("readingMode", "纵向连续") }
+        ui.waitForIdle()
+    }
     private fun shot(name: String) {
         ui.waitForIdle()
         val file=File(ui.activity.getExternalFilesDir(null),"screenshots/$name.png")
         file.parentFile!!.mkdirs()
         file.outputStream().use { ui.onRoot().captureToImage().asAndroidBitmap().compress(Bitmap.CompressFormat.PNG,100,it) }
     }
+    @org.junit.After fun disableDemo() { ui.runOnIdle { androidx.lifecycle.ViewModelProvider(ui.activity)[io.github.ddmoyu.picomic.ui.AppViewModel::class.java].preference("debugDemo", "false") } }
     @Test fun browseSearchAndCategoryNavigation() {
         ui.onNodeWithText("探索").assertExists()
         shot("01-discover")
@@ -76,9 +83,11 @@ class UiFlowTest {
         shot("07-settings")
         ui.onNodeWithText("账号管理").performClick()
         shot("08-accounts")
-        ui.onAllNodesWithText("未登录").onFirst().performClick()
-        ui.onNodeWithText("体验演示登录状态").performClick()
-        ui.onNodeWithText("演示账号").assertExists()
+        ui.onNodeWithText("账号密码登录 · 加密会话").performClick()
+        ui.onNodeWithText("账号 / 邮箱").assertExists()
+        ui.onNodeWithText("登录并验证").assertIsNotEnabled()
+        ui.onNodeWithText("体验演示登录状态").assertDoesNotExist()
+        ui.onNodeWithContentDescription("返回").performClick()
         ui.onNodeWithContentDescription("返回").performClick()
         ui.onNodeWithText("漫画源").performClick()
         ui.onNodeWithText("禁漫天堂").performScrollTo().performClick()
@@ -90,8 +99,8 @@ class UiFlowTest {
         shot("10-dark-appearance")
         ui.onNodeWithContentDescription("返回").performClick()
         ui.onNodeWithText("更新").performScrollTo().performClick()
-        ui.onNodeWithText("检查更新").performClick()
-        ui.onNodeWithText("知道了").performClick()
+        ui.onNodeWithText("检查更新").assertIsNotEnabled()
+        ui.onNodeWithText("公开发布渠道尚未配置").assertExists()
         shot("11-updates")
     }
     @Test fun continuousReaderPullsToNextChapter() {

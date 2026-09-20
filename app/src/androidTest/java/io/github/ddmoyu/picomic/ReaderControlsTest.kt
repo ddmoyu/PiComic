@@ -5,7 +5,7 @@ import android.view.WindowManager
 import androidx.compose.ui.graphics.asAndroidBitmap
 import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.test.*
-import androidx.compose.ui.test.junit4.createAndroidComposeRule
+import androidx.compose.ui.test.junit4.v2.createAndroidComposeRule
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.ViewModelProvider
 import io.github.ddmoyu.picomic.data.*
@@ -19,12 +19,14 @@ class ReaderControlsTest {
     private val vm get() = ViewModelProvider(ui.activity)[AppViewModel::class.java]
     private var preferences = emptyMap<String, String>()
     @Before fun setup() {
+        ui.runOnIdle { vm.preference("debugDemo", "true") }
         runBlocking { ReadingProgressRepository.get(ui.activity).clear() }
         ui.runOnIdle { preferences = vm.state.value.preferences; vm.preference("volume", "true"); vm.preference("keepAwake", "true"); vm.preference("doubleTap", "true"); vm.preference("longPress", "true"); vm.preference("autoInterval", "2 秒"); vm.preference("readingMode", "从左向右") }
     }
     @After fun cleanup() {
         ui.runOnIdle {
-            mapOf("volume" to "false", "keepAwake" to "true", "doubleTap" to "true", "longPress" to "false", "autoInterval" to "5 秒", "readingMode" to "纵向连续").forEach { (key, fallback) -> vm.preference(key, preferences[key] ?: fallback) }
+            vm.preference("debugDemo", "false")
+            mapOf("volume" to "false", "keepAwake" to "true", "doubleTap" to "true", "longPress" to "false", "autoInterval" to "5 秒", "readingMode" to "纵向连续", "readerBrightness" to "跟随系统", "readerOrientation" to "跟随系统", "highRefresh" to "false").forEach { (key, fallback) -> vm.preference(key, preferences[key] ?: fallback) }
         }
     }
     private fun openReader() { ui.onVisibleText("雨后的第七站").performClick(); ui.onNodeWithText("开始阅读").performClick(); ui.waitUntil(5000) { vm.state.value.history.isNotEmpty() } }
@@ -34,11 +36,46 @@ class ReaderControlsTest {
     }
     private fun volume(next: Boolean) {
         val code = if (next) KeyEvent.KEYCODE_VOLUME_DOWN else KeyEvent.KEYCODE_VOLUME_UP
-        androidx.test.platform.app.InstrumentationRegistry.getInstrumentation().sendKeyDownUpSync(code)
+        ui.waitUntil(6000) { ui.activity.hasWindowFocus() }
+        val automation = androidx.test.platform.app.InstrumentationRegistry.getInstrumentation().uiAutomation
+        val now = android.os.SystemClock.uptimeMillis()
+        assertTrue(automation.injectInputEvent(KeyEvent(now, now, KeyEvent.ACTION_DOWN, code, 0), true))
+        assertTrue(automation.injectInputEvent(KeyEvent(now, now + 1, KeyEvent.ACTION_UP, code, 0), true))
     }
     private fun waitPage(page: Int) = ui.waitUntil(6000) { vm.state.value.history.firstOrNull()?.page == page }
     private fun zoomed(value: Boolean) {
         ui.waitUntil(5000) { ui.onNodeWithTag("reader").fetchSemanticsNode().config[SemanticsProperties.StateDescription] == if (value) "已放大" else "原始比例" }
+    }
+    @Test fun edgeTapsRespectReadingDirection() {
+        openReader()
+        ui.onNodeWithTag("reader").performTouchInput { click(androidx.compose.ui.geometry.Offset(width * .88f, centerY)) }
+        waitPage(2)
+        ui.onNodeWithTag("reader").performTouchInput { click(androidx.compose.ui.geometry.Offset(width * .12f, centerY)) }
+        waitPage(1)
+        ui.runOnIdle { vm.preference("readingMode", "从右向左") }
+        ui.onNodeWithTag("reader").performTouchInput { click(androidx.compose.ui.geometry.Offset(width * .12f, centerY)) }
+        waitPage(2)
+        showTools(); ui.onNodeWithContentDescription("退出阅读").performClick()
+    }
+    @Test fun brightnessOrientationAndRefreshRequestsAreReleased() {
+        var baseline = -1f
+        ui.runOnIdle { baseline = ui.activity.window.attributes.screenBrightness; vm.preference("readerBrightness", "25"); vm.preference("readerOrientation", "竖屏"); vm.preference("highRefresh", "true") }
+        openReader()
+        ui.runOnIdle {
+            assertEquals(.25f, ui.activity.window.attributes.screenBrightness, .001f)
+            assertEquals(android.content.pm.ActivityInfo.SCREEN_ORIENTATION_USER_PORTRAIT, ui.activity.requestedOrientation)
+            assertTrue(ui.activity.window.attributes.preferredDisplayModeId > 0)
+        }
+        ui.activityRule.scenario.moveToState(Lifecycle.State.CREATED)
+        ui.runOnUiThread { assertEquals(baseline, ui.activity.window.attributes.screenBrightness, .001f); assertEquals(0, ui.activity.window.attributes.preferredDisplayModeId) }
+        ui.activityRule.scenario.moveToState(Lifecycle.State.RESUMED)
+        showTools(); ui.onNodeWithContentDescription("退出阅读").performClick()
+        ui.runOnIdle {
+            assertEquals(baseline, ui.activity.window.attributes.screenBrightness, .001f)
+            assertEquals(android.content.pm.ActivityInfo.SCREEN_ORIENTATION_UNSPECIFIED, ui.activity.requestedOrientation)
+            vm.preference("highRefresh", "false")
+        }
+        ui.runOnIdle { assertEquals(0, ui.activity.window.attributes.preferredDisplayModeId) }
     }
     @Test fun volumeKeysAndKeepAwakeBelongOnlyToForegroundReader() {
         openReader()

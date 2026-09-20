@@ -1,0 +1,15 @@
+// Read-only inventory of resolved release runtime components, including transitive artifacts.
+gradle.projectsEvaluated {
+    def app = gradle.rootProject.project(':app')
+    app.tasks.register('writeRuntimeInventory') {
+        doLast {
+            def rows = app.configurations.releaseRuntimeClasspath.incoming.resolutionResult.allComponents
+                .collect { it.moduleVersion }.findAll { it != null }
+                .collect { "${it.group}\t${it.name}\t${it.version}" }.unique().sort()
+            def output = new File(app.buildDir, 'reports/runtime-dependencies.tsv')
+            output.parentFile.mkdirs()
+            output.setText("group\tmodule\tversion\n" + rows.join('\n') + '\n', 'UTF-8')
+            println "Runtime inventory: ${output} (${rows.size()} components)"
+        }
+    }
+}

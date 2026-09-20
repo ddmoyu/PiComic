@@ -8,6 +8,11 @@ import androidx.activity.enableEdgeToEdge
 import io.github.ddmoyu.picomic.ui.PiComicApp
 
 class MainActivity : ComponentActivity() {
+    val downloadsRequest = kotlinx.coroutines.flow.MutableStateFlow(0)
+    override fun onNewIntent(intent: android.content.Intent) {
+        super.onNewIntent(intent); setIntent(intent)
+        if (intent.getBooleanExtra("openDownloads", false)) downloadsRequest.value++
+    }
     var readerVolumeAction: ((Boolean) -> Unit)? = null
     override fun onKeyDown(keyCode: Int, event: KeyEvent): Boolean {
         val action = readerVolumeAction
@@ -23,7 +28,9 @@ class MainActivity : ComponentActivity() {
     }
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        if (savedInstanceState == null) io.github.ddmoyu.picomic.data.EventLog.get(this).record(io.github.ddmoyu.picomic.data.EventCode.APP_START)
         enableEdgeToEdge()
+        if (intent.getBooleanExtra("openDownloads", false)) downloadsRequest.value++
         setContent { PiComicApp() }
     }
 }

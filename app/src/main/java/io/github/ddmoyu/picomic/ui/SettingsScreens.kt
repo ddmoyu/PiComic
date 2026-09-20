@@ -11,6 +11,8 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.platform.LocalUriHandler
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
 import io.github.ddmoyu.picomic.BuildConfig
@@ -19,7 +21,8 @@ import io.github.ddmoyu.picomic.data.Source
 
 val settingsTitles = mapOf("settings" to "设置", "accounts" to "账号管理", "sources" to "漫画源", "filters" to "内容筛选", "reading" to "阅读", "appearance" to "外观", "updates" to "更新", "data" to "数据与同步", "logs" to "日志", "network" to "设置代理", "about" to "关于 PiComic", "webdav" to "WebDAV 同步")
 
-@Composable fun SettingsHome(ui: UiState, go: (String) -> Unit) {
+@Composable fun SettingsHome(ui: UiState, vm: AppViewModel, go: (String) -> Unit) {
+    val network by vm.network.state.collectAsStateWithLifecycle()
     Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState())) {
         SectionTitle("内容与来源")
         SettingRow("账号管理","登录、会话与平台账号",Glyph.User,onClick={go("accounts")})
@@ -33,7 +36,7 @@ val settingsTitles = mapOf("settings" to "设置", "accounts" to "账号管理",
         SettingRow("数据与同步","下载偏好、缓存与备份",Glyph.Folder,onClick={go("data")})
         SettingRow("日志","运行记录",Glyph.Menu,onClick={go("logs")})
         SectionTitle("网络与关于")
-        SettingRow("设置代理",ui.pref("network","跟随系统"),Glyph.Wifi,onClick={go("network")})
+        SettingRow("设置代理",network.label,Glyph.Wifi,onClick={go("network")})
         SettingRow("关于 PiComic","介绍、项目地址与问题反馈",Glyph.Info,onClick={go("about")})
         Spacer(Modifier.height(24.dp))
     }
@@ -42,13 +45,13 @@ val settingsTitles = mapOf("settings" to "设置", "accounts" to "账号管理",
 @Composable fun PreferenceToggle(title: String, key: String, ui: UiState, vm: AppViewModel, subtitle: String="", default: Boolean=false, enabled: Boolean=true) {
     SettingRow(title,subtitle,onClick={if(enabled) vm.toggle(key,default)},trailing={Switch(checked=ui.enabled(key,default),onCheckedChange={vm.preference(key,it.toString())},enabled=enabled)})
 }
-@Composable fun PreferenceChoice(title: String, key: String, choices: List<String>, ui: UiState, vm: AppViewModel, default: String=choices.first(), subtitle: String="") {
+@Composable fun PreferenceChoice(title: String, key: String, choices: List<String>, ui: UiState, vm: AppViewModel, default: String=choices.first(), subtitle: String="", save: (String) -> Unit = { vm.preference(key, it) }) {
     var showing by remember { mutableStateOf(false) }
     SettingRow(title,subtitle,value=ui.pref(key,default),onClick={showing=true})
     if(showing) ModalBottomSheet(onDismissRequest={showing=false}) {
         Text(title,Modifier.padding(24.dp,8.dp),style=MaterialTheme.typography.titleLarge)
         Column(Modifier.heightIn(max=420.dp).verticalScroll(rememberScrollState())) {
-            choices.forEach { value -> SettingRow(value,onClick={vm.preference(key,value);showing=false},trailing={RadioButton(selected=ui.pref(key,default)==value,onClick={vm.preference(key,value);showing=false})}) }
+            choices.forEach { value -> SettingRow(value,onClick={save(value);showing=false},trailing={RadioButton(selected=ui.pref(key,default)==value,onClick={save(value);showing=false})}) }
         }
         Spacer(Modifier.height(20.dp))
     }
@@ -61,8 +64,7 @@ val settingsTitles = mapOf("settings" to "设置", "accounts" to "账号管理",
 }
 
 @Composable fun SettingsPage(route: String, ui: UiState, vm: AppViewModel, go: (String) -> Unit, notice: (String) -> Unit) {
-    var action by remember { mutableStateOf<String?>(null) }
-    val preview: (String) -> Unit = { action=it }
+    val uriHandler = LocalUriHandler.current
     Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(bottom=28.dp)) {
         when(route) {
             "reading" -> {
@@ -71,6 +73,9 @@ val settingsTitles = mapOf("settings" to "设置", "accounts" to "账号管理",
                 PreferenceToggle("音量键翻页","volume",ui,vm,"音量减向后阅读，音量加向前阅读")
                 PreferenceChoice("自动翻页时间间隔","autoInterval",listOf("2 秒","3 秒","5 秒","10 秒","15 秒","30 秒","60 秒"),ui,vm,"5 秒")
                 SectionTitle("显示与加载")
+                PreferenceChoice("阅读背景", "readerBackground", listOf("深灰", "纯黑", "米白"), ui, vm)
+                PreferenceChoice("屏幕方向", "readerOrientation", listOf("跟随系统", "竖屏", "横屏"), ui, vm)
+                PreferenceChoice("阅读亮度", "readerBrightness", listOf("跟随系统", "10", "25", "50", "75", "100"), ui, vm, subtitle = "数值为百分比，仅阅读页面生效")
                 PreferenceToggle("保持屏幕常亮","keepAwake",ui,vm,"仅在前台阅读时生效",true)
                 PreferenceChoice("图片预加载","preload",(1..10).map{"$it 张"},ui,vm,"3 张","沿阅读顺序预加载，快速跳页取消旧任务")
                 SectionTitle("缩放手势")
@@ -82,59 +87,35 @@ val settingsTitles = mapOf("settings" to "设置", "accounts" to "账号管理",
                 PreferenceToggle("深色模式","dark",ui,vm)
                 PreferenceToggle("纯黑色模式","pureBlack",ui,vm,"深色模式下生效",enabled=ui.enabled("dark"))
                 SectionTitle("显示")
-                PreferenceToggle("高刷新率模式","highRefresh",ui,vm,"仅保存偏好，设备刷新率请求后续接入")
+                PreferenceToggle("高刷新率模式","highRefresh",ui,vm,"优先请求设备支持的较高刷新率，仍受系统和省电影响")
             }
-            "updates" -> {
-                SectionTitle("应用版本")
-                SettingRow("当前版本",BuildConfig.VERSION_NAME,onClick={})
-                SettingRow("发布渠道","GitHub Releases",onClick={})
-                HorizontalDivider(Modifier.padding(horizontal=20.dp),color=MaterialTheme.colorScheme.outlineVariant)
-                SettingRow("检查更新","暂未配置发布仓库",Glyph.Refresh,onClick={preview("检查更新")})
-                PreferenceToggle("启动时检查更新","checkOnStart",ui,vm,"保存开关，正式更新服务后续接入")
-                Note("当前为界面预览版。这里不会请求 GitHub、下载 APK 或显示未经检查的最新版本结论。")
-            }
+            "updates" -> UpdateSettings(ui, vm)
             "data" -> {
                 SectionTitle("下载偏好")
-                SettingRow("设置下载目录","尚未选择系统目录",Glyph.Folder,onClick={preview("设置下载目录")})
-                PreferenceChoice("下载并行","parallel",(1..5).map{it.toString()},ui,vm,"2")
+                DownloadLocationSettings(ui, vm)
                 SectionTitle("缓存")
-                PreferenceChoice("缓存大小限制","cache",listOf("250 MB","500 MB","1 GB","2 GB"),ui,vm,"500 MB","222.18 MB / ${ui.pref("cache","500 MB")} · 示例数值")
-                SettingRow("清除缓存","不影响收藏和下载",Glyph.Trash,onClick={preview("清除缓存")})
+                CacheSettings(ui, vm)
                 SectionTitle("备份与同步")
-                SettingRow("导入用户数据","从备份文件恢复",onClick={preview("导入用户数据")})
-                SettingRow("导出用户数据","收藏、阅读记录与偏好",onClick={preview("导出用户数据")})
+                BackupSettings(vm)
                 SettingRow("WebDAV 同步","配置远端同步位置",Glyph.Refresh,onClick={go("webdav")})
             }
             "logs" -> {
-                Note("以下为界面示例，不是设备采集日志。")
-                SettingRow("界面初始化","PiComic 已载入本地示意作品",Glyph.Check,onClick={})
-                SettingRow("服务状态","平台接口、登录、下载服务未接入",Glyph.Info,onClick={})
-                SettingRow("导出日志","日志采集与导出后续接入",Glyph.Download,onClick={preview("导出日志")})
+                LogSettings()
             }
-            "network" -> {
-                Note("默认跟随系统 VPN / 代理，不提供代理节点。此阶段仅保存界面配置。")
-                PreferenceChoice("连接方式","network",listOf("跟随系统","自定义 HTTP 代理"),ui,vm)
-                if(ui.pref("network","跟随系统")=="自定义 HTTP 代理") {
-                    PreferenceText("代理主机","proxyHost",ui,vm,"127.0.0.1")
-                    PreferenceText("端口","proxyPort",ui,vm,"7890")
-                    SettingRow("代理认证","账号与口令功能尚未接入",onClick={preview("代理认证")})
-                }
-                SettingRow("测试连接","网络服务尚未接入",Glyph.Wifi,onClick={preview("测试连接")})
-            }
+            "network" -> NetworkSettings(vm.network)
             "about" -> {
                 Column(Modifier.fillMaxWidth().padding(28.dp),horizontalAlignment=Alignment.CenterHorizontally,verticalArrangement=Arrangement.spacedBy(16.dp)) {
                     Image(painterResource(R.drawable.ic_launcher),"PiComic 标识",Modifier.size(80.dp))
                     Text("PiComic",style=MaterialTheme.typography.headlineMedium)
                     Text("让故事，陪你多走一站。",color=MaterialTheme.colorScheme.onSurfaceVariant)
                 }
-                Note("一款面向手机的漫画阅读应用。支持多平台浏览、书架管理与沉浸式阅读。当前使用本地原创示意内容，真实平台服务待接入。")
-                SettingRow("项目地址","GitHub 仓库待配置",Glyph.Book,onClick={preview("项目地址")})
-                SettingRow("问题反馈","反馈入口待配置",Glyph.Info,onClick={preview("问题反馈")})
+                Note("一款面向手机的漫画阅读应用。提供漫画浏览、本地书架与沉浸式阅读，平台服务按来源接入。")
+                SettingRow("项目地址","ddmoyu/PiComic · 私有仓库",Glyph.Book,onClick={runCatching { uriHandler.openUri("https://github.com/ddmoyu/PiComic") }.onFailure { notice("无法打开浏览器") }})
+                SettingRow("问题反馈","GitHub Issues · 需要仓库访问权限",Glyph.Info,onClick={runCatching { uriHandler.openUri("https://github.com/ddmoyu/PiComic/issues") }.onFailure { notice("无法打开浏览器") }})
             }
-            "webdav" -> WebDavForm(preview)
+            "webdav" -> WebDavSettings(vm)
         }
     }
-    action?.let { title -> AlertDialog(onDismissRequest={action=null},title={Text(title)},text={Text("${title}的界面入口已预留，实际服务将在后续开发中接入。本次未执行网络或文件操作。")},confirmButton={TextButton(onClick={action=null;notice("此功能尚未接入")}) { Text("知道了") }}) }
 }
 
 @Composable fun FiltersScreen(ui: UiState, vm: AppViewModel) {
@@ -159,81 +140,87 @@ val settingsTitles = mapOf("settings" to "设置", "accounts" to "账号管理",
     Column(Modifier.fillMaxSize()) {
         SourceTabs(selected) { selected=it }
         key(selected) { Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(bottom=24.dp)) {
-            Note("平台专属偏好 · 线路与签到服务尚未接入")
+            Note("平台专属偏好。线路、账号和图片服务各自验证。")
             when(selected) {
                 Source.PICACG -> {
                     PreferenceChoice("搜索及分类排序模式","pica.search",listOf("新到旧","旧到新","最多喜欢"),ui,vm)
                     PreferenceChoice("收藏夹漫画排序模式","pica.favorite",listOf("新到旧","旧到新"),ui,vm)
                     PreferenceToggle("显示头像框","pica.avatar",ui,vm,default=true)
-                    PreferenceToggle("自动打卡","pica.checkin",ui,vm,"启动或距离上次打卡一天时执行（待接入）")
+                    PreferenceToggle("自动打卡","pica.checkin",ui,vm,"仅在前台、已验证账号时执行；成功后当日去重")
+                    CheckInSettings(Source.PICACG, vm)
                 }
                 Source.EHENTAI -> {
                     PreferenceChoice("画廊站点","eh.site",listOf("e-hentai.org","exhentai.org"),ui,vm)
                     PreferenceToggle("优先加载原图","eh.original",ui,vm,"可能受原图额度限制")
                     PreferenceToggle("忽略警告","eh.warning",ui,vm)
                     PreferenceToggle("优先显示副标题","eh.subtitle",ui,vm,"适用于已下载的画廊")
-                    SettingRow("配置文件",onClick={notice("配置文件导入尚未接入")})
+                    EhConfigurationSettings(vm)
                 }
                 Source.JMCOMIC -> {
-                    PreferenceToggle("自动选择域名","jm.auto",ui,vm,"登录时选择 API 域名（待接入）",true)
-                    PreferenceChoice("API 域名","jm.api",(1..4).map{"分流 $it"},ui,vm,"分流 1","演示选项，不代表实际线路")
+                    val routes by vm.jmRoutes.state.collectAsStateWithLifecycle()
+                    PreferenceToggle("自动选择域名","jm.auto",ui,vm,"登录前匿名验证候选线路；会话保持原线路隔离",true)
+                    SectionTitle("API 线路")
+                    routes.trusted.forEach { host ->
+                        SettingRow(host, if (host in routes.available) "连接验证通过" else "本次尚未验证", onClick = { vm.jmAccount.cancel(); vm.jmRoutes.select(host) },
+                            trailing = { RadioButton(routes.selected == host, onClick = { vm.jmAccount.cancel(); vm.jmRoutes.select(host) }) })
+                    }
                     PreferenceChoice("图片分流","jm.image",(1..4).map{"分流 $it"},ui,vm)
                     PreferenceChoice("收藏夹漫画排序模式","jm.favorite",listOf("最新收藏","最早收藏","最近更新"),ui,vm)
-                    SettingRow("更新 API 域名",glyph=Glyph.Refresh,onClick={notice("线路服务尚未接入")})
+                    SettingRow("更新并验证 API 线路", if (routes.busy) "正在验证候选线路" else "读取可信发布列表，通过匿名验证后加入可选线路", glyph=Glyph.Refresh,onClick=vm.jmRoutes::refresh)
+                    routes.message?.let { Note(it) }
                     PreferenceToggle("自动签到","jm.checkin",ui,vm)
-                    SettingRow("测试签到",onClick={notice("签到接口尚未接入")})
+                    CheckInSettings(Source.JMCOMIC, vm)
                 }
-                Source.HITOMI -> PreferenceText("CDN 域名","hitomi.cdn",ui,vm,"gold-usergeneratedcontent.net","待实测验证")
-                Source.HTCOMIC -> PreferenceText("域名","ht.host",ui,vm,"www.wnacg.com","待实测验证")
-                Source.NHENTAI -> SettingRow("删除 Cookie","网页会话尚未接入",Glyph.Trash,onClick={notice("当前没有真实 Cookie")})
+                Source.HITOMI -> {
+                    SettingRow("CDN 域名", "gold-usergeneratedcontent.net · 使用来源动态图片规则", onClick = {})
+                    Note("无需账号。正文采用 WebP，兼容 Android 8 及以上；地址失效时仅刷新一次来源规则。")
+                }
+                Source.HTCOMIC -> {
+                    val routes by vm.htRoutes.state.collectAsStateWithLifecycle()
+                    routes.trusted.sorted().forEach { host ->
+                        SettingRow(host, if (host in routes.available) "匿名验证通过" else "可信候选，尚未验证", onClick = { vm.htAccount.cancel(); vm.htRoutes.select(host) },
+                            trailing = { RadioButton(routes.selected == host, onClick = { vm.htAccount.cancel(); vm.htRoutes.select(host) }) })
+                    }
+                    SettingRow("更新并验证域名", if(routes.busy) "正在检查发布页和来源结构" else "从可信发布页发现候选域名", Glyph.Refresh, onClick = vm.htRoutes::refresh)
+                    routes.message?.let { Note(it) }
+                }
+                Source.NHENTAI -> {
+                    val operation by vm.nhWebAccount.state.collectAsStateWithLifecycle()
+                    var clear by remember { mutableStateOf(false) }
+                    SettingRow("删除网页会话", "仅清理 nhentai 网页会话，保留独立 API Key", Glyph.Trash, onClick = { clear = true })
+                    operation.message?.let { Note(it) }
+                    if (clear) AlertDialog(onDismissRequest = { clear = false }, title = { Text("删除网页会话？") },
+                        text = { Text("网页会话的请求会取消。API Key、本地收藏和阅读记录将保留。") },
+                        confirmButton = { TextButton(onClick = { clear = false; vm.nhWebAccount.logout() }) { Text("删除") } },
+                        dismissButton = { TextButton(onClick = { clear = false }) { Text("取消") } })
+                }
             }
         } }
     }
 }
 
 @Composable fun AccountsScreen(ui: UiState, vm: AppViewModel, login: (Source) -> Unit) {
+    val accounts by vm.picacgAccount.accounts.collectAsStateWithLifecycle()
     Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState())) {
-        Note("登录状态仅用于界面演示，不读取或保存真实 Token / Cookie。")
+        Note("各来源账号单独验证和保存。权限由平台决定，不影响本地收藏与历史。")
         Source.entries.forEach { source ->
             SectionTitle(source.title)
-            if(source==Source.HITOMI) Note("该来源无需账号，内容服务待接入。")
-            else if(source in ui.accounts) {
-                SettingRow("演示账号","PiComic Reader · 非真实平台账号",glyph=Glyph.User,onClick={})
-                SettingRow("重新登录","会话失效时重新授权",glyph=Glyph.Refresh,onClick={login(source)})
-                SettingRow("退出登录",onClick={vm.logout(source)})
-            } else SettingRow("未登录",if(source==Source.EHENTAI||source==Source.HTCOMIC) "网页登录 / 自动获取会话（待接入）" else "登录后管理平台账号",Glyph.User,"登录",{login(source)})
+            if(source==Source.HITOMI) Note("该来源无需账号，可直接搜索和阅读。")
+            else if(source==Source.PICACG) SettingRow((accounts[io.github.ddmoyu.picomic.source.picacg.PicacgAccountController.SOURCE] ?: io.github.ddmoyu.picomic.auth.AccountState()).label(),"账号密码登录 · 加密会话",Glyph.User,"管理",{login(source)})
+            else if(source==Source.JMCOMIC) SettingRow((accounts["jmcomic"] ?: io.github.ddmoyu.picomic.auth.AccountState()).label(),"可匿名浏览 · 登录后验证会话",Glyph.User,"管理",{login(source)})
+            else if(source==Source.NHENTAI) SettingRow(vm.nhSessionId()?.let { (accounts[it] ?: io.github.ddmoyu.picomic.auth.AccountState()).label() } ?: "匿名浏览", "API Key / 网页会话分别验证", Glyph.User, "管理", { login(source) })
+            else if(source==Source.HTCOMIC) SettingRow((accounts["htcomic"] ?: io.github.ddmoyu.picomic.auth.AccountState()).label(), "可匿名浏览 · 账号密码登录", Glyph.User, "管理", { login(source) })
+            else if(source==Source.EHENTAI) SettingRow((accounts["ehentai"] ?: io.github.ddmoyu.picomic.auth.AccountState()).label(), "网页登录 / Cookie 导入 · 单独验证 EX 权限", Glyph.User, "管理", { login(source) })
             HorizontalDivider(Modifier.padding(horizontal=20.dp),color=MaterialTheme.colorScheme.outlineVariant)
         }
         Spacer(Modifier.height(30.dp))
     }
 }
-@Composable fun LoginScreen(source: Source, onComplete: () -> Unit) {
+@Composable fun LoginScreen(source: Source) {
     Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(24.dp),verticalArrangement=Arrangement.spacedBy(20.dp)) {
         AppIcon(Glyph.User,modifier=Modifier.size(42.dp),color=MaterialTheme.colorScheme.primary)
         Text(source.title,style=MaterialTheme.typography.headlineSmall)
-        Text("账号登录",style=MaterialTheme.typography.titleMedium)
-        Text("网页登录与自动获取 Token / Cookie 将在服务接入阶段实现。这里仅展示授权入口，不需要输入真实账号。",style=MaterialTheme.typography.bodyMedium,color=MaterialTheme.colorScheme.onSurfaceVariant)
-        Surface(shape=MaterialTheme.shapes.large,color=MaterialTheme.colorScheme.surfaceContainer) {
-            Column(Modifier.fillMaxWidth().padding(24.dp),verticalArrangement=Arrangement.spacedBy(14.dp)) {
-                AppIcon(Glyph.Wifi)
-                Text("网页登录区域",style=MaterialTheme.typography.titleMedium)
-                Text("完成平台登录 → 获取会话 → 验证后返回",style=MaterialTheme.typography.bodySmall)
-                Text("当前未打开网页，也未读取浏览器会话。",style=MaterialTheme.typography.bodySmall,color=MaterialTheme.colorScheme.onSurfaceVariant)
-            }
-        }
-        Button(onClick=onComplete,modifier=Modifier.fillMaxWidth()) { Text("体验演示登录状态") }
-    }
-}
-@Composable private fun WebDavForm(preview: (String) -> Unit) {
-    var url by rememberSaveable { mutableStateOf("") }
-    var user by rememberSaveable { mutableStateOf("") }
-    var password by remember { mutableStateOf("") }
-    Note("配置界面预览，请勿输入真实口令。离开页面后口令清空，不执行网络请求。")
-    Column(Modifier.padding(horizontal=20.dp),verticalArrangement=Arrangement.spacedBy(16.dp)) {
-        OutlinedTextField(url,{url=it},Modifier.fillMaxWidth(),label={Text("服务器地址")},placeholder={Text("https://example.com/dav")},singleLine=true)
-        OutlinedTextField(user,{user=it},Modifier.fillMaxWidth(),label={Text("用户名")},singleLine=true)
-        OutlinedTextField(password,{password=it},Modifier.fillMaxWidth(),label={Text("密码 / 应用口令")},visualTransformation=PasswordVisualTransformation(),singleLine=true)
-        OutlinedButton(onClick={preview("测试 WebDAV 连接")},modifier=Modifier.fillMaxWidth()) { Text("测试连接") }
-        Button(onClick={preview("同步用户数据")},modifier=Modifier.fillMaxWidth()) { Text("立即同步") }
+        Text("无需账号",style=MaterialTheme.typography.titleMedium)
+        Text("此来源使用匿名浏览。连接失败时请检查网络或代理设置，再返回重试。",style=MaterialTheme.typography.bodyMedium,color=MaterialTheme.colorScheme.onSurfaceVariant)
     }
 }

@@ -1,10 +1,10 @@
 # PiComic
 
-Android 手机漫画阅读 App · Kotlin / Jetpack Compose · 设计与开发基线 v0.1
+Android 手机漫画阅读 App · Kotlin / Jetpack Compose · 0.3.0-alpha
 
-项目目录：`E:\ddmoyu\PiComic`。现处于 D1 阅读器技术验证阶段：原生 Kotlin / Jetpack Compose 工程，已实现阅读控制、图片缩放与持久进度。漫画目录仍为原创示意数据，真实平台服务尚未接入。
+项目目录：`E:\ddmoyu\PiComic`。首版功能代码已涵盖六组来源、账号、搜索/分类/详情、阅读器、收藏/历史、持久下载与离线、备份/WebDAV、设置/日志和 GitHub 更新。真实平台账号、实体设备、WebDAV 服务商及正式发布验收仍需外部条件，当前保持开发版标识。正常页面使用真实来源，原创示意目录仅在显式开启 Debug 演示模式时使用。源码仓库为 [ddmoyu/PiComic](https://github.com/ddmoyu/PiComic)（私有）。
 
-## 构建 Android 界面版
+## 构建
 
 用 Android Studio 打开项目根目录，配置 Android SDK 后运行 `app`。命令行：
 
@@ -14,9 +14,9 @@ Android 手机漫画阅读 App · Kotlin / Jetpack Compose · 设计与开发基
 .\gradlew.bat :app:connectedDebugAndroidTest
 ```
 
-Debug APK：`app/build/outputs/apk/debug/app-debug.apk`。本轮范围、工程说明与验证记录见 [Android 界面开发](docs/13-Android界面开发.md)。
+Debug APK：`app/build/outputs/apk/debug/app-debug.apk`。当前功能、测试与外部验收边界见 [完整开发执行清单](docs/18-完整开发执行清单.md)和[最终集成验证](docs/23-首版功能与集成验证.md)。
 
-仅打包 64 位安卓手机：`.\gradlew.bat :app:assembleDebug -PtargetAbi=arm64-v8a`。当前开发版为 `0.2.1-alpha`，保留 Tab 横滑和默认全屏；支持音量键、自动翻页、常亮、缩放及持久阅读进度，并修复切换阅读模式后退出时保存旧页码的问题。详见 [D1 阅读器功能与验证](docs/14-D1阅读器功能与验证.md)。
+仅打包 64 位安卓手机：`.\gradlew.bat :app:assembleDebug -PtargetAbi=arm64-v8a`。当前开发版 `0.3.0-alpha` 的接入及验证边界见 [六来源接入验证](docs/20-六来源接入验证.md)，总体进度见 [完整开发执行清单](docs/18-完整开发执行清单.md)。有效真实账号、实体手机及发布验证不能由夹具测试替代。
 
 构建同版本的手机 Release / Debug 体积对比包：
 
@@ -24,9 +24,9 @@ Debug APK：`app/build/outputs/apk/debug/app-debug.apk`。本轮范围、工程�
 .\gradlew.bat :app:assembleRelease :app:assembleDebug :app:lintRelease -PtargetAbi=arm64-v8a -PlocalReleaseSigning=true
 ```
 
-Release 启用 R8 代码优化、混淆和资源裁剪，关闭调试；保留与 Debug 相同的功能及原创示意图片。`localReleaseSigning=true` 仅用于本机验收，显式沿用现有 Debug 证书，方便覆盖安装；不是正式发布证书。未传入该参数时 Release 保持未签名，避免误用测试证书正式发布。当前没有配置 GitHub 发布仓库。
+Release 启用 R8 代码优化、混淆和资源裁剪，关闭调试；Release 只提供真实内容入口，Debug 可显式启用原创示意目录。`localReleaseSigning=true` 仅用于本机验收，沿用 Debug 证书；普通 Release 未签名。更新模块已实现，但公开分发渠道默认未配置，也未发布 GitHub Release；配置及资产校验见[更新模块与发布验证](docs/22-更新模块与发布验证.md)。
 
-当前安装包的大小、校验值与签名说明见 [Release 与 Debug 构建](docs/15-Release与Debug构建.md)。
+`0.2.1-alpha` 的体积对比与签名记录见 [Release 与 Debug 构建](docs/15-Release与Debug构建.md)。后续验证持续更新在 [内容接入与 JM 验证](docs/19-内容接入与JM验证.md)。
 
 ## 开始评审
 
@@ -52,7 +52,7 @@ Release 启用 R8 代码优化、混淆和资源裁剪，关闭调试；保留�
 3. 内置 picacg、e-hentai/exhentai、jmcomic、hitomi、htcomic、nhentai 六组来源；不提供扩展安装、脚本导入或插件市场。
 4. 默认跟随系统网络，兼容系统 VPN/代理，不强制直连；API、图片、下载、网页登录必须使用一致的网络策略。
 5. 视觉参考原版 PicaComic 的 Material 3、主题色、漫画卡片与来源切换；采用原生 Android 手机交互。
-6. 原型已作为 Android 界面实现基线；当前先完成 UI 和简单交互。素材为项目本地原创示意插画，业务数据为演示数据。
+6. 原型已作为 Android 界面实现基线；正常 App 使用真实来源，演示插画和示意目录只用于显式 Debug 测试。
 7. 2026-09-18 交互调整：探索/分类使用平台 Tab；顶部固定左侧标题、右侧搜索与设置；底部导航仅显示图标。
 8. 账号入口统一为“账号管理”；按平台配置 WebView 登录及自动获取/验证会话，支持重新登录与退出。
 9. 更新通过 GitHub Releases 发布；App 提供手动及可选启动检查、更新说明、下载及系统安装入口。
@@ -67,4 +67,4 @@ Release 启用 R8 代码优化、混淆和资源裁剪，关闭调试；保留�
 - **源码证据**：已读固定提交中的实现，不代表远端平台当前可用。
 - **待联调**：需要真实网络、账号、图片或 Android 设备验证。
 
-完整来源接入是 v1.0 目标；分批开发只是实施顺序，不会把未接入来源标为已完成。更新发布渠道已确定为 GitHub Releases，具体仓库待配置；应用商店和云端同步服务不预设。
+完整来源接入是 v1.0 目标；分批开发只是实施顺序，不会把未接入来源标为已完成。更新发布渠道已确定为 GitHub Releases；当前私有源码仓库的安装包分发与访问方案在发布阶段确定，不能在 APK 内置仓库凭据。应用商店和云端同步服务不预设。

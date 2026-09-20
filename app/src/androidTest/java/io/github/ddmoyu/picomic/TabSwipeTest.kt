@@ -3,7 +3,7 @@ package io.github.ddmoyu.picomic
 import android.content.pm.ActivityInfo
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.test.*
-import androidx.compose.ui.test.junit4.createAndroidComposeRule
+import androidx.compose.ui.test.junit4.v2.createAndroidComposeRule
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import org.junit.Rule
 import org.junit.Before
@@ -15,7 +15,11 @@ import org.junit.runner.RunWith
 @RunWith(AndroidJUnit4::class)
 class TabSwipeTest {
     @get:Rule val ui = createAndroidComposeRule<MainActivity>()
-    @Before fun clearHistory() { runBlocking { ReadingProgressRepository.get(ui.activity).clear() }; ui.waitForIdle() }
+    @Before fun clearHistory() {
+        ui.runOnIdle { androidx.lifecycle.ViewModelProvider(ui.activity)[io.github.ddmoyu.picomic.ui.AppViewModel::class.java].preference("debugDemo", "true") }
+        runBlocking { ReadingProgressRepository.get(ui.activity).clear() }; ui.waitForIdle()
+    }
+    @org.junit.After fun disableDemo() { ui.runOnIdle { androidx.lifecycle.ViewModelProvider(ui.activity)[io.github.ddmoyu.picomic.ui.AppViewModel::class.java].preference("debugDemo", "false") } }
 
     private fun selectSource(title: String) {
         ui.onNode(hasText(title) and hasClickAction()).performScrollTo().performClick()

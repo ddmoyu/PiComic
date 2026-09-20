@@ -1,0 +1,21 @@
+{
+  "utc": "2026-09-20T03:35:31Z",
+  "origin": "https://picaapi.picacomic.com/",
+  "path": "users/profile",
+  "method": "GET",
+  "credentialsSent": false,
+  "network": "HTTP proxy 127.0.0.1:7897",
+  "httpStatus": 401,
+  "contentType": "application/json; charset=utf-8",
+  "bodyBytes": 65,
+  "shape": {
+    "keys": [
+      "code",
+      "error",
+      "message"
+    ],
+    "code": 401,
+    "error": "1005",
+    "message": "unauthorized"
+  }
+}

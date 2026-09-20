@@ -4,7 +4,7 @@ import android.content.pm.ActivityInfo
 import android.graphics.Bitmap
 import androidx.compose.ui.graphics.asAndroidBitmap
 import androidx.compose.ui.test.*
-import androidx.compose.ui.test.junit4.createAndroidComposeRule
+import androidx.compose.ui.test.junit4.v2.createAndroidComposeRule
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.lifecycle.ViewModelProvider
@@ -24,16 +24,22 @@ import java.io.File
 class ReaderFullscreenTest {
     @get:Rule val ui = createAndroidComposeRule<MainActivity>()
     private var originalMode = "纵向连续"
+    private var originalOrientation = "跟随系统"
 
     @Before fun rememberMode() {
+        ui.runOnIdle { ViewModelProvider(ui.activity)[AppViewModel::class.java].preference("debugDemo", "true") }
         runBlocking { ReadingProgressRepository.get(ui.activity).clear() }
         ui.runOnIdle {
             originalMode = ViewModelProvider(ui.activity)[AppViewModel::class.java].state.value.pref("readingMode", "纵向连续")
+            originalOrientation = ViewModelProvider(ui.activity)[AppViewModel::class.java].state.value.pref("readerOrientation", "跟随系统")
+            ViewModelProvider(ui.activity)[AppViewModel::class.java].preference("readerOrientation", "跟随系统")
         }
     }
 
     @After fun restoreMode() {
+        ui.runOnIdle { ViewModelProvider(ui.activity)[AppViewModel::class.java].preference("debugDemo", "false") }
         mode(originalMode)
+        ui.runOnIdle { ViewModelProvider(ui.activity)[AppViewModel::class.java].preference("readerOrientation", originalOrientation) }
         ui.runOnUiThread { ui.activity.requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_PORTRAIT }
     }
 
@@ -48,16 +54,24 @@ class ReaderFullscreenTest {
 
     private fun bars(visible: Boolean) {
         ui.waitForIdle()
-        ui.waitUntil(5000) {
+        var diagnostic = ""
+        try { ui.waitUntil(5000) {
             var matches = false
             ui.runOnUiThread {
                 val insets = ViewCompat.getRootWindowInsets(ui.activity.window.decorView)
-                matches = insets != null &&
+                // Pre-30 WindowInsetsCompat infers visibility from stable inset sizes; edge-to-edge
+                // API 26 keeps those sizes even with immersive bars hidden. Check native flags there.
+                matches = if (android.os.Build.VERSION.SDK_INT < 30) {
+                    val flags = ui.activity.window.decorView.systemUiVisibility
+                    (flags and android.view.View.SYSTEM_UI_FLAG_FULLSCREEN == 0) == visible &&
+                        (flags and android.view.View.SYSTEM_UI_FLAG_HIDE_NAVIGATION == 0) == visible
+                } else insets != null &&
                     insets.isVisible(WindowInsetsCompat.Type.statusBars()) == visible &&
                     insets.isVisible(WindowInsetsCompat.Type.navigationBars()) == visible
+                diagnostic = "expected=$visible status=${insets?.isVisible(WindowInsetsCompat.Type.statusBars())} nav=${insets?.isVisible(WindowInsetsCompat.Type.navigationBars())} flags=${ui.activity.window.decorView.systemUiVisibility}"
             }
             matches
-        }
+        } } catch (e: Throwable) { shot("fullscreen-failure"); throw AssertionError(diagnostic, e) }
     }
 
     private fun hidden() {
@@ -134,7 +148,8 @@ class ReaderFullscreenTest {
         mode("纵向连续")
         openReader()
         hidden()
-        ui.runOnUiThread { ui.activity.requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE }
+        // Orientation is owned by the reader preference now; use the same action as the user.
+        ui.runOnIdle { ViewModelProvider(ui.activity)[AppViewModel::class.java].preference("readerOrientation", "横屏") }
         ui.waitUntil(10000) {
             val bounds = ui.onNodeWithTag("reader").fetchSemanticsNode().boundsInRoot
             bounds.width > bounds.height

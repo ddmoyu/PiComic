@@ -5,3 +5,8 @@ local.properties
 .idea/
 *.iml
 artifacts/
+*.jks
+*.keystore
+keystore.properties
+.env
+.env.*

@@ -52,6 +52,23 @@ import kotlinx.coroutines.sync.withPermit
     source: Source, comic: Comic, initialChapter: Int, initialPage: Int,
     initialOffset: Float, ui: UiState, vm: AppViewModel, back: () -> Unit
 ) {
+    val book = remember(source, comic) { ReaderBook("demo/${source.name}/${comic.id}", comic.title,
+        List(comic.chapters) { "第 ${it + 1} 话" }, comic.pages, false) { chapter -> ReaderImages.demoPages(source.name, comic.id, chapter, comic.pages) } }
+    ReaderSurface(book, initialChapter, initialPage, initialOffset, ui, vm, back,
+        onRecord = { value -> vm.record(source, comic.id, value.chapter, value.page, value.offsetRatio, value.mode) })
+}
+data class ReaderBook(val id: String, val title: String, val chapterTitles: List<String>, val pages: Int,
+                      val remote: Boolean, val pageProvider: (Int) -> List<ReaderPage>) {
+    val chapters get() = chapterTitles.size
+}
+data class ReaderLocation(val chapter: Int, val page: Int, val offsetRatio: Float, val mode: String)
+@Composable fun ReaderSurface(
+    comic: ReaderBook, initialChapter: Int, initialPage: Int, initialOffset: Float,
+    ui: UiState, vm: AppViewModel, back: () -> Unit, onRecord: (ReaderLocation) -> Unit,
+    onChapter: (Int) -> Unit = {},
+    onReadingPreference: (String, String) -> Unit = vm::preference,
+    resetPreferences: (() -> Unit)? = null
+) {
     var chapter by rememberSaveable { mutableIntStateOf(initialChapter.coerceIn(1, comic.chapters)) }
     var currentPage by rememberSaveable { mutableIntStateOf(initialPage.coerceIn(1, comic.pages)) }
     var currentOffset by rememberSaveable { mutableFloatStateOf(initialOffset.coerceIn(0f, .99999f)) }
@@ -73,6 +90,8 @@ import kotlinx.coroutines.sync.withPermit
     val mode = ui.pref("readingMode", "纵向连续")
     val scroll = mode == "纵向连续"
     val rtl = mode == "从右向左"
+    val background = when (ui.pref("readerBackground", "深灰")) { "纯黑" -> Color.Black; "米白" -> Color(0xFFF5F3ED); else -> Color(0xFF11141B) }
+    ReaderDisplayEffect(ui.pref("readerBrightness", "跟随系统"), ui.pref("readerOrientation", "跟随系统"))
     val list = rememberLazyListState((initialPage - 1).coerceIn(0, comic.pages - 1))
     val pager = rememberPagerState(initialPage = (initialPage - 1).coerceIn(0, comic.pages - 1), pageCount = { comic.pages })
     val scope = rememberCoroutineScope()
@@ -85,32 +104,38 @@ import kotlinx.coroutines.sync.withPermit
     val activeZoom = if (scroll) continuousZoom else pagedZoom
     val zoomed = activeZoom?.userTransform?.scaleX?.let { it > 1.02f } == true
     var restoreHold by remember { mutableStateOf<(suspend () -> Unit)?>(null) }
-    val pages = remember(source, comic.id, chapter) { ReaderImages.demoPages(source.name, comic.id, chapter, comic.pages) }
+    val pages = remember(comic, chapter) { comic.pageProvider(chapter) }
+    val dimensions = remember(comic.id, chapter) { mutableStateMapOf<String, Pair<Int, Int>>() }
     // Capture one layout snapshot; the mutable width can change before a launched effect starts.
     val viewportWidth = width
     val imageWidth = minOf(viewportWidth, with(density) { 850.dp.roundToPx() }).coerceAtLeast(1)
-    val imageHeight = imageWidth * 930 / 640
+    fun heightAt(index: Int): Int {
+        val page = pages[index.coerceIn(pages.indices)]
+        val size = dimensions[page.id] ?: (page.width to page.height)
+        return (imageWidth.toLong() * size.second / size.first.coerceAtLeast(1)).coerceIn(1, Int.MAX_VALUE.toLong()).toInt()
+    }
+    val imageHeight = heightAt(currentPage - 1)
     val threshold = with(density) { 180.dp.toPx() }
     val distance = with(density) { 112.dp.toPx() * (1 - kotlin.math.exp(-pull / 145.dp.toPx())) }
 
-    fun position(): ReadingPosition {
-        if (restoring || transferring) return ReadingPosition(source, comic.id, chapter, currentPage, currentOffset, mode)
-        if (!scroll) return ReadingPosition(source, comic.id, chapter, pager.currentPage + 1, 0f, mode)
+    fun position(): ReaderLocation {
+        if (restoring || transferring) return ReaderLocation(chapter, currentPage, currentOffset, mode)
+        if (!scroll) return ReaderLocation(chapter, pager.currentPage + 1, 0f, mode)
         val item = list.layoutInfo.visibleItemsInfo.firstOrNull { it.index == list.firstVisibleItemIndex }
-        return ReadingPosition(source, comic.id, chapter, list.firstVisibleItemIndex + 1,
+        return ReaderLocation(chapter, list.firstVisibleItemIndex + 1,
             ReaderMath.ratio(list.firstVisibleItemScrollOffset, item?.size ?: imageHeight), mode)
     }
     fun save() {
         if (restoring || transferring) return
         val value = position()
-        vm.record(value.source, value.comicId, value.chapter, value.page, value.offsetRatio, value.mode)
+        onRecord(value)
     }
     suspend fun jump(page: Int, offset: Float = 0f) {
         if (transferring) return
         transferring = true
         try {
             currentPage = page.coerceIn(1, comic.pages); currentOffset = offset
-            if (scroll) list.scrollToItem(currentPage - 1, ReaderMath.offset(offset, imageHeight))
+            if (scroll) list.scrollToItem(currentPage - 1, ReaderMath.offset(offset, heightAt(currentPage - 1)))
             else pager.scrollToPage(currentPage - 1)
         } finally { transferring = false }
         save()
@@ -119,6 +144,7 @@ import kotlinx.coroutines.sync.withPermit
         auto = false
         if (next !in 1..comic.chapters) { endHint = true; return }
         if (transferring) return
+        if (comic.remote) { save(); onChapter(next); return }
         activeZoom?.reset()
         chapter = next
         jump(1)
@@ -137,6 +163,15 @@ import kotlinx.coroutines.sync.withPermit
         return true
     }
     fun exit() { auto = false; save(); back() }
+    fun tap(point: Offset) {
+        if (zoomed || point.x in viewportWidth * .28f..viewportWidth * .72f) tools = !tools
+        else {
+            val next = if (scroll) point.x > viewportWidth / 2 else (point.x > viewportWidth / 2) != rtl
+            interaction++
+            scope.launch { if (!advance(next)) endHint = true }
+        }
+    }
+    val onReaderTap: (Offset) -> Unit = remember(viewportWidth, zoomed, mode) { { point -> tap(point) } }
     val longPress: ((ZoomableState, Offset) -> Unit)? = if (ui.enabled("longPress")) ({ state, point ->
         if (restoreHold == null) {
             val scale = state.transform.scaleX
@@ -184,9 +219,9 @@ import kotlinx.coroutines.sync.withPermit
             currentPage = value.page; currentOffset = value.offsetRatio
         }
     }
-    LaunchedEffect(source, comic.id, mode) {
+    LaunchedEffect(comic.id, mode) {
         snapshotFlow { if (restoring || transferring) null else position() }.filterNotNull().sample(350).collect { value ->
-            vm.record(source, comic.id, value.chapter, value.page, value.offsetRatio, value.mode)
+            onRecord(value)
         }
     }
     val preload = ui.pref("preload", "3 张").substringBefore(' ').toIntOrNull() ?: 3
@@ -240,7 +275,7 @@ import kotlinx.coroutines.sync.withPermit
     }
     Box(Modifier.fillMaxSize().testTag("reader").onSizeChanged { width = it.width }
         .semantics { stateDescription = if (zoomed) "已放大" else "原始比例" }
-        .background(Color(0xFF11141B)).pointerInput(Unit) {
+        .background(background).pointerInput(Unit) {
             awaitEachGesture {
                 awaitFirstDown(requireUnconsumed = false, pass = PointerEventPass.Initial)
                 touching = true; interaction++
@@ -252,30 +287,34 @@ import kotlinx.coroutines.sync.withPermit
                 }
             }
         }) {
-        if (scroll) Box(Modifier.fillMaxSize().zoom(continuousZoom, onTap = { tools = !tools }, onLongPress = longPress?.let { callback -> { point -> callback(continuousZoom, point) } })) {
+        if (scroll) Box(Modifier.fillMaxSize().zoom(continuousZoom, onTap = onReaderTap, onLongPress = longPress?.let { callback -> { point -> callback(continuousZoom, point) } })) {
             LazyColumn(state = list, userScrollEnabled = !zoomed, modifier = Modifier.fillMaxSize().testTag("reader-pages").nestedScroll(connection).graphicsLayer { translationY = -distance }, horizontalAlignment = Alignment.CenterHorizontally) {
                 items(pages, key = { it.id }) { page ->
-                    ReaderImage(page, "第 $chapter 话，第 ${pages.indexOf(page) + 1} 页", imageWidth,
-                        Modifier.widthIn(max = 850.dp).fillMaxWidth().aspectRatio(page.width.toFloat() / page.height))
+                    val size = dimensions[page.id] ?: (page.width to page.height)
+                    val frame = Modifier.widthIn(max = 850.dp).fillMaxWidth().aspectRatio(size.first.toFloat() / size.second)
+                    if (viewportWidth > 0) ReaderImage(page, "第 $chapter 话，第 ${pages.indexOf(page) + 1} 页", imageWidth, frame,
+                        onDimensions = { w, h -> if (!page.dimensionsKnown) dimensions[page.id] = w to h })
+                    else Spacer(frame)
                 }
             }
         } else HorizontalPager(state = pager, reverseLayout = rtl, modifier = Modifier.fillMaxSize().testTag("reader-paged-pages")) { page ->
             ReaderImage(pages[page], "第 $chapter 话，第 ${page + 1} 页", imageWidth, Modifier.fillMaxSize(),
                 zoomable = true, doubleTap = ui.enabled("doubleTap", true), active = page == pager.currentPage,
-                onZoomState = { if (page == pager.currentPage) pagedZoom = it }, onTap = { tools = !tools }, onLongPress = longPress)
+                onZoomState = { if (page == pager.currentPage) pagedZoom = it }, onTap = onReaderTap, onLongPress = longPress)
         }
-        if (pull > 0 && !changing) Box(Modifier.align(Alignment.BottomCenter).fillMaxWidth().height(with(density) { distance.toDp() }).clipToBounds().background(Color(0xFFF5F3ED))) {
+        if (pull > 0 && !changing && !comic.remote) Box(Modifier.align(Alignment.BottomCenter).fillMaxWidth().height(with(density) { distance.toDp() }).clipToBounds().background(Color(0xFFF5F3ED))) {
             Image(painterResource(readerPages[0]), null, Modifier.widthIn(max = 850.dp).fillMaxWidth().wrapContentHeight(Alignment.Top, unbounded = true).aspectRatio(640f / 930), contentScale = ContentScale.FillWidth, alignment = Alignment.TopCenter)
         }
         AnimatedVisibility(changing, enter = slideInVertically(tween(640)) { it }, exit = fadeOut(tween(0))) {
             Column(Modifier.fillMaxSize().background(Color(0xFF11141B)), horizontalAlignment = Alignment.CenterHorizontally) {
-                for (i in 0..1) Image(painterResource(readerPages[i]), null, Modifier.widthIn(max = 850.dp).fillMaxWidth().wrapContentHeight(Alignment.Top, unbounded = true).aspectRatio(640f / 930), contentScale = ContentScale.FillWidth)
+                if (comic.remote) CircularProgressIndicator(Modifier.padding(24.dp))
+                else for (i in 0..1) Image(painterResource(readerPages[i]), null, Modifier.widthIn(max = 850.dp).fillMaxWidth().wrapContentHeight(Alignment.Top, unbounded = true).aspectRatio(640f / 930), contentScale = ContentScale.FillWidth)
             }
         }
         if (tools) {
             Row(Modifier.align(Alignment.TopCenter).fillMaxWidth().background(Color(0xED11141B)).windowInsetsPadding(WindowInsets.safeDrawing.only(WindowInsetsSides.Top + WindowInsetsSides.Horizontal)), verticalAlignment = Alignment.CenterVertically) {
                 IconAction(Glyph.Back, "退出阅读", ::exit)
-                Column(Modifier.weight(1f)) { Text(comic.title, fontSize = 14.sp, maxLines = 1); Text("第 $chapter 话 · $mode", fontSize = 11.sp, color = Color.LightGray) }
+                Column(Modifier.weight(1f)) { Text(comic.title, fontSize = 14.sp, maxLines = 1); Text("${comic.chapterTitles[chapter - 1]} · $mode", fontSize = 11.sp, color = Color.LightGray) }
                 IconAction(if (auto) Glyph.Pause else Glyph.Play, if (auto) "停止自动翻页" else "开始自动翻页") { auto = !auto; if (auto) tools = false }
                 IconAction(if (zoomed) Glyph.Close else Glyph.Search, if (zoomed) "还原缩放" else "放大图片") {
                     activeZoom?.let { state -> scope.launch { state.scale(if (zoomed) state.minScale else state.mediumScale, animated = true) } }
@@ -304,9 +343,13 @@ import kotlinx.coroutines.sync.withPermit
     if (panel.isNotEmpty()) ModalBottomSheet(onDismissRequest = { panel = ""; pull = 0f }) {
         Text(if (panel == "chapters") "目录" else "阅读设置", Modifier.padding(24.dp, 8.dp), style = MaterialTheme.typography.titleLarge)
         if (panel == "chapters") LazyColumn(Modifier.heightIn(max = 380.dp).testTag("reader-chapters")) {
-            items((1..comic.chapters).toList()) { c -> SettingRow("第 $c 话", value = if (c == chapter) "正在阅读" else "", onClick = { panel = ""; scope.launch { changeChapter(c) } }) }
+            items((1..comic.chapters).toList()) { c -> SettingRow(comic.chapterTitles[c - 1], value = if (c == chapter) "正在阅读" else "", onClick = { panel = ""; scope.launch { changeChapter(c) } }) }
         } else LazyColumn(Modifier.heightIn(max = 480.dp)) {
-            item { PreferenceChoice("阅读模式", "readingMode", listOf("纵向连续", "从左向右", "从右向左"), ui, vm) }
+            item { PreferenceChoice("阅读模式", "readingMode", listOf("纵向连续", "从左向右", "从右向左"), ui, vm, save = { onReadingPreference("readingMode", it) }) }
+            item { PreferenceChoice("阅读背景", "readerBackground", listOf("深灰", "纯黑", "米白"), ui, vm, save = { onReadingPreference("readerBackground", it) }) }
+            item { PreferenceChoice("屏幕方向", "readerOrientation", listOf("跟随系统", "竖屏", "横屏"), ui, vm, save = { onReadingPreference("readerOrientation", it) }) }
+            item { PreferenceChoice("阅读亮度", "readerBrightness", listOf("跟随系统", "10", "25", "50", "75", "100"), ui, vm, subtitle = "数值为百分比", save = { onReadingPreference("readerBrightness", it) }) }
+            if (resetPreferences != null) item { SettingRow("恢复全局阅读偏好", "清除此作品的单独设置", onClick = resetPreferences) }
             item { PreferenceToggle("音量键翻页", "volume", ui, vm) }
             item { PreferenceChoice("自动翻页时间间隔", "autoInterval", listOf("2 秒", "3 秒", "5 秒", "10 秒", "15 秒", "30 秒", "60 秒"), ui, vm, "5 秒") }
             item { PreferenceToggle("保持屏幕常亮", "keepAwake", ui, vm, default = true) }
