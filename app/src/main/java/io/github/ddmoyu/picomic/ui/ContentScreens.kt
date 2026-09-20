@@ -2,6 +2,7 @@
 package io.github.ddmoyu.picomic.ui
 
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -9,6 +10,7 @@ import androidx.compose.foundation.lazy.grid.*
 import androidx.compose.foundation.pager.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.*
@@ -16,6 +18,7 @@ import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
@@ -58,6 +61,42 @@ import kotlinx.coroutines.launch
         Text(comic.author.ifBlank { comic.key.source.shortTitle }, style = MaterialTheme.typography.bodySmall, maxLines = 1, overflow = TextOverflow.Ellipsis)
     }
 }
+@Composable internal fun ContentComicRow(
+    comic: ComicSummary,
+    open: ((ComicKey) -> Unit)? = null,
+    footer: (@Composable () -> Unit)? = null,
+) {
+    Row(Modifier.fillMaxWidth().testTag("comic-row-${comic.key.stable}")
+        .then(if (open != null) Modifier.clickable { open(comic.key) } else Modifier),
+        horizontalArrangement = Arrangement.spacedBy(16.dp)) {
+        ContentCover(comic, Modifier.width(104.dp).aspectRatio(2f / 3).clip(RoundedCornerShape(8.dp))
+            .background(MaterialTheme.colorScheme.surfaceContainerHighest).testTag("comic-cover-${comic.key.stable}"))
+        Column(Modifier.weight(1f).heightIn(min = 156.dp), verticalArrangement = Arrangement.SpaceBetween) {
+            Column(verticalArrangement = Arrangement.spacedBy(5.dp)) {
+                Text(comic.title, Modifier.testTag("comic-title-${comic.key.stable}"), style = MaterialTheme.typography.titleMedium,
+                    maxLines = 2, overflow = TextOverflow.Ellipsis)
+                Text(comic.author.ifBlank { "作者未提供" }, style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                val tags = comic.tags.filter(String::isNotBlank).distinct().take(3)
+                if (tags.isNotEmpty()) FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalArrangement = Arrangement.spacedBy(4.dp), maxLines = 2) {
+                    tags.forEach { tag ->
+                        Surface(shape = MaterialTheme.shapes.small, color = MaterialTheme.colorScheme.secondaryContainer) {
+                            Text(tag, Modifier.widthIn(max = 100.dp).padding(horizontal = 6.dp, vertical = 3.dp),
+                                style = MaterialTheme.typography.labelSmall, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                        }
+                    }
+                }
+            }
+            Column(Modifier.padding(top = 8.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                Text(listOfNotNull("${comic.key.source.shortTitle} · ${comic.key.id}", comic.pageCount?.let { "$it 页" },
+                    comic.language?.takeIf(String::isNotBlank)).joinToString(" · "),
+                    style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    maxLines = 1, overflow = TextOverflow.Ellipsis)
+                footer?.invoke()
+            }
+        }
+    }
+}
 @Composable fun ContentFailurePanel(message: String, retry: () -> Unit, login: (() -> Unit)? = null) {
     Column(Modifier.fillMaxWidth().padding(24.dp), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(12.dp)) {
         Text(message, style = MaterialTheme.typography.bodyMedium)
@@ -65,7 +104,7 @@ import kotlinx.coroutines.launch
         OutlinedButton(onClick = retry) { Text("重新加载") }
     }
 }
-@Composable fun ContentListScreen(source: Source, query: ContentQuery, slot: String, ui: UiState, vm: AppViewModel, open: (ComicKey) -> Unit, login: (Source) -> Unit) {
+@Composable fun ContentListScreen(source: Source, query: ContentQuery, slot: String, ui: UiState, vm: AppViewModel, open: (ComicKey) -> Unit, login: (Source) -> Unit, listLayout: Boolean = false) {
     val controller = remember(source, slot) { vm.contentList("$slot/${source.name}") }
     val state by controller.state.collectAsStateWithLifecycle()
     val network by vm.network.state.collectAsStateWithLifecycle()
@@ -79,16 +118,23 @@ import kotlinx.coroutines.launch
     }
     DisposableEffect(controller) { onDispose { controller.cancel() } }
     val visible = state.items.filter { ContentFilter.accepts(it, ui.keywords, ui.languages, ui.enabled("unknownLanguage", true)) }
-    LazyVerticalGrid(GridCells.Adaptive(105.dp), state = grid, modifier = Modifier.fillMaxSize(),
+    val footer: @Composable () -> Unit = {
+        Column(Modifier.fillMaxWidth(), horizontalAlignment = Alignment.CenterHorizontally) {
+            if (state.loading || !network.ready) ContentLoading(Modifier.fillMaxWidth().padding(vertical = 20.dp))
+            state.error?.let { ContentFailurePanel(it, controller::retry, if (state.needsLogin) ({ login(source) }) else null) }
+            if (state.loaded && visible.isEmpty() && !state.loading) Text(if (state.items.isEmpty()) "没有找到作品" else "当前结果已被内容筛选隐藏")
+            if (state.nextPage != null && !state.loading && state.error == null) OutlinedButton(onClick = controller::more) { Text("加载更多") }
+        }
+    }
+    if (listLayout) LazyColumn(Modifier.fillMaxSize().testTag("content-list-${source.name}"),
+        contentPadding = PaddingValues(horizontal = 20.dp, vertical = 16.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
+        items(visible, key = { it.key.stable }) { ContentComicRow(it, open) }
+        item { footer() }
+    } else LazyVerticalGrid(GridCells.Adaptive(105.dp), state = grid, modifier = Modifier.fillMaxSize(),
         contentPadding = PaddingValues(20.dp), horizontalArrangement = Arrangement.spacedBy(12.dp), verticalArrangement = Arrangement.spacedBy(20.dp)) {
         items(visible, key = { it.key.stable }) { ContentCard(it, open) }
         item(span = { GridItemSpan(maxLineSpan) }) {
-            Column(Modifier.fillMaxWidth(), horizontalAlignment = Alignment.CenterHorizontally) {
-                if (state.loading || !network.ready) ContentLoading(Modifier.fillMaxWidth().padding(vertical = 20.dp))
-                state.error?.let { ContentFailurePanel(it, controller::retry, if (state.needsLogin) ({ login(source) }) else null) }
-                if (state.loaded && visible.isEmpty() && !state.loading) Text(if (state.items.isEmpty()) "没有找到作品" else "当前结果已被内容筛选隐藏")
-                if (state.nextPage != null && !state.loading && state.error == null) OutlinedButton(onClick = controller::more) { Text("加载更多") }
-            }
+            footer()
         }
     }
 }
@@ -105,7 +151,7 @@ import kotlinx.coroutines.launch
         HorizontalPager(pager, Modifier.weight(1f).fillMaxWidth().testTag(if (categories) "category-pages" else "discover-pages"), key = { Source.entries[it].name }, verticalAlignment = Alignment.Top) { index ->
             val source = Source.entries[index]
             if (categories) ContentCategories(source, vm, category, login)
-            else ContentListScreen(source, ContentQuery(sort = contentSort(ui)), "discover", ui, vm, open, login)
+            else ContentListScreen(source, ContentQuery(sort = contentSort(ui)), "discover", ui, vm, open, login, listLayout = true)
         }
     }
 }
@@ -267,15 +313,25 @@ fun contentSort(ui: UiState) = when (ui.pref("pica.search", "新到旧")) { "旧
             else if (tab == 0) {
                 val favorites = state.favorites.mapNotNull { state.comics[it] }
                 if (favorites.isEmpty()) EmptyState("书架还是空的", "在作品详情中收藏作品。", Glyph.Heart)
-                else LazyVerticalGrid(GridCells.Adaptive(105.dp), contentPadding = PaddingValues(20.dp), horizontalArrangement = Arrangement.spacedBy(12.dp), verticalArrangement = Arrangement.spacedBy(20.dp)) { items(favorites, key = { it.key.stable }) { ContentCard(it, open) } }
+                else LazyColumn(Modifier.fillMaxSize().testTag("favorites-list"), contentPadding = PaddingValues(20.dp),
+                    verticalArrangement = Arrangement.spacedBy(16.dp)) {
+                    items(favorites, key = { it.key.stable }) { ContentComicRow(it, open) }
+                }
             } else if (tab == 1) {
                 if (state.progress.isEmpty()) EmptyState("还没有阅读记录", "读过的作品会保存在这里。", Glyph.Clock)
-                else LazyColumn {
+                else LazyColumn(Modifier.fillMaxSize().testTag("history-list"), contentPadding = PaddingValues(20.dp),
+                    verticalArrangement = Arrangement.spacedBy(16.dp)) {
                     item { Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) { TextButton(onClick = { clearHistory = true }) { Text("清空阅读历史") } } }
                     items(state.progress, key = { it.key.stable }) { progress ->
-                    state.comics[progress.key]?.let { comic -> SettingRow(comic.title, "${comic.key.source.shortTitle} · 第 ${progress.page} 页", Glyph.Clock, onClick = { open(comic.key) }, trailing = {
-                        IconAction(Glyph.Close, "删除 ${comic.title} 的历史") { deleteHistory = comic.key }
-                    }) }
+                        state.comics[progress.key]?.let { comic ->
+                            ContentComicRow(comic, open) {
+                                Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                                    Text("读到第 ${progress.page} 页", Modifier.weight(1f), style = MaterialTheme.typography.bodySmall,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                    IconAction(Glyph.Close, "删除 ${comic.title} 的历史") { deleteHistory = comic.key }
+                                }
+                            }
+                        }
                 } }
             } else DownloadManagerScreen(vm, offline)
         }

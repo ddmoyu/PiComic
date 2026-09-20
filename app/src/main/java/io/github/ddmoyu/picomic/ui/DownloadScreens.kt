@@ -1,4 +1,4 @@
-@file:OptIn(androidx.compose.material3.ExperimentalMaterial3Api::class)
+@file:OptIn(androidx.compose.material3.ExperimentalMaterial3Api::class, androidx.compose.foundation.layout.ExperimentalLayoutApi::class)
 package io.github.ddmoyu.picomic.ui
 
 import android.Manifest
@@ -17,6 +17,8 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import io.github.ddmoyu.picomic.content.*
@@ -63,32 +65,41 @@ import kotlinx.coroutines.*
     var error by remember { mutableStateOf<String?>(null) }; var deleting by remember { mutableStateOf<DownloadTask?>(null) }
     fun perform(action: suspend () -> Unit) { scope.launch { try { action(); error = null } catch (e: CancellationException) { throw e } catch (e: Exception) { error = contentError(e) } } }
     if (tasks.isEmpty()) EmptyState(if (repositoryError == null) "暂无下载任务" else "下载记录不可用", repositoryError ?: "在作品详情选择章节，即可下载后离线阅读。", Glyph.Download)
-    else LazyColumn(Modifier.fillMaxSize(), contentPadding = PaddingValues(bottom = 20.dp)) {
+    else LazyColumn(Modifier.fillMaxSize().testTag("downloads-list"), contentPadding = PaddingValues(20.dp),
+        verticalArrangement = Arrangement.spacedBy(16.dp)) {
         error?.let { item { Note(it) } }
         repositoryError?.let { item { Note(it) } }
-        item { TextButton(onClick = { perform { vm.downloadsRepository.stop() } }, modifier = Modifier.padding(horizontal = 12.dp)) { Text("暂停全部") } }
+        item { TextButton(onClick = { perform { vm.downloadsRepository.stop() } }) { Text("暂停全部") } }
         items(tasks, key = { it.id }) { task ->
-            Column(Modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = 12.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                Text(task.displayTitle(ui.enabled("eh.subtitle")), style = MaterialTheme.typography.titleMedium)
-                Text("${task.key().source.shortTitle} · ${task.chapterTitle}", style = MaterialTheme.typography.bodyMedium)
-                Text("${downloadLabel(task.state)} · ${task.completed} / ${task.total.takeIf { it > 0 }?.toString() ?: "—"} 页")
-                if (task.total > 0) LinearProgressIndicator(progress = { task.completed.toFloat() / task.total }, modifier = Modifier.fillMaxWidth())
-                task.message?.let { Text(it, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant) }
-                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    if (task.state == DownloadState.COMPLETED.name) TextButton(onClick = { read(task.id) }) { Text("离线阅读") }
-                    else if (running && task.state in DownloadRepository.ACTIVE) TextButton(onClick = { perform { vm.downloadsRepository.pause(task.id) } }) { Text("暂停") }
-                    else if (task.state != DownloadState.DELETING.name) TextButton(onClick = { perform {
-                        if (task.state == DownloadState.WAITING_QUOTA.name) vm.content.ehImages.retry()
-                        vm.downloadsRepository.resume(task.id); DownloadService.start(context)
-                    } }) { Text(if (task.state == DownloadState.WAITING_QUOTA.name) "额度恢复后继续" else "继续下载") }
-                    TextButton(onClick = { deleting = task }) { Text(if (task.state == DownloadState.DELETING.name) "重试删除" else "删除") }
-                }
-            }
-            HorizontalDivider()
+            DownloadTaskRow(task, ui.enabled("eh.subtitle"), running,
+                read = { read(task.id) }, pause = { perform { vm.downloadsRepository.pause(task.id) } },
+                resume = { perform {
+                    if (task.state == DownloadState.WAITING_QUOTA.name) vm.content.ehImages.retry()
+                    vm.downloadsRepository.resume(task.id); DownloadService.start(context)
+                } }, delete = { deleting = task })
         }
     }
     deleting?.let { task -> AlertDialog(onDismissRequest = { deleting = null }, title = { Text("删除下载？") }, text = { Text("删除「${task.chapterTitle}」的任务和已下载文件，收藏与阅读记录仍会保留。") },
         confirmButton = { TextButton(onClick = { deleting = null; perform { vm.downloadsRepository.remove(task.id) } }) { Text("删除") } }, dismissButton = { TextButton(onClick = { deleting = null }) { Text("取消") } }) }
+}
+@Composable internal fun DownloadTaskRow(task: DownloadTask, preferSubtitle: Boolean, running: Boolean,
+    read: () -> Unit, pause: () -> Unit, resume: () -> Unit, delete: () -> Unit) {
+    val comic = task.comic.summary().copy(title = task.displayTitle(preferSubtitle))
+    ContentComicRow(comic, open = if (task.state == DownloadState.COMPLETED.name) ({ _: ComicKey -> read() }) else null) {
+        Text(task.chapterTitle, style = MaterialTheme.typography.bodyMedium, maxLines = 2, overflow = TextOverflow.Ellipsis)
+        Text("${downloadLabel(task.state)} · ${task.completed} / ${task.total.takeIf { it > 0 }?.toString() ?: "—"} 页",
+            style = MaterialTheme.typography.bodySmall)
+        if (task.total > 0) LinearProgressIndicator(progress = { (task.completed.toFloat() / task.total).coerceIn(0f, 1f) }, modifier = Modifier.fillMaxWidth())
+        task.message?.let { Text(it, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant) }
+        FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            if (task.state == DownloadState.COMPLETED.name) TextButton(onClick = read) { Text("离线阅读") }
+            else if (running && task.state in DownloadRepository.ACTIVE) TextButton(onClick = pause) { Text("暂停") }
+            else if (task.state != DownloadState.DELETING.name) TextButton(onClick = resume) {
+                Text(if (task.state == DownloadState.WAITING_QUOTA.name) "额度恢复后继续" else "继续下载")
+            }
+            TextButton(onClick = delete) { Text(if (task.state == DownloadState.DELETING.name) "重试删除" else "删除") }
+        }
+    }
 }
 private fun downloadLabel(value: String) = when (value) {
     "QUEUED" -> "等待下载"; "RESOLVING" -> "获取章节"; "DOWNLOADING" -> "正在下载"; "PROCESSING" -> "处理并校验"; "COMPLETED" -> "下载完成"

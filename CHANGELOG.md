@@ -4,6 +4,7 @@
 
 ### 简体中文
 
+- 发现、分类结果、收藏、下载和阅读历史统一为左封面、右信息的列表，标题最多显示两行，并展示已有的作者、分类和来源信息；分类入口仍保留标签布局，下载控制与历史删除操作继续可用。
 - 更新页面的操作按钮固定在底部，长更新日志不再影响下载操作；按钮内显示下载进度，支持原位暂停、断点继续和取消更新。
 - 从阅读返回详情时复用临时缓存，保留目录位置并更新阅读进度；详情和阅读不再重复获取相同资料，支持手动刷新。
 - 图片加载改为低调的浅色细线动画，提示随长图的可见区域移动；错误文字和重试按钮适配阅读背景。点击重试按当前可见图片及后续预加载张数恢复失败任务，保留成功和正在加载的图片，不重试整章或之前的失败页。
@@ -16,6 +17,7 @@
 
 ### English
 
+- Discovery, category results, favorites, downloads and reading history now use rows with a cover on the left and details on the right. Titles are limited to two lines, with available author, category and source metadata. Category selection keeps its chip layout, and download controls and history deletion remain available.
 - Update actions now stay at the bottom while release notes scroll. Download progress appears inside the button, with pause, resume and cancel controls always within reach.
 - Returning from the reader restores cached details and the chapter-list position while updating reading progress. Details and reading share the same temporary cache, with a manual refresh action.
 - Added a subtle loading animation that stays within the visible part of long images, with error text and retry controls adapted to the reader background. Retry failed images in the current visible area and configured look-ahead window, preserving successful and ongoing loads without retrying earlier failures or the whole chapter.
@@ -28,6 +30,7 @@
 
 ### 日本語
 
+- 発見、分類の検索結果、お気に入り、ダウンロード、読書履歴を、左に表紙、右に情報を表示するリストに統一しました。タイトルは最大2行とし、取得済みの作者・分類・配信元を表示します。分類の選択画面はチップ形式を維持し、ダウンロード操作や履歴削除も引き続き利用できます。
 - 更新画面の操作ボタンを下部に固定しました。長い更新履歴でも操作でき、ボタン内の進捗表示、一時停止、中断位置からの再開、キャンセルに対応します。
 - 読書画面から戻ると、詳細の一時キャッシュと目次の位置を復元し、読書進捗を更新します。詳細と読書で同じ情報を再取得せず、手動更新も利用できます。
 - 長い画像でも表示範囲内に留まる控えめな読み込みアニメーションを追加し、エラー表示と再試行ボタンを読書背景に合わせました。再試行は現在の表示範囲と設定した先読み枚数内の失敗画像だけを対象とし、読み込み済み・処理中の画像や以前の失敗ページ、章全体を再取得しません。
