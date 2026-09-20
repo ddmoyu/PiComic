@@ -159,41 +159,64 @@ import kotlinx.coroutines.launch
 }
 fun contentSort(ui: UiState) = when (ui.pref("pica.search", "新到旧")) { "旧到新" -> "da"; "最多喜欢" -> "ld"; else -> "dd" }
 
+@Composable internal fun contentDetailContext(source: Source, ui: UiState, vm: AppViewModel): String {
+    val revisions by vm.network.sessions.changes.collectAsStateWithLifecycle()
+    val network by vm.network.state.collectAsStateWithLifecycle()
+    val routes by vm.jmRoutes.state.collectAsStateWithLifecycle()
+    val htRoutes by vm.htRoutes.state.collectAsStateWithLifecycle()
+    val account = when (source) {
+        Source.PICACG -> "picacg"; Source.JMCOMIC -> "jmcomic"; Source.HTCOMIC -> "htcomic"
+        Source.EHENTAI -> "ehentai"; Source.HITOMI -> "hitomi"
+        Source.NHENTAI -> when (ui.pref("nh.auth")) { "API Key" -> "nhentai_key"; "网页会话" -> "nhentai_web"; else -> "nhentai.anonymous" }
+    }
+    val settings = when (source) {
+        Source.JMCOMIC -> listOf(routes.selected, ui.pref("jm.image"))
+        Source.HTCOMIC -> listOf(htRoutes.selected)
+        Source.EHENTAI -> listOf("eh.site", "eh.original", "eh.warning", "eh.subtitle").map { ui.pref(it) }
+        Source.NHENTAI -> listOf(ui.pref("nh.auth"))
+        else -> emptyList()
+    }
+    return "${network.generation}/$account/${revisions[account]}/$settings"
+}
+
 @Composable fun ContentDetailScreen(key: ComicKey, ui: UiState, vm: AppViewModel, read: (String) -> Unit, login: (Source) -> Unit, searchTag: (String) -> Unit = {}) {
     val snackbar = remember { SnackbarHostState() }; val scope = rememberCoroutineScope()
     var favoriteBusy by remember { mutableStateOf(false) }
     var selectDownloads by remember { mutableStateOf(false) }
     val downloads by vm.downloadsRepository.tasks.collectAsStateWithLifecycle()
-    var value by remember(key) { mutableStateOf<ComicDetails?>(null) }
-    var error by remember(key) { mutableStateOf<String?>(null) }
+    val context = contentDetailContext(key.source, ui, vm)
+    var value by remember(key, context) { mutableStateOf(vm.detailCache.peek(key, context)) }
+    var error by remember(key, context) { mutableStateOf<String?>(null) }
+    var loading by remember(key, context) { mutableStateOf(false) }
     var retry by remember(key) { mutableIntStateOf(0) }
     val library by vm.library.state.collectAsStateWithLifecycle()
-    val revisions by vm.network.sessions.changes.collectAsStateWithLifecycle()
-    val network by vm.network.state.collectAsStateWithLifecycle()
-    val routes by vm.jmRoutes.state.collectAsStateWithLifecycle()
-    val htRoutes by vm.htRoutes.state.collectAsStateWithLifecycle()
-    LaunchedEffect(key, retry, revisions, network.generation, routes.selected, htRoutes.selected, ui.pref("jm.image"), ui.pref("nh.auth"), ui.pref("eh.warning"), ui.pref("eh.subtitle")) {
-        value = null; error = null
-        try { value = vm.content.run(key.source) { adapter, _ -> adapter.details(key.id) } }
+    LaunchedEffect(key, retry, context) {
+        error = null; loading = true
+        try { value = vm.detailCache.load(key, context, force = retry > 0) { vm.content.run(key.source) { adapter, _ -> adapter.details(key.id) } } }
         catch (e: CancellationException) { throw e }
         catch (e: Exception) { error = contentError(e) }
+        finally { loading = false }
     }
     val detail = value
     if (detail == null) { if (error == null) ContentLoading() else ContentFailurePanel(error!!, { retry++ }, { login(key.source) }); return }
     val progress = library.progress.firstOrNull { it.key == key }
     if (selectDownloads) DownloadSelection(detail, vm) { selectDownloads = false }
     Box(Modifier.fillMaxSize()) {
-    LazyColumn(Modifier.fillMaxSize(), contentPadding = PaddingValues(bottom = 30.dp)) {
+    LazyColumn(Modifier.fillMaxSize().testTag("content-detail"), contentPadding = PaddingValues(bottom = 30.dp)) {
         item {
             Row(Modifier.padding(20.dp), horizontalArrangement = Arrangement.spacedBy(20.dp)) {
                 ContentCover(detail.summary, Modifier.width(120.dp).aspectRatio(2f / 3))
                 Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                    Text(key.source.shortTitle, color = MaterialTheme.colorScheme.primary)
+                    Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                        Text(key.source.shortTitle, Modifier.weight(1f), color = MaterialTheme.colorScheme.primary)
+                        IconButton(onClick = { retry++ }, enabled = !loading) { AppIcon(Glyph.Refresh, "刷新详情") }
+                    }
                     Text(detail.summary.title, style = MaterialTheme.typography.headlineSmall)
                     Text(detail.summary.author)
                     Text("${detail.chapters.size} 话")
                 }
             }
+            error?.let { Note("刷新失败：$it") }
             Row(Modifier.padding(horizontal = 20.dp), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                 Button(onClick = { read(progress?.chapterId?.takeIf { id -> detail.chapters.any { it.id == id } } ?: detail.chapters.first().id) }, enabled = library.ready, modifier = Modifier.weight(1f)) { Text(if (progress == null) "开始阅读" else "继续阅读") }
                 FilledTonalIconButton(enabled = library.ready && !favoriteBusy, onClick = {

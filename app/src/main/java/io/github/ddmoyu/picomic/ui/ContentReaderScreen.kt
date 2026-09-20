@@ -23,18 +23,17 @@ private data class OpenChapter(val details: ComicDetails, val index: Int, val pa
     var chapter by remember(comicKey, selected) { mutableStateOf<OpenChapter?>(null) }
     var error by remember(comicKey, selected) { mutableStateOf<String?>(null) }
     var retry by remember { mutableIntStateOf(0) }
-    val revisions by vm.network.sessions.changes.collectAsStateWithLifecycle()
-    val network by vm.network.state.collectAsStateWithLifecycle()
-    val routes by vm.jmRoutes.state.collectAsStateWithLifecycle()
-    val htRoutes by vm.htRoutes.state.collectAsStateWithLifecycle()
+    val detailContext = contentDetailContext(comicKey.source, ui, vm)
     val library by vm.library.state.collectAsStateWithLifecycle()
     val context = LocalContext.current
-    LaunchedEffect(comicKey, selected, retry, revisions, network.generation, routes.selected, htRoutes.selected, ui.pref("jm.image"), ui.pref("nh.auth"), ui.pref("eh.original"), ui.pref("eh.warning"), ui.pref("eh.subtitle")) {
+    LaunchedEffect(comicKey, selected, retry, detailContext) {
         chapter = null; error = null
         try {
             val history = vm.library.awaitReady().progress.firstOrNull { it.key == comicKey && it.chapterId == selected }
+            val detail = vm.detailCache.load(comicKey, detailContext) {
+                vm.content.run(comicKey.source) { adapter, _ -> adapter.details(comicKey.id) }
+            }
             val loaded = vm.content.run(comicKey.source) { adapter, partition ->
-                val detail = adapter.details(comicKey.id)
                 val index = detail.chapters.indexOfFirst { it.id == selected }
                 if (index < 0) throw ContentFailure(ContentFailureKind.NOT_FOUND, "章节已变化，请返回目录选择章节")
                 val pages = adapter.pages(comicKey.id, detail.chapters[index])

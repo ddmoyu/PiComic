@@ -54,6 +54,7 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
     val htRoutes = runtime.htRoutes
     var content = runtime.repository
         internal set
+    val detailCache = io.github.ddmoyu.picomic.content.ContentDetailCache()
     val library = ContentLibrary.get(application)
     var downloadsRepository = io.github.ddmoyu.picomic.download.DownloadRepository.get(application)
         internal set
