@@ -5,18 +5,15 @@ import org.junit.Assert.*
 import org.junit.Test
 
 class PasswordRecoveryTest {
-    @Test fun accountPlatformsUseHttpsAndRejectOtherOriginsAndSchemes() {
+    @Test fun accountPlatformsUseHttpsWithoutCredentials() {
         val pages = Source.entries.mapNotNull { passwordRecoveryPage(it) }
         assertEquals(5, pages.size)
         assertNull(passwordRecoveryPage(Source.HITOMI))
         pages.forEach { page ->
-            assertTrue(page.allows(page.url.toString()))
-            assertFalse(page.allows(page.url.toString().replace("https:", "http:")))
-            assertFalse(page.allows("https://${page.url.host}.example.org/"))
-            assertFalse(page.allows("https://user:secret@${page.url.host}/"))
-            assertFalse(page.allows("javascript:alert(1)"))
-            assertFalse(page.allows("file:///data/data/test"))
-            assertFalse(page.allows("intent://other-app"))
+            assertTrue(page.url.isHttps)
+            assertEquals(443, page.url.port)
+            assertEquals("", page.url.username)
+            assertEquals("", page.url.password)
         }
         assertEquals("/reset-password/", passwordRecoveryPage(Source.NHENTAI)!!.url.encodedPath)
         assertEquals("10", passwordRecoveryPage(Source.EHENTAI)!!.url.queryParameter("CODE"))

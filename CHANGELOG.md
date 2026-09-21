@@ -1,5 +1,19 @@
 # 更新记录
 
+## 未发布
+
+### 简体中文
+
+- 各平台“忘记密码”改为使用系统默认浏览器打开，移除内置找回密码网页；保留当前登录页，未安装或无法打开浏览器时显示提示。
+
+### English
+
+- “Forgot password” now opens in the system's default browser instead of an embedded WebView. Keep the login screen in place and show a message if no browser is available or launching it fails.
+
+### 日本語
+
+- 各サービスの「パスワードを忘れた」を、内蔵 WebView ではなくシステムの既定ブラウザーで開くように変更しました。ログイン画面を維持し、ブラウザーが利用できない場合は案内を表示します。
+
 ## 0.3.3
 
 2026-09-20 · Android 8.0+ · arm64-v8a · versionCode 3003

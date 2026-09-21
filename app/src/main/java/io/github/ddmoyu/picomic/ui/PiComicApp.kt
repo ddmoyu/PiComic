@@ -7,6 +7,7 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.unit.dp
 import androidx.core.view.WindowCompat
@@ -60,6 +61,7 @@ import kotlinx.coroutines.launch
         go("reader/${source.name}/${comic.id}/$chapter/$page/$offset")
     }
     val view=LocalView.current
+    val context=LocalContext.current
     val activity = view.context as? io.github.ddmoyu.picomic.MainActivity
     val downloadsRequest by (activity?.downloadsRequest ?: remember { kotlinx.coroutines.flow.MutableStateFlow(0) }).collectAsStateWithLifecycle()
     LaunchedEffect(downloadsRequest) { if (downloadsRequest > 0) { vm.downloadTab.value++; go("library"); activity?.downloadsRequest?.value = 0 } }
@@ -75,7 +77,7 @@ import kotlinx.coroutines.launch
             snackbarHost={SnackbarHost(snackbar)},
             topBar={
                 if(!reading&&!route.startsWith("search")) {
-                    val title=when(route) { "discover"->"探索";"categories"->"分类";"library"->"书架";"detail/{source}/{id}","content-detail/{source}/{id}"->"作品详情";"category/{category}"->entry?.arguments?.getString("category")?:"分类";"login/{source}"->"账号登录";"password-recovery/{source}"->"忘记密码";else->settingsTitles[route]?:"PiComic" }
+                    val title=when(route) { "discover"->"探索";"categories"->"分类";"library"->"书架";"detail/{source}/{id}","content-detail/{source}/{id}"->"作品详情";"category/{category}"->entry?.arguments?.getString("category")?:"分类";"login/{source}"->"账号登录";else->settingsTitles[route]?:"PiComic" }
                     PageTop(title,if(root)null else back,if(root)({go("search")}) else null,if(root)({go("settings")}) else null)
                 }
             },
@@ -130,16 +132,13 @@ import kotlinx.coroutines.launch
                     systemBackPage("filters", nav, back) { FiltersScreen(ui,vm) }
                     systemBackPage("login/{source}", nav, back) { target ->
                         val source=Source.valueOf(target.arguments!!.getString("source")!!)
-                        val recovery = { go("password-recovery/${source.name}") }
+                        val recovery = { openPasswordRecovery(context, source, vm.htRoutes.state.value.selected, notice) }
                         if (source in setOf(Source.PICACG, Source.JMCOMIC, Source.HTCOMIC)) {
                             val network by vm.network.state.collectAsStateWithLifecycle()
                             PicacgLoginScreen(when(source) { Source.PICACG -> vm.picacgAccount; Source.JMCOMIC -> vm.jmAccount; else -> vm.htAccount }, network.ready, ui.enabled("pica.avatar", true), recovery) { go("network") }
                         } else if (source == Source.NHENTAI) NhLoginScreen(ui, vm, recovery) { go("network") }
                         else if (source == Source.EHENTAI) EhLoginScreen(vm, recovery) { go("network") }
                         else LoginScreen(source)
-                    }
-                    systemBackPage("password-recovery/{source}", nav, back) { target ->
-                        PasswordRecoveryScreen(Source.valueOf(target.arguments!!.getString("source")!!), vm, back)
                     }
                     listOf("reading","appearance","updates","data","logs","network","about","webdav").forEach { id -> systemBackPage(id, nav, back) { SettingsPage(id,ui,vm,go,notice) } }
                 }
