@@ -16,7 +16,7 @@ import io.github.ddmoyu.picomic.content.ContentRepository
 import io.github.ddmoyu.picomic.content.ContentListController
 
 data class UiState(
-    val source: Source = Source.PICACG,
+    val source: Source = Source.HITOMI,
     val preferences: Map<String, String> = emptyMap(),
     val favorites: Set<String> = emptySet(),
     val history: List<ReadingPosition> = emptyList(),
@@ -42,7 +42,7 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
         val array = JSONArray(store.getString(key, "[]")); List(array.length()) { array.getString(it) }
     }.getOrDefault(emptyList())
     private val mutable = MutableStateFlow(UiState(
-        source = runCatching { Source.valueOf(store.getString("source", "PICACG")!!) }.getOrDefault(Source.PICACG),
+        source = runCatching { Source.valueOf(store.getString("source", "HITOMI")!!) }.getOrDefault(Source.HITOMI),
         preferences = store.all.filterKeys { it.startsWith("pref.") }.mapKeys { it.key.removePrefix("pref.") }.mapValues { it.value.toString() },
         favorites = list("favorites").toSet(), queries = list("queries"), keywords = list("keywords"), languages = list("languages").toSet()
     ))

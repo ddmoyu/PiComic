@@ -1,5 +1,24 @@
 # 更新记录
 
+## 0.3.6
+
+2026-09-22 · Android 8.0+ · arm64-v8a · versionCode 3006
+
+### 简体中文
+
+- 调整来源顺序为 Hitomi、禁漫天堂、绅士漫画、nhentai、E-Hentai / ExHentai、picacg，可匿名浏览的来源优先，禁漫天堂固定第二个。
+- 探索、分类、搜索和账号管理使用相同顺序，左右滑动与 Tab 点击保持一致；首次使用默认 Hitomi，已有用户保留上次选择的来源。
+
+### English
+
+- Reordered sources to Hitomi, JM, Wnacg, nhentai, E-Hentai / ExHentai and picacg, putting guest browsing first and JM second.
+- Discovery, categories, search and account management share the same order. Swipes and tabs stay in sync; new installations start with Hitomi while existing selections are preserved.
+
+### 日本語
+
+- 配信元を Hitomi、JM、Wnacg、nhentai、E-Hentai / ExHentai、picacg の順に変更しました。匿名で閲覧できる配信元を優先し、JM は2番目に配置します。
+- 探索・分類・検索・アカウント管理で順序を統一し、スワイプとタブの選択を同期します。初回は Hitomi を選択し、既存ユーザーの前回の選択は保持します。
+
 ## 0.3.5
 
 2026-09-22 · Android 8.0+ · arm64-v8a · versionCode 3005

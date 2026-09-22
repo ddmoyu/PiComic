@@ -207,7 +207,7 @@ val settingsTitles = mapOf("settings" to "设置", "accounts" to "账号管理",
     val accounts by vm.picacgAccount.accounts.collectAsStateWithLifecycle()
     Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState())) {
         Note("各来源账号单独验证和保存。权限由平台决定，不影响本地收藏与历史。")
-        Source.entries.forEach { source ->
+        Source.displayOrder.forEach { source ->
             SectionTitle(source.title)
             if(source==Source.HITOMI) Note("该来源无需账号，可直接搜索和阅读。")
             else if(source==Source.PICACG) AccountSettingRow(accounts["picacg"] ?: io.github.ddmoyu.picomic.auth.AccountState(), "账号密码登录 · 加密会话") { login(source) }

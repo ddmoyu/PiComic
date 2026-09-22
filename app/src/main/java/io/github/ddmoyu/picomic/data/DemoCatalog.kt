@@ -6,6 +6,11 @@ enum class Source(val title: String, val shortTitle: String) {
     PICACG("picacg", "picacg"), EHENTAI("E-Hentai / ExHentai", "E-Hentai"),
     JMCOMIC("禁漫天堂", "禁漫天堂"), HITOMI("Hitomi", "Hitomi"),
     HTCOMIC("绅士漫画", "绅士漫画"), NHENTAI("nhentai", "nhentai");
+    // Presentation order is independent of the enum identity used by stored data.
+    val displayIndex: Int get() = displayOrder.indexOf(this)
+    companion object {
+        val displayOrder = listOf(HITOMI, JMCOMIC, HTCOMIC, NHENTAI, EHENTAI, PICACG)
+    }
     val categories: List<String> get() = when (this) {
         PICACG -> listOf("全部", "日常", "奇幻", "治愈", "冒险", "全彩", "长篇", "短篇", "单行本", "同人")
         EHENTAI -> listOf("全部", "漫画", "同人志", "画师 CG", "游戏 CG", "图像集")

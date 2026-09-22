@@ -185,16 +185,16 @@ import kotlinx.coroutines.launch
 }
 
 @Composable fun ContentBrowseScreen(categories: Boolean, ui: UiState, vm: AppViewModel, open: (ComicKey) -> Unit, category: (Source, String) -> Unit, login: (Source) -> Unit) {
-    val pager = rememberPagerState(initialPage = ui.source.ordinal) { Source.entries.size }
+    val pager = rememberPagerState(initialPage = ui.source.displayIndex) { Source.displayOrder.size }
     val scope = rememberCoroutineScope()
     LaunchedEffect(pager) {
-        pager.scrollToPage(ui.source.ordinal)
-        snapshotFlow { pager.settledPage }.collect { vm.source(Source.entries[it]) }
+        pager.scrollToPage(ui.source.displayIndex)
+        snapshotFlow { pager.settledPage }.collect { vm.source(Source.displayOrder[it]) }
     }
     Column(Modifier.fillMaxSize()) {
-        SourceTabs(Source.entries[pager.currentPage]) { scope.launch { pager.animateScrollToPage(it.ordinal) }; vm.source(it) }
-        HorizontalPager(pager, Modifier.weight(1f).fillMaxWidth().testTag(if (categories) "category-pages" else "discover-pages"), key = { Source.entries[it].name }, verticalAlignment = Alignment.Top) { index ->
-            val source = Source.entries[index]
+        SourceTabs(Source.displayOrder[pager.currentPage]) { scope.launch { pager.animateScrollToPage(it.displayIndex) }; vm.source(it) }
+        HorizontalPager(pager, Modifier.weight(1f).fillMaxWidth().testTag(if (categories) "category-pages" else "discover-pages"), key = { Source.displayOrder[it].name }, verticalAlignment = Alignment.Top) { index ->
+            val source = Source.displayOrder[index]
             if (categories) ContentCategories(source, vm, category, login)
             else ContentListScreen(source, ContentQuery(sort = contentSort(ui)), "discover", ui, vm, open, login, listLayout = true)
         }

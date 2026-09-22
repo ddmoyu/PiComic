@@ -65,8 +65,8 @@ enum class Glyph(@param:androidx.annotation.DrawableRes @get:androidx.annotation
             actionIconContentColor = MaterialTheme.colorScheme.outline))
 }
 @Composable fun SourceTabs(selected: Source, onSelect: (Source) -> Unit) {
-    SecondaryScrollableTabRow(selectedTabIndex = selected.ordinal, edgePadding = 12.dp, containerColor = MaterialTheme.colorScheme.background) {
-        Source.entries.forEach { source -> Tab(selected = source == selected, onClick = { onSelect(source) },
+    SecondaryScrollableTabRow(selectedTabIndex = selected.displayIndex, edgePadding = 12.dp, containerColor = MaterialTheme.colorScheme.background) {
+        Source.displayOrder.forEach { source -> Tab(selected = source == selected, onClick = { onSelect(source) },
             selectedContentColor = MaterialTheme.colorScheme.primary, unselectedContentColor = MaterialTheme.colorScheme.onSurfaceVariant,
             text = { Text(source.shortTitle, maxLines = 1, fontSize = 14.sp,
                 fontWeight = if (source == selected) FontWeight.SemiBold else FontWeight.Normal) }) }

@@ -33,28 +33,28 @@ import kotlinx.coroutines.launch
     }
 }
 @Composable fun BrowseScreen(categories: Boolean, ui: UiState, vm: AppViewModel, open: (Source,Comic) -> Unit, category: (Source,String) -> Unit) {
-    val pager = rememberPagerState(initialPage = ui.source.ordinal) { Source.entries.size }
+    val pager = rememberPagerState(initialPage = ui.source.displayIndex) { Source.displayOrder.size }
     val scope = rememberCoroutineScope()
     LaunchedEffect(pager) {
         // A restored route may have an older page than the source chosen in search.
-        pager.scrollToPage(ui.source.ordinal)
+        pager.scrollToPage(ui.source.displayIndex)
         snapshotFlow { pager.settledPage }.collect { page ->
-            val source = Source.entries[page]
+            val source = Source.displayOrder[page]
             if (vm.state.value.source != source) vm.source(source)
         }
     }
     Column(Modifier.fillMaxSize()) {
-        SourceTabs(Source.entries[pager.currentPage]) { source ->
+        SourceTabs(Source.displayOrder[pager.currentPage]) { source ->
             vm.source(source)
-            scope.launch { pager.animateScrollToPage(source.ordinal) }
+            scope.launch { pager.animateScrollToPage(source.displayIndex) }
         }
         HorizontalPager(
             state = pager,
             modifier = Modifier.weight(1f).fillMaxWidth().testTag(if (categories) "category-pages" else "discover-pages"),
-            key = { Source.entries[it].name },
+            key = { Source.displayOrder[it].name },
             verticalAlignment = Alignment.Top
         ) { page ->
-            val source = Source.entries[page]
+            val source = Source.displayOrder[page]
             if(categories) Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState())) {
                 SectionTitle(source.title)
                 Note("按平台浏览分类 · 示例内容")

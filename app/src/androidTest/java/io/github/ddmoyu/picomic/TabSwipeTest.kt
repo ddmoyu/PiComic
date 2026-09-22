@@ -31,50 +31,50 @@ class TabSwipeTest {
     }
 
     @Test fun discoverySwipesSyncSourceAndSearchReturn() {
-        selectSource("picacg")
+        selectSource("Hitomi")
         val pages = ui.onNodeWithTag("discover-pages")
         pages.performTouchInput { swipeRight() }
-        selected("picacg")
+        selected("Hitomi")
         // A short drag must snap back; vertical browsing must not change sources.
         pages.performTouchInput {
             swipe(Offset(width * .55f, centerY), Offset(width * .52f, centerY), 600)
         }
-        selected("picacg")
+        selected("Hitomi")
         pages.performTouchInput { swipeUp() }
-        selected("picacg")
+        selected("Hitomi")
         pages.performTouchInput { swipeLeft() }
-        selected("E-Hentai")
-        ui.onNodeWithText("E-Hentai · 本地示意作品").assertIsDisplayed()
+        selected("禁漫天堂")
+        ui.onNodeWithText("禁漫天堂 · 本地示意作品").assertIsDisplayed()
         ui.onVisibleText("雨后的第七站").performClick()
-        ui.onNodeWithText("E-Hentai").assertIsDisplayed()
+        ui.onNodeWithText("禁漫天堂").assertIsDisplayed()
         ui.onNodeWithContentDescription("返回").performClick()
-        selected("E-Hentai")
+        selected("禁漫天堂")
         pages.performTouchInput { swipeRight() }
-        selected("picacg")
-        listOf("E-Hentai", "禁漫天堂", "Hitomi", "绅士漫画", "nhentai").forEach {
+        selected("Hitomi")
+        listOf("禁漫天堂", "绅士漫画", "nhentai", "E-Hentai", "picacg").forEach {
             pages.performTouchInput { swipeLeft() }
             selected(it)
         }
         pages.performTouchInput { swipeLeft() }
-        selected("nhentai")
-        ui.onNodeWithContentDescription("搜索").performClick()
-        selectSource("picacg")
-        ui.onNodeWithContentDescription("返回").performClick()
         selected("picacg")
-        ui.onNodeWithText("picacg · 本地示意作品").assertIsDisplayed()
+        ui.onNodeWithContentDescription("搜索").performClick()
+        selectSource("Hitomi")
+        ui.onNodeWithContentDescription("返回").performClick()
+        selected("Hitomi")
+        ui.onNodeWithText("Hitomi · 本地示意作品").assertIsDisplayed()
     }
 
     @Test fun categorySwipesShowMatchingCategories() {
         ui.onNodeWithContentDescription("分类").performClick()
-        selectSource("picacg")
+        selectSource("Hitomi")
         val pages = ui.onNodeWithTag("category-pages")
         pages.performTouchInput { swipeLeft() }
-        selected("E-Hentai")
-        ui.onNodeWithText("E-Hentai / ExHentai").assertIsDisplayed()
-        ui.onVisibleText("游戏 CG").performClick()
+        selected("禁漫天堂")
+        ui.onVisibleText("连载").assertIsDisplayed()
+        ui.onVisibleText("连载").performClick()
         ui.onNodeWithContentDescription("返回").performClick()
-        selected("E-Hentai")
-        selectSource("Hitomi")
+        selected("禁漫天堂")
+        selectSource("绅士漫画")
         pages.performTouchInput { swipeRight() }
         selected("禁漫天堂")
         ui.onVisibleText("连载").assertIsDisplayed()

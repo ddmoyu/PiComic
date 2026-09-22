@@ -30,7 +30,7 @@ function comicRow(i,extra='',showSource=true){
  const c=comics[i]; const tag=extra?'div':'button';
  return `<${tag} class="comic-row ${extra==='download'?'download-row':''}" ${extra?'':'data-page="detail"'}>${cover(i)}<div class="comic-text"><div><h3 class="comic-title">${c[0]}</h3><p class="author">${c[1]}</p>${tags()}</div><div class="comic-footer"><div class="count">共 ${c[2]} 张图片</div><div class="meta">${showSource?'picacg · ':''}ui-audit-${i} · 中文</div>${extra==='history'?`<div class="history-line"><span>读到第 7 页</span>${action('close',`删除 ${c[0]} 的历史`)}</div>`:''}${extra==='download'?'<div class="download-extra"><h4>第 1 话 · 出发</h4><div>已暂停 · 8 / 24 页</div><div class="progress" role="img" aria-label="已完成三分之一"><span></span></div><div class="download-actions"><span class="plain-action">继续下载</span><span class="plain-action">删除</span></div></div>':''}</div></div></${tag}>`;
 }
-function sourceTabs(){return `<div class="app-tabs" aria-label="当前来源 picacg">${['picacg','E-Hentai','禁漫天堂','Hitomi','绅士漫画','nhentai'].map((s,i)=>`<span class="tab ${i?'':'selected'}">${s}</span>`).join('')}</div>`}
+function sourceTabs(){return `<div class="app-tabs" aria-label="当前来源 picacg">${['Hitomi','禁漫天堂','绅士漫画','nhentai','E-Hentai','picacg'].map(s=>`<span class="tab ${s==='picacg'?'selected':''}">${s}</span>`).join('')}</div>`}
 function libraryTabs(kind){return `<div class="app-tabs library-tabs">${[['favorites','收藏'],['history','阅读历史'],['downloads','下载管理']].map(([id,t])=>`<button class="tab ${kind===id||kind==='history-empty'&&id==='history'?'selected':''}" data-page="${id}">${t}</button>`).join('')}</div>`}
 function appTop(title,back,dark,trailing=''){return `<header class="app-top ${back?'has-back':''}">${back?action('back','返回',back):''}<h2>${title}</h2>${back?trailing:action('search','搜索',dark?'search':'search-results')+action('settings','设置',dark?'settings-dark':'settings')}</header>`}
 function bottom(active,dark){return `<nav class="app-nav" aria-label="底部导航">${[['discover','explore','探索'],['categories','categories','分类'],['favorites','book','书架']].map(([id,g,t])=>`<button class="${active===id?'active':''}" data-page="${id==='discover'&&dark?'discover-dark':id}" aria-label="${t}"><span class="nav-pill">${icon(g)}</span></button>`).join('')}</nav>`}
@@ -72,6 +72,7 @@ function render(id){
   body=kind==='results'?`<div class="result-grid"><button class="result-card" data-page="detail">${cover(0)}<h3>${comics[0][0]}</h3><p>${comics[0][1]}</p></button></div>`:'<div class="search-heading"><span>最近搜索</span><span class="plain-action">清空</span></div>';
  }
  phone.innerHTML='<div class="status-space" aria-hidden="true"></div>'+head+'<div class="app-body">'+body+'</div>'+nav;
+ const tabs=phone.querySelector('.app-tabs');if(tabs)tabs.scrollLeft=tabs.scrollWidth;
  if(kind==='chapters'){
   const first=phone.querySelector('.chapter');first.classList.add('current');first.insertAdjacentHTML('beforeend','<small>继续</small>');
   phone.querySelector('.main-action').textContent='继续阅读';
