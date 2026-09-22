@@ -121,3 +121,16 @@ Runner 只在临时目录恢复密钥，构建结束清理。Gradle 从 `PICOMIC
 - 当前出口匿名访问 GitHub `latest` API 遇到 403 限流；应用默认备用线路 GH-Proxy 返回 200，指向 v0.3.5。GitHub、GH-Proxy、GHProxy.net 的更新清单均返回 200，内容完全一致且 versionCode 为 3005；经认证的 GitHub `latest` 同样确认 v0.3.5。本轮未重复下载镜像 APK。
 - 在 API 36.1 无窗口模拟器中，安装实际公开的 v0.3.4，再以实际公开的 v0.3.5 覆盖升级成功；深色主题和跳过详情页设置保留，启动未记录崩溃，已安装 APK 摘要与公开资产一致。使用 x86_64 模拟器的 ARM64 转译，没有测试实体手机或用户真实平台账号。
 - 证据保存在忽略目录 `artifacts/github-release/v0.3.5/`；云端报告及 mapping 位于 `verification-v0.3.5` Actions artifact。模拟器验证完成后关闭，全部过程无窗口运行。
+
+## v0.3.6 发布验证
+
+2026-09-22 通过 `v0.3.6` 标签发布，源码提交为 `16857c4`；[Actions 运行 35714715073](https://github.com/ddmoyu/PiComic/actions/runs/35714715073) 成功，[Release](https://github.com/ddmoyu/PiComic/releases/tag/v0.3.6) 已公开并设为 Latest，包含三语言更新说明。
+
+- 来源顺序统一为 Hitomi、禁漫天堂、绅士漫画、nhentai、E-Hentai / ExHentai、picacg，JM 固定第二个。探索、分类、搜索、账号管理和当前 HTML 展示同步；首次使用默认 Hitomi。显示顺序独立于枚举身份，已有选择按来源名称恢复。
+- 本地和云端均通过 104 项单元测试，云端 6 项发布脚本测试通过。7 项 Android 检查最终通过，覆盖来源点击/滑动、搜索返回、分类归属、登录入口、书架旋转和安全截图采集。首轮书架旋转在模拟器关闭系统动画时等待未结束，中止后恢复默认动画倍率，原用例复测通过，未改动书架产品代码。
+- 调整前后台采集当前界面，调整后以安全合成数据重新采集原生页面 18 张。记录位于 `artifacts/source-order/`，含截图、检查日志及 `verification.json`；原型生成沿用明确标注的历史对照基线，不把旧图标为本轮新图。没有在办公桌面打开模拟器或显示漫画内容。
+- Release lint 本地为 0 errors、49 warnings、1 hint，云端为 0 errors、53 warnings、1 hint。
+- `PiComic-0.3.6.apk`：版本名 `0.3.6`、versionCode `3006`、最低 API 26、仅 `arm64-v8a`，大小 3,274,865 字节；SHA-256 为 `0062667ba66204ae34de9b6b8b21584ce94920cd633c2563b1aab50e0e90346a`。
+- 匿名下载后的包信息、v2 签名、固定发行证书及 16 KB zipalign 检查通过；摘要与 GitHub 资产、更新清单、校验和文件及云端报告一致。GitHub / GH-Proxy 最新版本 API 和 GitHub / GH-Proxy / GHProxy.net 更新清单均返回 200，指向 v0.3.6，清单内容一致。
+- 在无窗口 API 36.1 模拟器中，由实际公开的 v0.3.5 覆盖安装实际公开的 v0.3.6 成功，原选中 picacg、深色主题和跳过详情页设置保留，崩溃缓冲区为空，已安装 APK 摘要匹配公开资产。未进行实体手机验证；完成后关闭模拟器。
+- 公开资产和读回证据位于 `artifacts/github-release/v0.3.6/`，云端报告与 mapping 位于 `verification-v0.3.6` Actions artifact。
