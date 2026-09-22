@@ -5,6 +5,8 @@
   <p>面向 Android 的多来源漫画阅读器，集发现、阅读、收藏与离线下载于一体。</p>
   <p>
     <a href="https://github.com/ddmoyu/PiComic/releases/latest"><img src="https://img.shields.io/github/v/release/ddmoyu/PiComic?style=flat-square&amp;label=Release&amp;color=4560E8" alt="最新版本" /></a>
+    <a href="https://github.com/ddmoyu/PiComic/releases/latest"><img src="https://img.shields.io/badge/APK-%E2%89%88%203%20MB-4560E8?style=flat-square" alt="安装包约 3 MB" /></a>
+    <a href="#轻量安装与权限"><img src="https://img.shields.io/badge/%E6%9D%83%E9%99%90-%E6%8C%89%E9%9C%80%E7%94%B3%E8%AF%B7-2E7D32?style=flat-square" alt="权限按需申请" /></a>
     <a href="https://github.com/ddmoyu/PiComic/releases"><img src="https://img.shields.io/github/downloads/ddmoyu/PiComic/total?style=flat-square&amp;label=Downloads&amp;color=4560E8" alt="累计下载量" /></a>
     <a href="https://github.com/ddmoyu/PiComic/releases/latest"><img src="https://img.shields.io/badge/Android-8.0%2B-3DDC84?style=flat-square&amp;logo=android&amp;logoColor=white" alt="Android 8.0 及以上" /></a>
     <a href="https://github.com/ddmoyu/PiComic/releases/latest"><img src="https://img.shields.io/badge/ABI-arm64--v8a-555555?style=flat-square" alt="arm64-v8a" /></a>
@@ -16,6 +18,18 @@
     <a href="https://github.com/ddmoyu/PiComic/issues">问题反馈</a>
   </p>
 </div>
+
+## 轻量安装与权限
+
+**约 3 MB 的安装包，轻松装进手机。** 正式版 APK 保持在几 MB 的量级；实际占用空间会随阅读缓存和离线下载增加。
+
+**不申请定位、通讯录、相机、麦克风或全盘存储权限。** 需要你确认的授权，随相关操作出现：
+
+| 授权 | 何时使用 |
+| --- | --- |
+| 通知 | Android 13 及以上加入下载时申请，用于显示下载进度。 |
+| 安装应用 | 点击安装更新时，引导允许 PiComic 安装新版本。 |
+| 文件与目录 | 导入、导出备份或选择下载目录时，通过系统选择器授权访问你选中的文件或目录。 |
 
 ## 为阅读而设计
 
