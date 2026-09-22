@@ -57,7 +57,7 @@
 
 ## 验证
 
-最终结果见 [Android 界面验证](evidence/android/validation.md)。截图来自模拟器实际运行的 APK，HTML 原型结果不替代原生验证。真实手机手势与大图性能尚未验收。
+最终结果见 [Android 界面验证](evidence/android/validation.md)。该记录是历史验证结果；旧截图已清理，界面优化须重新运行当前 APK 获取截图。真实手机手势与大图性能尚未验收。
 
 ### 主题与阅读转场修复（2026-09-20）
 
@@ -72,9 +72,11 @@
 
 ## 依赖依据
 
+2026-09-22 已按用户确认的当前界面 HTML 落实原生视觉调整，并统一采用官方 Phosphor 图标。当前实现范围、安装包及后台截图验证见 [当前 UI 视觉实现与验证](28-当前UI视觉实现与验证.md)。
+
 - [AGP 9.3 兼容性](https://developer.android.com/build/releases/agp-9-3-0-release-notes)：JDK 17、Gradle 最低 9.5.0。
 - [AGP 内置 Kotlin](https://developer.android.com/build/migrate-to-built-in-kotlin)。
 - [Compose BOM](https://developer.android.com/develop/ui/compose/bom)。
 - [AndroidX Test](https://developer.android.com/jetpack/androidx/releases/test)：Espresso 3.7.0 的 InputManager 兼容修复。
 
-依赖锁定为本轮构建验证组合，不宣称所有依赖均为最新版本。AndroidX 与 Kotlin 使用各自开源许可证；插画来自本项目既有原型素材，不复制竞品代码或作品。
+依赖锁定为本轮构建验证组合，不宣称所有依赖均为最新版本。AndroidX 与 Kotlin 使用各自开源许可证；原创测试插画位于 `design/illustrations/`，不复制竞品代码或作品。

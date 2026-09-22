@@ -6,7 +6,7 @@ const path=require('node:path'),fs=require('node:fs'),{pathToFileURL}=require('n
  const browser=await chromium.launch({channel:'chrome',headless:true});
  try { const page=await browser.newPage({viewport:{width:640,height:960},deviceScaleFactor:1});
   for(const file of [...Array.from({length:9},(_,i)=>`cover-${i}`),...Array.from({length:6},(_,i)=>`page-${i+1}`)]){
-   await page.goto(pathToFileURL(path.join(root,`prototype/assets/${file}.svg`)).href);
+   await page.goto(pathToFileURL(path.join(root,`design/illustrations/${file}.svg`)).href);
    await page.locator('svg').evaluate(e=>{e.style.width='640px';e.style.height=e.viewBox.baseVal.height/e.viewBox.baseVal.width*640+'px';});
    await page.locator('svg').screenshot({path:path.join(out,file.replace('-','_')+'.png')});
   }

@@ -118,7 +118,7 @@ import kotlinx.coroutines.launch
             }
             Row(Modifier.padding(horizontal=20.dp),horizontalArrangement=Arrangement.spacedBy(10.dp),verticalAlignment=Alignment.CenterVertically) {
                 Button(onClick={read(history?.chapter?:1,history?.page?:1)},enabled=ui.historyReady,modifier=Modifier.weight(1f).height(50.dp)) { AppIcon(Glyph.Book);Spacer(Modifier.width(8.dp));Text(if(!ui.historyReady) "读取进度" else if(history==null) "开始阅读" else "继续阅读") }
-                FilledTonalIconButton(onClick={vm.favorite(source,comic)},modifier=Modifier.size(50.dp)) { AppIcon(if(DemoCatalog.key(source,comic.id) in ui.favorites) Glyph.Check else Glyph.Heart, if(DemoCatalog.key(source,comic.id) in ui.favorites) "取消收藏" else "收藏作品") }
+                FilledTonalIconButton(onClick={vm.favorite(source,comic)},modifier=Modifier.size(50.dp)) { AppIcon(if(DemoCatalog.key(source,comic.id) in ui.favorites) Glyph.HeartFilled else Glyph.Heart, if(DemoCatalog.key(source,comic.id) in ui.favorites) "取消收藏" else "收藏作品") }
                 FilledTonalIconButton(onClick={downloadSheet=true},modifier=Modifier.size(50.dp)) { AppIcon(Glyph.Download,"下载章节") }
             }
             if(history!=null) Note("上次读到第 ${history.chapter} 话 · 第 ${history.page} 页")

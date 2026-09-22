@@ -25,6 +25,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -58,49 +59,57 @@ import kotlinx.coroutines.launch
 }
 @Composable fun ContentCard(comic: ComicSummary, open: (ComicKey) -> Unit) {
     Column(Modifier.fillMaxWidth().clickable { open(comic.key) }) {
-        ContentCover(comic, Modifier.fillMaxWidth().aspectRatio(2f / 3))
-        Text(comic.title, Modifier.padding(top = 6.dp), style = MaterialTheme.typography.bodyMedium, maxLines = 2, overflow = TextOverflow.Ellipsis)
-        Text(comic.author.ifBlank { comic.key.source.shortTitle }, style = MaterialTheme.typography.bodySmall, maxLines = 1, overflow = TextOverflow.Ellipsis)
+        ContentCover(comic, Modifier.fillMaxWidth().aspectRatio(2f / 3).clip(RoundedCornerShape(10.dp)))
+        Text(comic.title, Modifier.padding(top = 7.dp), fontSize = 13.sp, lineHeight = 21.sp, fontWeight = FontWeight.SemiBold, maxLines = 2, overflow = TextOverflow.Ellipsis)
+        Text(comic.author.ifBlank { comic.key.source.shortTitle }, Modifier.padding(top = 3.dp), style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 1, overflow = TextOverflow.Ellipsis)
     }
 }
 @Composable internal fun ContentComicRow(
     comic: ComicSummary,
     open: ((ComicKey) -> Unit)? = null,
+    showSource: Boolean = true,
+    divider: Boolean = true,
     footer: (@Composable () -> Unit)? = null,
 ) {
-    Row(Modifier.fillMaxWidth().testTag("comic-row-${comic.key.stable}")
-        .then(if (open != null) Modifier.clickable { open(comic.key) } else Modifier),
-        horizontalArrangement = Arrangement.spacedBy(16.dp)) {
-        ContentCover(comic, Modifier.width(104.dp).aspectRatio(2f / 3).clip(RoundedCornerShape(8.dp))
-            .background(MaterialTheme.colorScheme.surfaceContainerHighest).testTag("comic-cover-${comic.key.stable}"))
-        Column(Modifier.weight(1f).heightIn(min = 156.dp), verticalArrangement = Arrangement.SpaceBetween) {
-            Column(verticalArrangement = Arrangement.spacedBy(5.dp)) {
-                Text(comic.title, Modifier.testTag("comic-title-${comic.key.stable}"), style = MaterialTheme.typography.titleMedium,
-                    maxLines = 2, overflow = TextOverflow.Ellipsis)
-                Text(comic.author.ifBlank { "作者未提供" }, style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 1, overflow = TextOverflow.Ellipsis)
-                val tags = comic.tags.filter(String::isNotBlank).distinct().take(3)
-                if (tags.isNotEmpty()) FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalArrangement = Arrangement.spacedBy(4.dp), maxLines = 2) {
-                    tags.forEach { tag ->
-                        Surface(shape = MaterialTheme.shapes.small, color = MaterialTheme.colorScheme.secondaryContainer) {
-                            Text(tag, Modifier.widthIn(max = 100.dp).padding(horizontal = 6.dp, vertical = 3.dp),
-                                style = MaterialTheme.typography.labelSmall, maxLines = 1, overflow = TextOverflow.Ellipsis)
+    Column(Modifier.fillMaxWidth()) {
+        Row(Modifier.fillMaxWidth().testTag("comic-row-${comic.key.stable}")
+            .then(if (open != null) Modifier.clickable { open(comic.key) } else Modifier),
+            horizontalArrangement = Arrangement.spacedBy(16.dp)) {
+            ContentCover(comic, Modifier.width(100.dp).aspectRatio(2f / 3).clip(RoundedCornerShape(10.dp))
+                .background(MaterialTheme.colorScheme.surfaceContainerHighest).testTag("comic-cover-${comic.key.stable}"))
+            Column(Modifier.weight(1f).heightIn(min = 150.dp), verticalArrangement = Arrangement.SpaceBetween) {
+                Column(verticalArrangement = Arrangement.spacedBy(5.dp)) {
+                    Text(comic.title, Modifier.testTag("comic-title-${comic.key.stable}"), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold,
+                        maxLines = 2, overflow = TextOverflow.Ellipsis)
+                    Text(comic.author.ifBlank { "作者未提供" }, fontSize = 13.sp, lineHeight = 20.sp,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                    val tags = comic.tags.filter(String::isNotBlank).distinct().take(3)
+                    if (tags.isNotEmpty()) FlowRow(horizontalArrangement = Arrangement.spacedBy(5.dp), verticalArrangement = Arrangement.spacedBy(4.dp), maxLines = 2) {
+                        tags.forEach { tag ->
+                            Surface(shape = RoundedCornerShape(6.dp), color = MaterialTheme.colorScheme.surfaceContainerLow,
+                                contentColor = MaterialTheme.colorScheme.onSurfaceVariant) {
+                                Text(tag, Modifier.widthIn(max = 100.dp).padding(horizontal = 7.dp, vertical = 3.dp),
+                                    fontSize = 11.sp, lineHeight = 17.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                            }
                         }
                     }
                 }
-            }
-            Column(Modifier.padding(top = 8.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                comic.pageCount?.takeIf { it > 0 }?.let { count ->
-                    Text("共 $count 张图片", Modifier.testTag("comic-page-count-${comic.key.stable}"),
-                        style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.primary)
+                Column(Modifier.padding(top = 10.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                    comic.pageCount?.takeIf { it > 0 }?.let { count ->
+                        Text("共 $count 张图片", Modifier.testTag("comic-page-count-${comic.key.stable}"),
+                            fontSize = 13.sp, lineHeight = 20.sp, fontWeight = FontWeight.SemiBold, color = MaterialTheme.colorScheme.primary)
+                    }
+                    Text(listOfNotNull(comic.key.source.shortTitle.takeIf { showSource }, comic.key.id,
+                        comic.language?.takeIf(String::isNotBlank)).joinToString(" · "),
+                        modifier = Modifier.testTag("comic-meta-${comic.key.stable}"),
+                        fontSize = 11.sp, lineHeight = 19.sp, color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        maxLines = 1, overflow = TextOverflow.Ellipsis)
+                    footer?.invoke()
                 }
-                Text(listOfNotNull("${comic.key.source.shortTitle} · ${comic.key.id}",
-                    comic.language?.takeIf(String::isNotBlank)).joinToString(" · "),
-                    style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    maxLines = 1, overflow = TextOverflow.Ellipsis)
-                footer?.invoke()
             }
         }
+        if (divider) HorizontalDivider(Modifier.padding(top = 12.dp))
     }
 }
 @Composable fun ContentFailurePanel(message: String, retry: () -> Unit, login: (() -> Unit)? = null) {
@@ -164,7 +173,7 @@ import kotlinx.coroutines.launch
     }
     if (listLayout) LazyColumn(Modifier.fillMaxSize().testTag("content-list-${source.name}"), state = list,
         contentPadding = PaddingValues(horizontal = 20.dp, vertical = 16.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
-        items(visible, key = { it.key.stable }) { ContentComicRow(it, open) }
+        items(visible, key = { it.key.stable }) { ContentComicRow(it, open, showSource = slot != "discover", divider = it.key != visible.last().key) }
         item { footer() }
     } else LazyVerticalGrid(GridCells.Adaptive(105.dp), state = grid, modifier = Modifier.fillMaxSize(),
         contentPadding = PaddingValues(20.dp), horizontalArrangement = Arrangement.spacedBy(12.dp), verticalArrangement = Arrangement.spacedBy(20.dp)) {
@@ -212,10 +221,10 @@ import kotlinx.coroutines.launch
         if (error == null && groups.isEmpty()) ContentFailurePanel("来源暂未返回分类", { retry++ })
         groups.forEach { group ->
             Column(Modifier.fillMaxWidth().testTag("category-group-${source.name}-${group.title}"), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                Text(group.title, style = MaterialTheme.typography.titleMedium)
-                FlowRow(horizontalArrangement = Arrangement.spacedBy(10.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                Text(group.title, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
+                FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
                     group.items.forEach { entry ->
-                        SuggestionChip(onClick = { category(source, entry.value) }, label = { Text(entry.label) },
+                        SuggestionChip(onClick = { category(source, entry.value) }, label = { Text(entry.label, fontSize = 14.sp, fontWeight = FontWeight.Medium) },
                             modifier = Modifier.testTag("category-${source.name}-${entry.value}"), shape = RoundedCornerShape(12.dp), border = null,
                             colors = SuggestionChipDefaults.suggestionChipColors(containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
                                 labelColor = MaterialTheme.colorScheme.onSurface))
@@ -273,7 +282,8 @@ fun contentSort(ui: UiState) = when (ui.pref("pica.search", "新到旧")) { "旧
     return "${network.generation}/$account/${revisions[account]}/$settings"
 }
 
-@Composable fun ContentDetailScreen(key: ComicKey, ui: UiState, vm: AppViewModel, read: (String) -> Unit, login: (Source) -> Unit, searchTag: (String) -> Unit = {}) {
+@Composable fun ContentDetailScreen(key: ComicKey, ui: UiState, vm: AppViewModel, read: (String) -> Unit, login: (Source) -> Unit,
+    back: () -> Unit = {}, searchTag: (String) -> Unit = {}) {
     val snackbar = remember { SnackbarHostState() }; val scope = rememberCoroutineScope()
     var favoriteBusy by remember { mutableStateOf(false) }
     var selectDownloads by remember { mutableStateOf(false) }
@@ -292,102 +302,104 @@ fun contentSort(ui: UiState) = when (ui.pref("pica.search", "新到旧")) { "旧
         finally { loading = false }
     }
     val detail = value
-    if (detail == null) { if (error == null) ContentLoading() else ContentFailurePanel(error!!, { retry++ }, { login(key.source) }); return }
-    val progress = library.progress.firstOrNull { it.key == key }
-    val downloadedChapters = downloads.filter { it.key() == key && it.state == "COMPLETED" }.map { it.chapterId }.toSet()
-    if (selectDownloads) DownloadSelection(detail, vm) { selectDownloads = false }
-    Box(Modifier.fillMaxSize()) {
-    LazyColumn(Modifier.fillMaxSize().testTag("content-detail"), contentPadding = PaddingValues(bottom = 30.dp)) {
-        item {
-            Row(Modifier.padding(20.dp), horizontalArrangement = Arrangement.spacedBy(16.dp)) {
-                ContentCover(detail.summary, Modifier.width(112.dp).aspectRatio(2f / 3).clip(RoundedCornerShape(12.dp))
-                    .background(MaterialTheme.colorScheme.surfaceContainerHighest))
-                Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Text(detail.summary.title, style = MaterialTheme.typography.titleMedium.copy(fontSize = 18.sp, lineHeight = 26.sp))
-                    Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                        Text(key.source.shortTitle, Modifier.weight(1f), style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant)
-                        IconButton(onClick = { retry++ }, enabled = !loading) { AppIcon(Glyph.Refresh, "刷新详情") }
+    Column(Modifier.fillMaxSize()) {
+        // The outer app scaffold already supplies the safe drawing insets on this route.
+        PageTop("作品详情", back = back, refresh = { retry++ }, refreshEnabled = !loading,
+            windowInsets = WindowInsets(0, 0, 0, 0))
+        if (detail == null) { if (error == null) ContentLoading() else ContentFailurePanel(error!!, { retry++ }, { login(key.source) }); return@Column }
+        val progress = library.progress.firstOrNull { it.key == key }
+        val downloadedChapters = downloads.filter { it.key() == key && it.state == "COMPLETED" }.map { it.chapterId }.toSet()
+        if (selectDownloads) DownloadSelection(detail, vm) { selectDownloads = false }
+        Box(Modifier.fillMaxWidth().weight(1f)) {
+        LazyColumn(Modifier.fillMaxSize().testTag("content-detail"), contentPadding = PaddingValues(bottom = 30.dp)) {
+            item {
+                Row(Modifier.padding(20.dp), horizontalArrangement = Arrangement.spacedBy(18.dp)) {
+                    ContentCover(detail.summary, Modifier.width(112.dp).aspectRatio(2f / 3).clip(RoundedCornerShape(12.dp))
+                        .background(MaterialTheme.colorScheme.surfaceContainerHighest))
+                    Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                        Text(detail.summary.title, fontSize = 19.sp, lineHeight = 29.sp, fontWeight = FontWeight.SemiBold)
+                        Text(key.source.shortTitle, fontSize = 13.sp, lineHeight = 20.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
                     }
                 }
-            }
-            error?.let { Note("刷新失败：$it") }
-            Row(Modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = 8.dp),
-                horizontalArrangement = Arrangement.spacedBy(12.dp), verticalAlignment = Alignment.CenterVertically) {
-                IconToggleButton(checked = key in library.favorites, enabled = library.ready && !favoriteBusy,
-                    modifier = Modifier.size(48.dp).testTag("detail-favorite"), onCheckedChange = {
-                    favoriteBusy = true
-                    scope.launch {
-                        try {
-                            val selected = key !in library.favorites
-                            val change = vm.library.favorite(detail.summary, selected)
-                            favoriteBusy = false; snackbar.currentSnackbarData?.dismiss()
-                            if (snackbar.showSnackbar(if (selected) "已收藏" else "已取消收藏", "撤销") == SnackbarResult.ActionPerformed)
-                                if (!vm.library.undoFavorite(change)) snackbar.showSnackbar("收藏已发生后续变更，无法撤销旧操作")
-                        } catch (e: CancellationException) { throw e }
-                        catch (_: Exception) { snackbar.showSnackbar("收藏保存失败，请重试") }
-                        finally { favoriteBusy = false }
+                error?.let { Note("刷新失败：$it") }
+                Row(Modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = 8.dp),
+                    horizontalArrangement = Arrangement.spacedBy(12.dp), verticalAlignment = Alignment.CenterVertically) {
+                    IconToggleButton(checked = key in library.favorites, enabled = library.ready && !favoriteBusy,
+                        modifier = Modifier.size(48.dp).testTag("detail-favorite"), onCheckedChange = {
+                        favoriteBusy = true
+                        scope.launch {
+                            try {
+                                val selected = key !in library.favorites
+                                val change = vm.library.favorite(detail.summary, selected)
+                                favoriteBusy = false; snackbar.currentSnackbarData?.dismiss()
+                                if (snackbar.showSnackbar(if (selected) "已收藏" else "已取消收藏", "撤销") == SnackbarResult.ActionPerformed)
+                                    if (!vm.library.undoFavorite(change)) snackbar.showSnackbar("收藏已发生后续变更，无法撤销旧操作")
+                            } catch (e: CancellationException) { throw e }
+                            catch (_: Exception) { snackbar.showSnackbar("收藏保存失败，请重试") }
+                            finally { favoriteBusy = false }
+                        }
+                    }) {
+                        AppIcon(if (key in library.favorites) Glyph.HeartFilled else Glyph.Heart, if (key in library.favorites) "取消收藏" else "收藏作品")
                     }
-                }) {
-                    AppIcon(if (key in library.favorites) Glyph.Check else Glyph.Heart, if (key in library.favorites) "取消收藏" else "收藏作品")
+                    IconButton(onClick = { selectDownloads = true }, enabled = detail.chapters.isNotEmpty(),
+                        modifier = Modifier.size(48.dp).testTag("detail-download")) {
+                        AppIcon(Glyph.Download, "下载章节")
+                    }
+                    FilledTonalButton(onClick = { read(progress?.chapterId?.takeIf { id -> detail.chapters.any { it.id == id } } ?: detail.chapters.first().id) },
+                        enabled = library.ready && detail.chapters.isNotEmpty(), modifier = Modifier.weight(1f).heightIn(min = 48.dp).testTag("detail-read")) {
+                        Text(if (progress == null) "开始阅读" else "继续阅读")
+                    }
                 }
-                IconButton(onClick = { selectDownloads = true }, enabled = detail.chapters.isNotEmpty(),
-                    modifier = Modifier.size(48.dp).testTag("detail-download")) {
-                    AppIcon(Glyph.Download, "下载章节")
+                progress?.let { Note("上次读到第 ${it.page} 页") }
+                HorizontalDivider(Modifier.padding(top = 8.dp))
+                Column(Modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = 22.dp).testTag("detail-information"), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Text("信息", Modifier.padding(bottom = 6.dp), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
+                    DetailInfoGroup("ID", listOf(key.id))
+                    DetailInfoGroup("作者", detail.summary.author.split('、').map(String::trim).filter(String::isNotEmpty).ifEmpty { listOf("未提供") })
+                    DetailInfoGroup("标签", detail.summary.tags.filter(String::isNotBlank).distinct(), searchTag)
+                    detail.summary.language?.takeIf(String::isNotBlank)?.let {
+                        DetailInfoGroup("语言", listOf(it))
+                    }
+                    detail.summary.pageCount?.let {
+                        DetailInfoGroup("页数", listOf("$it 页"))
+                    }
+                    if (detail.description.isNotBlank()) {
+                        Text("简介", Modifier.padding(top = 8.dp), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
+                        Text(detail.description, fontSize = 13.sp, lineHeight = 24.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    }
                 }
-                FilledTonalButton(onClick = { read(progress?.chapterId?.takeIf { id -> detail.chapters.any { it.id == id } } ?: detail.chapters.first().id) },
-                    enabled = library.ready && detail.chapters.isNotEmpty(), modifier = Modifier.weight(1f).heightIn(min = 48.dp).testTag("detail-read")) {
-                    Text(if (progress == null) "开始阅读" else "继续阅读")
-                }
+                HorizontalDivider()
+                Text("章节 · ${detail.chapters.size}", Modifier.padding(20.dp), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
             }
-            progress?.let { Note("上次读到第 ${it.page} 页") }
-            HorizontalDivider(Modifier.padding(top = 8.dp))
-            Column(Modifier.fillMaxWidth().padding(20.dp).testTag("detail-information"), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                Text("信息", Modifier.padding(bottom = 6.dp), style = MaterialTheme.typography.titleMedium)
-                DetailInfoGroup("ID", listOf(key.id))
-                DetailInfoGroup("作者", detail.summary.author.split('、').map(String::trim).filter(String::isNotEmpty).ifEmpty { listOf("未提供") })
-                DetailInfoGroup("分类 / 标签", detail.summary.tags.filter(String::isNotBlank).distinct(), searchTag)
-                detail.summary.language?.takeIf(String::isNotBlank)?.let {
-                    DetailInfoGroup("语言", listOf(it))
+            items(detail.chapters, key = { it.id }, contentType = { "chapter" }) { chapter ->
+                val current = chapter.id == progress?.chapterId
+                Row(Modifier.fillMaxWidth().testTag("detail-chapter-${chapter.id}")
+                    .clickable(onClickLabel = "阅读章节") { read(chapter.id) }
+                    .heightIn(min = 56.dp).padding(horizontal = 20.dp, vertical = 14.dp),
+                    horizontalArrangement = Arrangement.spacedBy(16.dp), verticalAlignment = Alignment.CenterVertically) {
+                    Text(chapter.title, Modifier.weight(1f), style = MaterialTheme.typography.bodyMedium,
+                        color = if (current) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface,
+                        maxLines = 1, overflow = TextOverflow.Ellipsis)
+                    val status = listOfNotNull("继续".takeIf { current }, "已下载".takeIf { chapter.id in downloadedChapters }).joinToString(" · ")
+                    if (status.isNotEmpty()) Text(status, style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
-                detail.summary.pageCount?.let {
-                    DetailInfoGroup("页数", listOf("$it 页"))
-                }
-                if (detail.description.isNotBlank()) {
-                    Text("简介", Modifier.padding(top = 8.dp), style = MaterialTheme.typography.titleMedium)
-                    Text(detail.description, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                }
+                if (chapter.id != detail.chapters.last().id) HorizontalDivider(Modifier.padding(horizontal = 20.dp))
             }
-            HorizontalDivider()
-            Text("章节 · ${detail.chapters.size}", Modifier.padding(20.dp), style = MaterialTheme.typography.titleMedium)
         }
-        items(detail.chapters, key = { it.id }, contentType = { "chapter" }) { chapter ->
-            val current = chapter.id == progress?.chapterId
-            Row(Modifier.fillMaxWidth().testTag("detail-chapter-${chapter.id}")
-                .clickable(onClickLabel = "阅读章节") { read(chapter.id) }
-                .heightIn(min = 56.dp).padding(horizontal = 20.dp, vertical = 14.dp),
-                horizontalArrangement = Arrangement.spacedBy(16.dp), verticalAlignment = Alignment.CenterVertically) {
-                Text(chapter.title, Modifier.weight(1f), style = MaterialTheme.typography.bodyLarge,
-                    color = if (current) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface,
-                    maxLines = 1, overflow = TextOverflow.Ellipsis)
-                val status = listOfNotNull("继续".takeIf { current }, "已下载".takeIf { chapter.id in downloadedChapters }).joinToString(" · ")
-                if (status.isNotEmpty()) Text(status, style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant)
-            }
+        SnackbarHost(snackbar, Modifier.align(Alignment.BottomCenter))
         }
-    }
-    SnackbarHost(snackbar, Modifier.align(Alignment.BottomCenter))
     }
 }
 @Composable private fun DetailInfoGroup(label: String, values: List<String>, select: ((String) -> Unit)? = null) {
     if (values.isEmpty()) return
-    Row(Modifier.fillMaxWidth().testTag("detail-info-$label"), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-        Text(label, Modifier.width(76.dp).padding(vertical = 2.dp), style = MaterialTheme.typography.bodyMedium,
+    Row(Modifier.fillMaxWidth().testTag("detail-info-$label"), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+        Text(label, Modifier.width(82.dp).padding(vertical = 2.dp), fontSize = 13.sp, lineHeight = 22.sp,
             color = MaterialTheme.colorScheme.onSurfaceVariant)
         FlowRow(Modifier.weight(1f), horizontalArrangement = Arrangement.spacedBy(12.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
             values.forEach { value ->
                 Text(value, Modifier.then(if (select == null) Modifier else Modifier.clickable(onClickLabel = "搜索标签") { select(value) })
-                    .padding(vertical = 2.dp), style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurface)
+                    .padding(vertical = 2.dp), fontSize = 13.sp, lineHeight = 22.sp, color = MaterialTheme.colorScheme.onSurface)
             }
         }
     }

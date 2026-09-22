@@ -3,6 +3,9 @@ package io.github.ddmoyu.picomic
 import androidx.activity.ComponentActivity
 import androidx.compose.foundation.layout.*
 import androidx.compose.ui.Modifier
+import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.unit.Density
 import androidx.compose.ui.semantics.SemanticsActions
 import androidx.compose.ui.test.*
 import androidx.compose.ui.test.junit4.v2.createAndroidComposeRule
@@ -25,8 +28,9 @@ class DiscoveryListTest {
     @Test fun coversStayLeftTitlesEllipsizeAndMetadataPaginationAndOpeningWork() = verifyList(category = false)
 
     @Test fun categoryChipsOpenAFilteredListAndRemainChipsOnReturn() = verifyList(category = true)
+    @Test fun narrowLargeTextRowsKeepMetadataAndActionsReachable() = verifyList(category = false, width = 320, fontScale = 1.6f)
 
-    private fun verifyList(category: Boolean) {
+    private fun verifyList(category: Boolean, width: Int = 360, fontScale: Float = 1f) {
         val vm = AppViewModel(ui.activity.application)
         val store = ViewModelStore().apply { put("discover-test", vm) }
         val source = Source.PICACG
@@ -50,6 +54,9 @@ class DiscoveryListTest {
             runBlocking {
                 vm.network.awaitReady(); vm.picacgAccount.cancel(); vm.network.sessions.logout("picacg")
                 vm.network.sessions.validateAndCommit(vm.network.sessions.begin("picacg"), SessionCandidate(CredentialKind.USER_TOKEN, "discovery-fixture".toByteArray())) { ValidationResult.Verified("测试账号") }
+                vm.library.awaitReady()
+                vm.library.record(first, ContentProgress(first.key, "1", "1", 1, 0f, "纵向连续"))
+                vm.library.flush()
             }
             vm.content = ContentRepository(vm.network, picacgFactory = { fixture })
             ui.runOnIdle {
@@ -57,9 +64,11 @@ class DiscoveryListTest {
                 vm.source(source)
             }
             ui.setContent { PiComicTheme(false, false) {
-                Box(Modifier.width(360.dp).fillMaxHeight()) {
+                CompositionLocalProvider(LocalDensity provides Density(LocalDensity.current.density, fontScale)) {
+                Box(Modifier.width(width.dp).fillMaxHeight()) {
                     if (category) PiComicApp(vm)
                     else ContentBrowseScreen(false, UiState(), vm, { selected = it }, { _, _ -> }, {})
+                }
                 }
             } }
             if (category) {
@@ -70,6 +79,10 @@ class DiscoveryListTest {
             }
             ui.waitUntil(5000) { ui.onAllNodesWithTag("comic-row-${first.key.stable}").fetchSemanticsNodes().isNotEmpty() }
             val row = ui.onNodeWithTag("comic-row-${first.key.stable}")
+            ui.onNodeWithTag("comic-meta-${first.key.stable}", useUnmergedTree = true)
+                .assertTextEquals(if (category) "picacg · fixture-1 · 中文" else "fixture-1 · 中文")
+            ui.onNodeWithText("继续上次阅读", substring = true).assertDoesNotExist()
+            ui.onNodeWithText("继续阅读", substring = true).assertDoesNotExist()
             val cover = ui.onNodeWithTag("comic-cover-${first.key.stable}", useUnmergedTree = true).fetchSemanticsNode().boundsInRoot
             val title = ui.onNodeWithTag("comic-title-${first.key.stable}", useUnmergedTree = true)
             val titleBounds = title.fetchSemanticsNode().boundsInRoot
@@ -108,7 +121,7 @@ class DiscoveryListTest {
                 ui.runOnIdle { assertEquals(third.key, selected); assertEquals(listOf(1, 2), requests.map { it.page }) }
             }
         } finally {
-            runBlocking { vm.network.sessions.logout("picacg") }
+            runBlocking { vm.library.deleteHistory(first.key); vm.library.flush(); vm.network.sessions.logout("picacg") }
             ui.runOnIdle { store.clear() }
         }
     }

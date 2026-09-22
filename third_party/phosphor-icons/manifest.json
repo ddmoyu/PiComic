@@ -1,0 +1,33 @@
+{
+  "package": "@phosphor-icons/core",
+  "version": "2.1.1",
+  "source": "https://github.com/phosphor-icons/core",
+  "integrity": "sha512-v4ARvrip4qBCImOE5rmPUylOEK4iiED9ZyKjcvzuezqMaiRASCHKcRIuvvxL/twvLpkfnEODCOJp5dM4eZilxQ==",
+  "icons": {
+    "back": "arrow-left",
+    "chevron": "caret-right",
+    "search": "magnifying-glass",
+    "settings": "gear",
+    "explore": "compass",
+    "categories": "squares-four",
+    "book": "book-open",
+    "heart": "heart",
+    "download": "download-simple",
+    "user": "user",
+    "filter": "funnel-simple",
+    "moon": "moon",
+    "refresh": "arrow-clockwise",
+    "folder": "folder",
+    "wifi": "wifi-high",
+    "info": "info",
+    "close": "x",
+    "check": "check",
+    "play": "play",
+    "pause": "pause",
+    "menu": "list",
+    "trash": "trash",
+    "clock": "clock",
+    "plus": "plus",
+    "heart_filled": "heart-fill"
+  }
+}

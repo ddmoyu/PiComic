@@ -76,16 +76,18 @@ import kotlinx.coroutines.launch
             contentWindowInsets=if(reading) WindowInsets(0,0,0,0) else ScaffoldDefaults.contentWindowInsets,
             snackbarHost={SnackbarHost(snackbar)},
             topBar={
-                if(!reading&&!route.startsWith("search")) {
+                if(!reading&&!route.startsWith("search")&&!route.startsWith("content-detail/")) {
                     val title=when(route) { "discover"->"探索";"categories"->"分类";"library"->"书架";"detail/{source}/{id}","content-detail/{source}/{id}"->"作品详情";"category/{category}"->entry?.arguments?.getString("category")?:"分类";"login/{source}"->"账号登录";else->settingsTitles[route]?:"PiComic" }
                     PageTop(title,if(root)null else back,if(root)({go("search")}) else null,if(root)({go("settings")}) else null)
                 }
             },
-            bottomBar={if(root) NavigationBar(containerColor=MaterialTheme.colorScheme.surface) {
+            bottomBar={if(root) Column {
+                HorizontalDivider()
+                NavigationBar(containerColor=MaterialTheme.colorScheme.surface) {
                 listOf(Triple("discover","探索",Glyph.Explore),Triple("categories","分类",Glyph.Grid),Triple("library","书架",Glyph.Book)).forEach { (id,title,icon) ->
                     NavigationBarItem(selected=route==id,onClick={nav.navigate(id){popUpTo(nav.graph.startDestinationId){saveState=true};launchSingleTop=true;restoreState=true}},icon={AppIcon(icon,title)},alwaysShowLabel=false)
                 }
-            }}) { padding ->
+            }}}) { padding ->
             Box(Modifier.fillMaxSize().padding(padding),contentAlignment=Alignment.TopCenter) {
                 NavHost(nav,startDestination="discover",modifier=Modifier.widthIn(max=if(reading) 10000.dp else 900.dp).fillMaxSize()) {
                     systemBackPage("discover", nav, back) {
@@ -116,7 +118,7 @@ import kotlinx.coroutines.launch
                     }
                     systemBackPage("content-detail/{source}/{id}", nav, back) { target ->
                         val key = ComicKey(Source.valueOf(target.arguments!!.getString("source")!!), target.arguments!!.getString("id")!!)
-                        ContentDetailScreen(key,ui,vm,{ chapter -> go("content-reader/${key.source.name}/${Uri.encode(key.id)}/${Uri.encode(chapter)}") },login) { tag -> vm.source(key.source); go("search?query=${Uri.encode(tag)}") }
+                        ContentDetailScreen(key,ui,vm,{ chapter -> go("content-reader/${key.source.name}/${Uri.encode(key.id)}/${Uri.encode(chapter)}") },login,back = back) { tag -> vm.source(key.source); go("search?query=${Uri.encode(tag)}") }
                     }
                     systemBackPage("content-reader/{source}/{id}", nav, back) { target ->
                         val key = ComicKey(Source.valueOf(target.arguments!!.getString("source")!!), target.arguments!!.getString("id")!!)

@@ -14,6 +14,8 @@ import io.github.ddmoyu.picomic.data.Source
 import io.github.ddmoyu.picomic.download.*
 import io.github.ddmoyu.picomic.ui.*
 import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.CompletableDeferred
+import java.util.concurrent.atomic.AtomicInteger
 import org.junit.Assert.*
 import org.junit.Rule
 import org.junit.Test
@@ -33,11 +35,16 @@ class ContentDetailLayoutTest {
             "fixture", DownloadStorage.INTERNAL, state = DownloadState.COMPLETED.name, total = 30, completed = 30)
         var selectedChapter: String? = null
         var selectedTag: String? = null
+        val requests = AtomicInteger()
+        val refreshResult = CompletableDeferred<Unit>()
         val fixture = object : ComicSource {
             override val source = Source.PICACG
             override suspend fun categories() = emptyList<String>()
             override suspend fun search(query: ContentQuery): ContentPage<ComicSummary> = error("No list requests")
-            override suspend fun details(id: String) = detail
+            override suspend fun details(id: String): ComicDetails {
+                if (requests.incrementAndGet() > 1) refreshResult.await()
+                return detail
+            }
             override suspend fun pages(comicId: String, chapter: Chapter): List<PageRef> = error("No image requests")
         }
         try {
@@ -51,11 +58,18 @@ class ContentDetailLayoutTest {
             vm.content = ContentRepository(vm.network, picacgFactory = { fixture })
             ui.setContent { PiComicTheme(false, false) {
                 Box(Modifier.width(360.dp).fillMaxHeight()) {
-                    ContentDetailScreen(key, UiState(), vm, { selectedChapter = it }, {}, { selectedTag = it })
+                    ContentDetailScreen(key, UiState(), vm, { selectedChapter = it }, {}, searchTag = { selectedTag = it })
                 }
             } }
             ui.waitUntil(5000) { ui.onAllNodesWithTag("content-detail").fetchSemanticsNodes().isNotEmpty() }
             val list = ui.onNodeWithTag("content-detail")
+            val refresh = ui.onNodeWithContentDescription("刷新详情")
+            val header = ui.onNodeWithText("作品详情").fetchSemanticsNode().boundsInRoot
+            val refreshBounds = refresh.fetchSemanticsNode().boundsInRoot
+            assertTrue(refreshBounds.left > header.right)
+            assertEquals(header.center.y, refreshBounds.center.y, 1f)
+            assertTrue(refreshBounds.bottom <= list.fetchSemanticsNode().boundsInRoot.top)
+            ui.onAllNodesWithContentDescription("刷新详情").assertCountEquals(1)
             val favorite = ui.onNodeWithTag("detail-favorite").fetchSemanticsNode().boundsInRoot
             val download = ui.onNodeWithTag("detail-download").fetchSemanticsNode().boundsInRoot
             val read = ui.onNodeWithTag("detail-read").fetchSemanticsNode().boundsInRoot
@@ -83,15 +97,16 @@ class ContentDetailLayoutTest {
             ui.onNodeWithText("作者甲", useUnmergedTree = true).assertIsDisplayed()
             ui.onNodeWithText("作者乙", useUnmergedTree = true).assertIsDisplayed()
             list.performScrollToNode(hasText(longTag))
-            val group = ui.onNodeWithTag("detail-info-分类 / 标签", useUnmergedTree = true).fetchSemanticsNode().boundsInRoot
+            val group = ui.onNodeWithTag("detail-info-标签", useUnmergedTree = true).fetchSemanticsNode().boundsInRoot
+            ui.onNodeWithText("分类 / 标签").assertDoesNotExist()
             val wrapped = ui.onNodeWithText(longTag).fetchSemanticsNode().boundsInRoot
             assertTrue(wrapped.left >= group.left && wrapped.right <= group.right)
             assertTrue(wrapped.top > group.top)
             ui.onNodeWithText(longTag).performClick()
             ui.runOnIdle { assertEquals(longTag, selectedTag) }
-            list.performScrollToNode(hasTestTag("detail-chapter-1"))
+            list.performScrollToKey("1")
             val first = ui.onNodeWithTag("detail-chapter-1").fetchSemanticsNode().boundsInRoot
-            val second = ui.onNodeWithTag("detail-chapter-2").fetchSemanticsNode().boundsInRoot
+            val second = ui.onNodeWithTag("detail-chapter-2").assertIsDisplayed().fetchSemanticsNode().boundsInRoot
             assertTrue(first.bottom <= second.top)
             assertEquals(first.left, second.left, 1f)
             assertEquals(first.width, second.width, 1f)
@@ -105,7 +120,17 @@ class ContentDetailLayoutTest {
             ui.onNodeWithTag("detail-chapter-1").assertDoesNotExist()
             ui.onNodeWithTag("detail-chapter-5000").performClick()
             ui.runOnIdle { assertEquals("5000", selectedChapter) }
+            // A fixed header remains usable at the end of a virtualized 5000-chapter list.
+            refresh.assertIsDisplayed().performClick()
+            ui.waitUntil(5000) { requests.get() == 2 }
+            refresh.assertIsNotEnabled()
+            assertEquals(refreshBounds, refresh.fetchSemanticsNode().boundsInRoot)
+            refreshResult.complete(Unit)
+            ui.waitUntil(5000) { ui.onAllNodes(hasContentDescription("刷新详情") and isEnabled()).fetchSemanticsNodes().isNotEmpty() }
+            ui.onNodeWithTag("detail-chapter-5000").assertIsDisplayed()
+            assertEquals(2, requests.get())
         } finally {
+            refreshResult.complete(Unit)
             runBlocking {
                 vm.library.deleteHistory(key); vm.library.favorite(summary, false); vm.library.flush()
                 DownloadDatabase.get(ui.activity).downloads().delete(task.id)

@@ -1,22 +1,16 @@
 @file:OptIn(androidx.compose.material3.ExperimentalMaterial3Api::class)
 package io.github.ddmoyu.picomic.ui
 
-import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.StrokeCap
-import androidx.compose.ui.graphics.drawscope.Stroke
-import androidx.compose.ui.graphics.drawscope.scale
-import androidx.compose.ui.graphics.vector.PathParser
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.semantics.contentDescription
@@ -28,38 +22,28 @@ import androidx.compose.ui.unit.sp
 import io.github.ddmoyu.picomic.R
 import io.github.ddmoyu.picomic.data.*
 
-enum class Glyph(val path: String) {
-    Back("M19 12H5 M12 5l-7 7 7 7"), Next("M9 5l7 7-7 7"),
-    Search("M20 20l-5-5 M17 10a7 7 0 1 1-14 0 7 7 0 0 1 14 0"),
-    Settings("M12 8a4 4 0 1 1 0 8 4 4 0 0 1 0-8 M10 2h4l1 3 3 1 3 2-1 4 1 4-3 2-3 1-1 3h-4l-1-3-3-1-3-2 1-4-1-4 3-2 3-1z"),
-    Explore("M22 12a10 10 0 1 1-20 0 10 10 0 0 1 20 0 M16 8l-3 5-5 3 3-5z"),
-    Grid("M3 3h7v7H3z M14 3h7v7h-7z M3 14h7v7H3z M14 14h7v7h-7z"),
-    Book("M3 4h6q3 0 3 3 0-3 3-3h6v16h-6q-3 0-3 2 0-2-3-2H3z M12 7v15"),
-    Heart("M12 21L3 12C-3 3 8-1 12 6c4-7 15-3 9 6z"),
-    Download("M12 3v12 M7 10l5 5 5-5 M4 16v5h16v-5"),
-    User("M16 7a4 4 0 1 1-8 0 4 4 0 0 1 8 0 M4 21v-2a8 8 0 0 1 16 0v2z"),
-    Filter("M3 5h18 M6 12h12 M9 19h6"),
-    Moon("M20 15A9 9 0 0 1 9 3a9 9 0 1 0 11 12"),
-    Refresh("M20 8A8 8 0 1 0 20 16 M20 3v5h-5"),
-    Folder("M3 5h7l2 3h9v12H3z"),
-    Wifi("M2 8a16 16 0 0 1 20 0 M5 12a11 11 0 0 1 14 0 M8 16a6 6 0 0 1 8 0 M12 20h.01"),
-    Info("M22 12a10 10 0 1 1-20 0 10 10 0 0 1 20 0 M12 11v6 M12 7h.01"),
-    Close("M6 6l12 12 M6 18L18 6"), Check("M4 12l5 5L20 6"),
-    Play("M8 4l12 8-12 8z"), Pause("M8 4v16 M16 4v16"),
-    Menu("M4 6h16 M4 12h16 M4 18h16"), Trash("M3 6h18 M9 6V3h6v3 M5 6l1 15h12l1-15 M10 10v7 M14 10v7"),
-    Clock("M22 12a10 10 0 1 1-20 0 10 10 0 0 1 20 0 M12 6v6l4 3"), Plus("M12 4v16 M4 12h16")
+/** Official Phosphor Regular vectors; a filled heart denotes the selected favorite state. */
+enum class Glyph(@param:androidx.annotation.DrawableRes @get:androidx.annotation.DrawableRes val resource: Int) {
+    Back(R.drawable.ic_phosphor_back), Next(R.drawable.ic_phosphor_chevron),
+    Search(R.drawable.ic_phosphor_search), Settings(R.drawable.ic_phosphor_settings),
+    Explore(R.drawable.ic_phosphor_explore), Grid(R.drawable.ic_phosphor_categories),
+    Book(R.drawable.ic_phosphor_book), Heart(R.drawable.ic_phosphor_heart),
+    HeartFilled(R.drawable.ic_phosphor_heart_filled), Download(R.drawable.ic_phosphor_download),
+    User(R.drawable.ic_phosphor_user), Filter(R.drawable.ic_phosphor_filter),
+    Moon(R.drawable.ic_phosphor_moon), Refresh(R.drawable.ic_phosphor_refresh),
+    Folder(R.drawable.ic_phosphor_folder), Wifi(R.drawable.ic_phosphor_wifi),
+    Info(R.drawable.ic_phosphor_info), Close(R.drawable.ic_phosphor_close),
+    Check(R.drawable.ic_phosphor_check), Play(R.drawable.ic_phosphor_play),
+    Pause(R.drawable.ic_phosphor_pause), Menu(R.drawable.ic_phosphor_menu),
+    Trash(R.drawable.ic_phosphor_trash), Clock(R.drawable.ic_phosphor_clock), Plus(R.drawable.ic_phosphor_plus)
 }
 
 @Composable fun AppIcon(glyph: Glyph, description: String? = null, modifier: Modifier = Modifier, color: Color = LocalContentColor.current) {
-    val path = remember(glyph) { PathParser().parsePathString(glyph.path).toPath() }
-    Canvas(modifier.size(24.dp).then(if(description == null) Modifier else Modifier.semantics { contentDescription = description })) {
-        scale(size.width / 24, size.height / 24, pivot = androidx.compose.ui.geometry.Offset.Zero) {
-            drawPath(path, color, style = Stroke(1.7f, cap = StrokeCap.Round))
-        }
-    }
+    Icon(painterResource(glyph.resource), description, modifier.size(24.dp), tint = color)
 }
-@Composable fun IconAction(glyph: Glyph, description: String, action: () -> Unit) {
-    IconButton(onClick = action) { AppIcon(glyph, description) }
+@Composable fun IconAction(glyph: Glyph, description: String, action: () -> Unit) = IconAction(glyph, description, true, action)
+@Composable fun IconAction(glyph: Glyph, description: String, enabled: Boolean, action: () -> Unit) {
+    IconButton(onClick = action, enabled = enabled, modifier = Modifier.size(48.dp)) { AppIcon(glyph, description) }
 }
 @Composable fun ContentLoading(modifier: Modifier = Modifier.fillMaxSize()) {
     // Page roots may receive exact screen constraints. The container keeps those off the spinner.
@@ -67,33 +51,45 @@ enum class Glyph(val path: String) {
         CircularProgressIndicator(Modifier.size(40.dp).semantics { contentDescription = "正在加载" })
     }
 }
-@Composable fun PageTop(title: String, back: (() -> Unit)? = null, search: (() -> Unit)? = null, settings: (() -> Unit)? = null) {
+@Composable fun PageTop(title: String, back: (() -> Unit)? = null, search: (() -> Unit)? = null, settings: (() -> Unit)? = null,
+    refresh: (() -> Unit)? = null, refreshEnabled: Boolean = true, windowInsets: WindowInsets = TopAppBarDefaults.windowInsets) {
     TopAppBar(title = { Text(title, fontSize = 22.sp, fontWeight = FontWeight.SemiBold) },
-        navigationIcon = { if(back != null) IconAction(Glyph.Back,"返回",back) },
-        actions = { if(search != null) IconAction(Glyph.Search,"搜索",search); if(settings != null) IconAction(Glyph.Settings,"设置",settings) },
-        colors = TopAppBarDefaults.topAppBarColors(containerColor = MaterialTheme.colorScheme.background))
+        navigationIcon = { if(back != null) IconAction(Glyph.Back,"返回",action = back) },
+        actions = {
+            if(search != null) IconAction(Glyph.Search,"搜索",action = search)
+            if(settings != null) IconAction(Glyph.Settings,"设置",action = settings)
+            if(refresh != null) IconAction(Glyph.Refresh,"刷新详情", enabled = refreshEnabled, action = refresh)
+        }, windowInsets = windowInsets,
+        colors = TopAppBarDefaults.topAppBarColors(containerColor = MaterialTheme.colorScheme.background,
+            navigationIconContentColor = MaterialTheme.colorScheme.outline,
+            actionIconContentColor = MaterialTheme.colorScheme.outline))
 }
 @Composable fun SourceTabs(selected: Source, onSelect: (Source) -> Unit) {
     SecondaryScrollableTabRow(selectedTabIndex = selected.ordinal, edgePadding = 12.dp, containerColor = MaterialTheme.colorScheme.background) {
-        Source.entries.forEach { source -> Tab(selected = source == selected, onClick = { onSelect(source) }, text = { Text(source.shortTitle, maxLines = 1) }) }
+        Source.entries.forEach { source -> Tab(selected = source == selected, onClick = { onSelect(source) },
+            selectedContentColor = MaterialTheme.colorScheme.primary, unselectedContentColor = MaterialTheme.colorScheme.onSurfaceVariant,
+            text = { Text(source.shortTitle, maxLines = 1, fontSize = 14.sp,
+                fontWeight = if (source == selected) FontWeight.SemiBold else FontWeight.Normal) }) }
     }
 }
-@Composable fun SectionTitle(title: String, modifier: Modifier = Modifier) {
-    Text(title, modifier.padding(start = 20.dp, end = 20.dp, top = 24.dp, bottom = 10.dp), style = MaterialTheme.typography.titleSmall, color = MaterialTheme.colorScheme.primary)
+@Composable fun SectionTitle(title: String, modifier: Modifier = Modifier, separated: Boolean = false) {
+    if (separated) HorizontalDivider(Modifier.padding(top = 4.dp))
+    Text(title, modifier.padding(start = 20.dp, end = 20.dp, top = 24.dp, bottom = 8.dp),
+        fontSize = 12.sp, lineHeight = 18.sp, fontWeight = FontWeight.SemiBold, color = MaterialTheme.colorScheme.primary)
 }
 @Composable fun Note(text: String, modifier: Modifier = Modifier) {
     Text(text, modifier.padding(horizontal = 20.dp, vertical = 12.dp), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
 }
 @Composable fun SettingRow(title: String, subtitle: String = "", glyph: Glyph? = null, value: String = "", onClick: () -> Unit, trailing: (@Composable () -> Unit)? = null) {
-    Row(Modifier.fillMaxWidth().clickable(onClick = onClick).padding(horizontal = 20.dp, vertical = 14.dp).heightIn(min = 40.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(16.dp)) {
-        if(glyph != null) AppIcon(glyph, color = MaterialTheme.colorScheme.onSurfaceVariant)
+    Row(Modifier.fillMaxWidth().clickable(onClick = onClick).heightIn(min = 72.dp).padding(horizontal = 20.dp, vertical = 14.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(14.dp)) {
+        if(glyph != null) AppIcon(glyph, color = MaterialTheme.colorScheme.outline)
         Column(Modifier.weight(1f)) {
-            Text(title, style = MaterialTheme.typography.bodyLarge)
-            if(subtitle.isNotBlank()) Text(subtitle, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.padding(top = 4.dp))
+            Text(title, style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.Medium)
+            if(subtitle.isNotBlank()) Text(subtitle, style = MaterialTheme.typography.bodySmall, lineHeight = 20.sp, color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.padding(top = 4.dp))
         }
         if(trailing != null) trailing() else {
-            if(value.isNotBlank()) Text(value, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.widthIn(max = 130.dp), maxLines = 2, overflow = TextOverflow.Ellipsis)
-            AppIcon(Glyph.Next, modifier = Modifier.size(16.dp), color = MaterialTheme.colorScheme.outline)
+            if(value.isNotBlank()) Text(value, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.widthIn(max = 112.dp), maxLines = 2, overflow = TextOverflow.Ellipsis)
+            AppIcon(Glyph.Next, modifier = Modifier.size(18.dp), color = MaterialTheme.colorScheme.outline)
         }
     }
 }

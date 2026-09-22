@@ -1,17 +1,34 @@
 # 更新记录
 
-## 未发布
+## 0.3.4
+
+2026-09-22 · Android 8.0+ · arm64-v8a · versionCode 3004
 
 ### 简体中文
 
+- 优化探索、书架和下载列表的封面、文字层级与间距；探索列表去掉与来源 Tab 重复的平台名称，保留作品 ID 和语言信息。
+- 全应用统一采用 Phosphor 图标，收藏选中时显示实心心形；统一浅色与深色配色，提高文字与图标的清晰度。
+- 分类保持紧凑的浅底圆角标签；整理设置页分组、摘要和间距，保留原有入口与顺序。
+- 详情页刷新移到“作品详情”顶栏右侧，滚动目录后仍可使用；“分类 / 标签”简化为“标签”，章节继续以一章一行的虚拟列表显示。
+- 调整搜索结果封面圆角和文字层级，提高阅读工具栏对比度；保留现有阅读与操作方式，不增加探索续读或推荐入口。
 - 各平台“忘记密码”改为使用系统默认浏览器打开，移除内置找回密码网页；保留当前登录页，未安装或无法打开浏览器时显示提示。
 
 ### English
 
+- Refined covers, typography and spacing in discovery, library and download lists. Discovery rows no longer repeat the source already selected in the tab, while retaining the title ID and language.
+- Unified app icons with Phosphor, including a filled heart for saved favorites. Refined light and dark colors for clearer text and icons.
+- Kept category chips compact with subtle rounded backgrounds. Improved settings groups, summaries and spacing while retaining existing entries and their order.
+- Moved Refresh to the upper-right corner of the details toolbar so it stays available when scrolling chapters. Shortened “Categories / Tags” to “Tags” and retained the virtualized, one-chapter-per-row list.
+- Refined search-result covers and typography and improved reader toolbar contrast. Existing reading controls remain unchanged, without adding resume or recommendation entries to discovery.
 - “Forgot password” now opens in the system's default browser instead of an embedded WebView. Keep the login screen in place and show a message if no browser is available or launching it fails.
 
 ### 日本語
 
+- 探索・本棚・ダウンロード一覧の表紙、文字の強弱、余白を調整しました。探索ではタブと重複する配信元名を省き、作品 ID と言語は引き続き表示します。
+- アプリ内のアイコンを Phosphor に統一し、お気に入り登録済みは塗りつぶしのハートで表示します。ライト・ダーク両テーマの文字とアイコンを見やすくしました。
+- 分類は淡い背景のコンパクトな角丸タグを維持し、設定画面のグループ、説明文、余白を整理しました。既存の項目と順序は維持します。
+- 詳細の更新ボタンを「作品詳細」バーの右上へ移し、章一覧をスクロールしても利用できるようにしました。「分類 / タグ」は「タグ」に短縮し、1章1行の仮想リストを維持します。
+- 検索結果の表紙の角丸と文字表示を調整し、読書ツールバーのコントラストを改善しました。操作方法は維持し、探索への続きから読む項目やおすすめ項目は追加していません。
 - 各サービスの「パスワードを忘れた」を、内蔵 WebView ではなくシステムの既定ブラウザーで開くように変更しました。ログイン画面を維持し、ブラウザーが利用できない場合は案内を表示します。
 
 ## 0.3.3

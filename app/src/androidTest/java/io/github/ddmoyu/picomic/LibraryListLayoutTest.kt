@@ -43,6 +43,7 @@ class LibraryListLayoutTest {
                 val title = ui.onNode(hasTestTag("comic-title-${comic.key.stable}") and hasAnyAncestor(hasTestTag(list)), useUnmergedTree = true).fetchSemanticsNode().boundsInRoot
                 assertTrue(cover.right < title.left)
                 row(list).assertTextContains("共 350 张图片")
+                row(list).assertTextContains("picacg · library-list-fixture")
             }
             assertCoverOnLeft("favorites-list")
             row("favorites-list").assertTextContains("测试作者").assertTextContains("测试分类").performClick()

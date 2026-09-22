@@ -335,7 +335,7 @@ data class ReaderLocation(val chapter: Int, val page: Int, val offsetRatio: Floa
             }
         }
         if (tools) {
-            Row(Modifier.align(Alignment.TopCenter).fillMaxWidth().background(MaterialTheme.colorScheme.surface.copy(alpha = .94f)).windowInsetsPadding(WindowInsets.safeDrawing.only(WindowInsetsSides.Top + WindowInsetsSides.Horizontal)), verticalAlignment = Alignment.CenterVertically) {
+            Row(Modifier.align(Alignment.TopCenter).fillMaxWidth().background(MaterialTheme.colorScheme.surfaceContainer.copy(alpha = .97f)).windowInsetsPadding(WindowInsets.safeDrawing.only(WindowInsetsSides.Top + WindowInsetsSides.Horizontal)), verticalAlignment = Alignment.CenterVertically) {
                 IconAction(Glyph.Back, "退出阅读", ::exit)
                 Column(Modifier.weight(1f)) { Text(comic.title, fontSize = 14.sp, maxLines = 1); Text("${comic.chapterTitles[chapter - 1]} · $mode", fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant) }
                 IconAction(if (auto) Glyph.Pause else Glyph.Play, if (auto) "停止自动翻页" else "开始自动翻页") { auto = !auto; if (auto) tools = false }
@@ -344,7 +344,7 @@ data class ReaderLocation(val chapter: Int, val page: Int, val offsetRatio: Floa
                 }
                 IconAction(Glyph.Settings, "阅读设置") { if (!changing) panel = "settings" }
             }
-            Column(Modifier.align(Alignment.BottomCenter).fillMaxWidth().background(MaterialTheme.colorScheme.surface.copy(alpha = .94f)).windowInsetsPadding(WindowInsets.safeDrawing.only(WindowInsetsSides.Bottom + WindowInsetsSides.Horizontal)).padding(horizontal = 20.dp)) {
+            Column(Modifier.align(Alignment.BottomCenter).fillMaxWidth().background(MaterialTheme.colorScheme.surfaceContainer.copy(alpha = .97f)).windowInsetsPadding(WindowInsets.safeDrawing.only(WindowInsetsSides.Bottom + WindowInsetsSides.Horizontal)).padding(horizontal = 20.dp)) {
                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                     Text("${seeking?.toInt() ?: currentPage}", fontSize = 12.sp)
                     Slider(value = seeking ?: currentPage.toFloat(), onValueChange = { seeking = it; interaction++ },

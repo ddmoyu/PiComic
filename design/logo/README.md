@@ -16,6 +16,6 @@
 - `app/src/main/res/drawable/ic_launcher_foreground.xml`：透明前景，彩色和单色主题共用同一 π 轮廓。
 - `app/src/main/res/drawable/ic_launcher.xml`：关于页使用的圆角矢量图标。
 - `app/src/main/res/drawable/ic_stat_picomic.xml`：下载通知使用的透明单色小图标。
-- `prototype/assets/icon.svg`：原型标识与页面图标。
+- `design/illustrations/icon.svg`：测试素材中的标识母版。
 
 启动器负责裁切外轮廓；自适应母版不预制圆角。设计依据：[Android Developers — Adaptive icons](https://developer.android.com/develop/ui/compose/system/icon_design_adaptive?hl=en)。

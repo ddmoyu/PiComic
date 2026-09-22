@@ -7,12 +7,12 @@
 - JVM 单元测试：3 / 3 通过，覆盖筛选组合、关键词标准化、跨平台作品键。
 - Android 仪器测试：5 / 5 通过，覆盖探索 / 搜索 / 分类、详情 / 收藏 / 阅读 / 下载队列、设置 / 账号 / 来源 / 主题 / 更新、搜索旋转恢复、连续阅读短拉 / 换章 / 目录 / 末章。
 - 测试设备：Medium_Phone_API_36.1，Android SDK 36，1080 × 2400；横屏 2400 × 1080。
-- 额外以 1600 × 2560、240 dpi 模拟宽屏检查探索及设置；不是平板专属布局，截图见相册。
+- 额外以 1600 × 2560、240 dpi 模拟宽屏检查探索及设置；不是平板专属布局，历史截图已清理。
 - APK：`artifacts/PiComic-0.1.0-ui-debug.apk`；13,108,829 字节；Debug v2 签名验证通过。
 - 包名 `io.github.ddmoyu.picomic`，versionName `0.1.0-ui`，versionCode 1；minSdk 26、targetSdk 36。包含 arm64-v8a / armeabi-v7a / x86 / x86_64。
 - SHA-256：`1f18153713faa1ed9f96e4d91a591ee29b7c096972d9d7fcbef6c2d2a636e244`。
 
-[查看模拟器截图](index.html)
+历史截图已于 2026-09-22 清理，不再作为当前界面设计依据。
 
 构建日志：`artifacts/build-validation.log`；仪器测试日志：`artifacts/instrumentation.log`；完整 Lint：`app/build/reports/lint-results-debug.html`。
 
@@ -46,7 +46,7 @@
 
 - `assembleDebug`、`assembleDebugAndroidTest`、`lintDebug` 通过；Lint 0 错误、11 个既有警告。构建日志：`artifacts/build-reader-fullscreen.log`。
 - Android 36 模拟器仪器测试 10 / 10 通过：新增测试覆盖连续 / 左右逐页模式默认全屏、点击显隐、滚动不唤出菜单、系统栏真实可见性、内容铺满窗口且点击前后尺寸不变、重新进入阅读、横屏及两种退出方式；原有阅读 / Tab / 页面流程回归通过。日志：`artifacts/reader-fullscreen-tests.log`。
-- 已检查实际 Compose 截图：[默认全屏](screenshots/17-reader-fullscreen.png)、[点击后操作栏](screenshots/18-reader-controls.png)。
+- 已检查实际 Compose 截图：默认全屏（历史截图已清理）、点击后操作栏（历史截图已清理）。
 - 手机包：`artifacts/PiComic-0.1.2-ui-arm64-v8a-debug.apk`；12,851,662 字节，versionCode 3，唯一 ABI 为 `arm64-v8a`。
 - Debug v2 签名及 16 KB 对齐检查通过，证书与上一版相同，支持覆盖安装。架构构建日志：`artifacts/build-arm64-reader-fullscreen.log`。
 - SHA-256：`524ce5bf5e7b25c8756088ad7d4ee418d1a5a1fde10514a1d6424dbf40733e0b`。
@@ -62,7 +62,7 @@
 - 实际注入音量键事件，验证正反翻页；暂停 / 退出后音量键处理和 `FLAG_KEEP_SCREEN_ON` 释放；自动翻页退后台和章末停止；双击、按住放大 / 松开复原覆盖连续及逐页两种布局。
 - Room 写入队列、数据库关闭重开、跨来源隔离与页内比例恢复通过。初测发现的初次测量宽度为零导致恢复偏移丢失、后台等待重组导致按键未释放两项问题均已修复并复测。
 - 本地生成 640 × 16,000 PNG，ZoomImage 分块解码 ready、tile grid 和放大状态验证通过；不代表真实平台全部图片格式与真机内存压力验证完成。
-- `tools/check-reader-process.ps1` 在测试模拟器运行：读取到第 6 页约 14.9% 位置，强制结束进程，重新启动后通过详情继续阅读。恢复前后 PNG 的 SHA-256 相同，画面与页内位置一致。日志：`artifacts/process-reader-result.log`；[恢复前](screenshots/19-reader-resumed.png)、[重启后](screenshots/20-reader-process-restored.png)。
+- `tools/check-reader-process.ps1` 在测试模拟器运行：读取到第 6 页约 14.9% 位置，强制结束进程，重新启动后通过详情继续阅读。恢复前后 PNG 的 SHA-256 相同，画面与页内位置一致。日志：`artifacts/process-reader-result.log`；恢复前（历史截图已清理）、重启后（历史截图已清理）。
 - 手机包：`artifacts/PiComic-0.2.0-alpha-arm64-v8a-debug.apk`，14,233,707 字节；versionCode 4，minSdk 26、targetSdk 36，唯一 ABI 为 `arm64-v8a`。
 - Debug v2 签名、16 KB 对齐检查通过，与上版相同证书，可覆盖安装；SHA-256：`fb3973354deb85a0f5d3d39e66c5cec1516621adbd0c8bacbe9458c76e68a963`。
 - 当前平台目录仍为原创示意内容；网络 / 代理、WebView、真实平台服务、下载 / 同步 / 更新尚未接入，D1 整体未标记完成。未连接实体手机或上传发布平台。
@@ -96,7 +96,7 @@
 - 启动时网络配置无法读取的边界修正后，重新执行全部 JVM 与哔咔 API / 表单 / 页面流程 15 项定向回归，通过。
 - Windows 与 Android 模拟器均实测匿名 `users/profile`，收到预期 401 JSON；模拟器真实探测显式运行 1 / 1，通过，没有提交账号密码。
 - Debug 构建通过，Lint 0 错误、17 警告，无 baseline。APK v2 签名、16 KB 对齐、版本及 SHA-256 已核对。
-- 日志：`artifacts/picacg-final-validation.log`、`artifacts/picacg-final-followup.log`、`artifacts/picacg-live-emulator.log`；截图：[哔咔登录](screenshots/22-picacg-login.png)。
+- 日志：`artifacts/picacg-final-validation.log`、`artifacts/picacg-final-followup.log`、`artifacts/picacg-live-emulator.log`；截图：哔咔登录（历史截图已清理）。
 - 安装包、校验值、固定协议来源及真实账号待测边界见 [哔咔账号登录联调](../../17-哔咔账号登录联调.md)。此历史版本搜索/详情/阅读仍是本地示例，未连接实体手机，未发布安装包。
 
 ## 0.3.0-alpha · 首版功能集成
