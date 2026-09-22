@@ -109,3 +109,15 @@ Runner 只在临时目录恢复密钥，构建结束清理。Gradle 从 `PICOMIC
 - GitHub 与 GH-Proxy 的匿名 `latest` API 均返回 200，指向 `v0.3.4`；GitHub、GH-Proxy、GHProxy.net 的更新清单均返回 200，versionCode 为 3004 且内容一致。本轮未重复下载镜像 APK。
 - 在 API 36.1 的一次性无窗口 x86_64 模拟器中，通过 ARM64 转译安装实际公开的 v0.3.3 APK，再以 `adb install -r` 覆盖安装实际公开的 v0.3.4 APK。安装成功，启动后通过界面确认深色主题和“跳过详情页”设置保留，崩溃缓冲区为空；已安装 `base.apk` 的 SHA-256 与公开 APK 完全一致。该检查不代表实体手机、真实登录凭据或已填充书架数据库的迁移验收。
 - 公开资产与验证记录位于忽略目录 `artifacts/github-release/v0.3.4/`，包括 `public-verification.json`、`public-routes.json`、`upgrade-verification.json` 和升级界面日志；本地预发布验证位于 `artifacts/release-v0.3.4-local/`。云端报告和 mapping 位于 `verification-v0.3.4` Actions artifact。
+
+## v0.3.5 发布验证
+
+2026-09-22 通过 `v0.3.5` 标签发布，源码提交为 `eaf2763`；[Actions 运行 35705352999](https://github.com/ddmoyu/PiComic/actions/runs/35705352999) 成功，[Release](https://github.com/ddmoyu/PiComic/releases/tag/v0.3.5) 已公开并设为 Latest，附简体中文、英文、日文更新日志。
+
+- 修复哔咔、JM、绅士漫画已保存凭据却反复要求登录的问题：优先恢复会话，明确过期后自动登录一次并重试读取，多个请求共享恢复；详见 [29 号文档](29-账号会话自动恢复与验证.md)。
+- 104 项单元测试、49 项不同 Android 回归用例最终通过；云端重新执行 104 项单元测试和 6 项发布脚本测试，均通过。Release lint 本地为 0 errors、49 warnings、1 hint，云端为 0 errors、53 warnings、1 hint。
+- `PiComic-0.3.5.apk`：版本名 `0.3.5`、versionCode `3005`、包名 `io.github.ddmoyu.picomic`、最低 API 26、仅 `arm64-v8a`，大小 3,274,865 字节。
+- 正式发布 APK SHA-256：`326c48327b1cac655444ad810c38017f7756df67f48820253bc389aa05e0ed2e`。匿名下载并独立验证包信息、ABI、v2 签名、固定发行证书和 16 KB zipalign；摘要与 GitHub 资产、更新清单、`SHA256SUMS.txt` 及云端报告一致。R8 mapping 确认包含本次新增会话恢复组件。
+- 当前出口匿名访问 GitHub `latest` API 遇到 403 限流；应用默认备用线路 GH-Proxy 返回 200，指向 v0.3.5。GitHub、GH-Proxy、GHProxy.net 的更新清单均返回 200，内容完全一致且 versionCode 为 3005；经认证的 GitHub `latest` 同样确认 v0.3.5。本轮未重复下载镜像 APK。
+- 在 API 36.1 无窗口模拟器中，安装实际公开的 v0.3.4，再以实际公开的 v0.3.5 覆盖升级成功；深色主题和跳过详情页设置保留，启动未记录崩溃，已安装 APK 摘要与公开资产一致。使用 x86_64 模拟器的 ARM64 转译，没有测试实体手机或用户真实平台账号。
+- 证据保存在忽略目录 `artifacts/github-release/v0.3.5/`；云端报告及 mapping 位于 `verification-v0.3.5` Actions artifact。模拟器验证完成后关闭，全部过程无窗口运行。
