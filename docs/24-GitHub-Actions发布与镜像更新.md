@@ -96,3 +96,16 @@ Runner 只在临时目录恢复密钥，构建结束清理。Gradle 从 `PICOMIC
 - APK SHA-256：`8a302eb325dafc3dd6581ec6d0f71e8a21761a704e7dfc80e52ab40082bb1d8e`。匿名下载后的大小、摘要、包信息、ABI、v2 签名及固定发行证书均与云端验证报告匹配；更新清单、GitHub 资产摘要和 `SHA256SUMS.txt` 一致。
 - GitHub 与 GH-Proxy 的匿名 `latest` API 均返回 200，指向 `v0.3.3`；GitHub、GH-Proxy、GHProxy.net 的更新清单全部返回 200 且内容一致。本轮未重复下载镜像 APK。
 - 证据保存在忽略目录 `artifacts/github-release/v0.3.3/`；Android 日志为 `artifacts/v0.3.3-android-tests.log`、`artifacts/v0.3.3-android-retest.log`、`artifacts/v0.3.3-settings-retest.log`；云端报告和 mapping 位于 `verification-v0.3.3` Actions artifact。
+
+## v0.3.4 发布验证
+
+2026-09-22 通过 `v0.3.4` 标签发布，源码提交为 `5244842`；[Actions 运行 35701989943](https://github.com/ddmoyu/PiComic/actions/runs/35701989943) 成功，[Release](https://github.com/ddmoyu/PiComic/releases/tag/v0.3.4) 已公开并设为 Latest，附简体中文、英文、日文更新日志。
+
+- 本轮将确认后的 HTML 方案移植到 Android：紧凑作品列表和分类、详情顶栏刷新、统一标签文案、设置分组及 Phosphor 图标；保留现有功能和导航。也包含忘记密码入口改用系统默认浏览器。UI 实现范围及验证见 [28 号文档](28-当前UI视觉实现与验证.md)。
+- 发版前 92 项单元测试、6 项发布脚本测试通过；32 项 Android 定向 UI 回归最终通过，另完成竖屏和横屏各 18 张截图检查，以及 HTML 的 54 组宽度/页面组合检查。使用无窗口模拟器和安全合成内容，没有在办公桌面显示漫画页面。
+- 云端重新执行 92 项单元测试和 6 项发布脚本测试，均通过；Release lint 本地为 0 errors、49 warnings、1 hint，云端为 0 errors、53 warnings、1 hint。
+- `PiComic-0.3.4.apk`：版本名 `0.3.4`、versionCode `3004`、包名 `io.github.ddmoyu.picomic`、最低 API 26、仅 `arm64-v8a`，大小 3,274,865 字节。
+- 正式发布 APK SHA-256：`efe9c0cd9e2e5b9f7040a5ecc34881bab7decb4dbadfa5f6624a6a9f4186a13f`。匿名下载后独立检查包信息、ABI、v2 签名、固定发行证书及 16 KB zipalign，均通过；大小和摘要与更新清单、GitHub 资产摘要、`SHA256SUMS.txt` 及云端报告一致。本地预发布构建与云端 APK 分开留存，不混用摘要。
+- GitHub 与 GH-Proxy 的匿名 `latest` API 均返回 200，指向 `v0.3.4`；GitHub、GH-Proxy、GHProxy.net 的更新清单均返回 200，versionCode 为 3004 且内容一致。本轮未重复下载镜像 APK。
+- 在 API 36.1 的一次性无窗口 x86_64 模拟器中，通过 ARM64 转译安装实际公开的 v0.3.3 APK，再以 `adb install -r` 覆盖安装实际公开的 v0.3.4 APK。安装成功，启动后通过界面确认深色主题和“跳过详情页”设置保留，崩溃缓冲区为空；已安装 `base.apk` 的 SHA-256 与公开 APK 完全一致。该检查不代表实体手机、真实登录凭据或已填充书架数据库的迁移验收。
+- 公开资产与验证记录位于忽略目录 `artifacts/github-release/v0.3.4/`，包括 `public-verification.json`、`public-routes.json`、`upgrade-verification.json` 和升级界面日志；本地预发布验证位于 `artifacts/release-v0.3.4-local/`。云端报告和 mapping 位于 `verification-v0.3.4` Actions artifact。
