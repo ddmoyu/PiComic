@@ -1,5 +1,27 @@
 # 更新记录
 
+## 0.3.7
+
+2026-09-22 · Android 8.0+ · arm64-v8a / armeabi-v7a / x86_64 · versionCode 3007
+
+### 简体中文
+
+- GitHub Actions 同时构建并发布 ARM64、ARMv7（32 位 ARM）和 x86_64 三种独立安装包，文件名明确标注架构。
+- 应用内更新根据设备支持的架构自动选择对应安装包，ARM64 设备优先使用 ARM64；三个包使用相同版本号和发行签名，兼容现有更新协议。
+- 发布时逐包检查实际架构、版本、签名和文件摘要，三种架构齐全且上传读回校验通过后才公开版本。
+
+### English
+
+- GitHub Actions now builds and publishes standalone ARM64, ARMv7 (32-bit ARM) and x86_64 APKs, with the architecture included in each filename.
+- In-app updates select the compatible APK in device ABI preference order. All three packages share the same version and release signature, using the existing update protocol.
+- Every package is checked for ABI, version, signature and checksum. Releases become public only after all three APKs are uploaded and verified by download.
+
+### 日本語
+
+- GitHub Actions で ARM64、ARMv7（32ビット ARM）、x86_64 の独立した APK をビルド・公開し、ファイル名にアーキテクチャを明記します。
+- アプリ内更新では端末の対応 ABI の優先順で APK を選択します。3種類とも同じバージョンと署名を使用し、既存の更新プロトコルに対応します。
+- 各 APK の ABI・バージョン・署名・ハッシュを検証し、3種類すべてのアップロードと再ダウンロード検証が成功してから公開します。
+
 ## 0.3.6
 
 2026-09-22 · Android 8.0+ · arm64-v8a · versionCode 3006

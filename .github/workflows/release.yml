@@ -64,7 +64,7 @@ jobs:
               output.write(f'PICOMIC_KEYSTORE_FILE={path}\n')
           PY
 
-      - name: 测试并构建签名 Release
+      - name: 测试并构建三种架构的签名 Release
         env:
           RELEASE_VERSION: ${{ steps.version.outputs.version }}
           PICOMIC_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
@@ -73,7 +73,7 @@ jobs:
         run: |
           python3 tools/test_ci_release.py
           bash ./gradlew :app:testDebugUnitTest :app:lintRelease :app:assembleRelease \
-            -PreleaseVersionName="$RELEASE_VERSION" -PtargetAbi=arm64-v8a \
+            -PreleaseVersionName="$RELEASE_VERSION" -PreleaseAbiSplits=true \
             -PreleaseOwner="$GITHUB_REPOSITORY_OWNER" -PreleaseRepo="${GITHUB_REPOSITORY#*/}" \
             --no-daemon --console=plain
 
@@ -81,7 +81,9 @@ jobs:
         shell: pwsh
         env:
           SIGNER_SHA256: ${{ secrets.ANDROID_SIGNER_SHA256 }}
-        run: ./tools/prepare-release.ps1 -Apk app/build/outputs/apk/release/app-release.apk -ExpectedSignerSha256 $env:SIGNER_SHA256 -SdkRoot $env:ANDROID_HOME
+        run: |
+          $apks = @('arm64-v8a', 'armeabi-v7a', 'x86_64') | ForEach-Object { "app/build/outputs/apk/release/app-$_-release.apk" }
+          ./tools/prepare-release.ps1 -Apk $apks -ExpectedSignerSha256 $env:SIGNER_SHA256 -SdkRoot $env:ANDROID_HOME
 
       - name: 校验发布资产
         run: python3 tools/ci-release.py validate --tag "$RELEASE_TAG"

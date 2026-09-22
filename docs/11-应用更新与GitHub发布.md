@@ -32,7 +32,7 @@
 
 - `tag_name`：`v<versionName>`，例如 `v1.1.0`。
 - Release 标题：`PiComic <versionName>`；正文为简洁、完整的用户可见更新说明。
-- 一个包含 `arm64-v8a` 的独立完整签名 APK，不把 split APK 当作独立包下载。
+- 三个独立完整签名 APK，分别为 `arm64-v8a`、`armeabi-v7a` 和 `x86_64`。每个包可单独安装，不下载依赖 base APK 的配置分包。
 - `picomic-update.json`：该版本机器可读清单，与 APK 一起作为 Release asset 上传。
 
 版本名、包名、versionCode、minSdk、ABI、文件大小与 SHA-256 均从最终签名 APK/构建输出生成，不能手工填写一份与 APK 不一致的清单。ABIs 按本项目实际构建和测试结果确定。

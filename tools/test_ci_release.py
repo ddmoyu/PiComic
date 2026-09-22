@@ -1,3 +1,4 @@
+import copy
 import importlib.util
 import json
 from pathlib import Path
@@ -22,7 +23,7 @@ class ReleaseTests(unittest.TestCase):
             directory = Path(tmp)
             notes = directory / "notes.md"
             notes.write_text("- 本次更新\n", encoding="utf-8")
-            files = [directory / name for name in ("PiComic-1.2.3.apk", "picomic-update.json", "SHA256SUMS.txt")]
+            files = [directory / f"PiComic-1.2.3-{abi}.apk" for abi in ci.RELEASE_ABIS] + [directory / "picomic-update.json", directory / "SHA256SUMS.txt"]
             github = MagicMock()
             github.prefix = "repos/ddmoyu/PiComic"
             draft = {"id": 7, "draft": True, "prerelease": False, "assets": []}
@@ -37,7 +38,7 @@ class ReleaseTests(unittest.TestCase):
                         ci.publish(directory, "v1.2.3", "ddmoyu/PiComic", notes)
                 else:
                     ci.publish(directory, "v1.2.3", "ddmoyu/PiComic", notes)
-                upload.assert_called_once()
+                upload.assert_called_once_with(["gh", "release", "upload", "v1.2.3", *map(str, files), "--repo", "ddmoyu/PiComic"], check=True)
             github.verify_uploaded.assert_called_once_with(draft, files)
             published = [call for call in github.api.call_args_list if len(call.args) > 2 and call.args[1] == "PATCH"]
             self.assertEqual(0 if readback_failure else 1, len(published))
@@ -72,30 +73,76 @@ class ReleaseTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             ci.release_notes("# 没有说明", "1.2.3")
 
-    def test_manifest_tag_abi_and_bytes_cannot_diverge(self):
+    def make_artifacts(self, directory):
+        artifacts = []
+        for abi in ci.RELEASE_ABIS:
+            apk = directory / f"PiComic-1.2.3-{abi}.apk"
+            apk.write_bytes(f"validated-fixture-{abi}".encode())
+            artifacts.append({"assetName": apk.name, "abis": [abi], "minSdk": 26,
+                              "sizeBytes": apk.stat().st_size, "sha256": ci.sha256(apk)})
+        return {"schemaVersion": 1, "tag": "v1.2.3", "versionName": "1.2.3", "versionCode": 1002003,
+                "packageName": "io.github.ddmoyu.picomic", "channel": "stable", "artifacts": artifacts}
+
+    def save_manifest(self, directory, manifest, development=False):
+        (directory / "picomic-update.json").write_text(json.dumps(manifest), encoding="utf-8")
+        (directory / "verification.json").write_text(json.dumps({"development": development,
+            "manifest": manifest, "signerSha256": "a" * 64}), encoding="utf-8")
+
+    def test_three_architectures_are_bound_to_tag_checksums_and_report(self):
         with tempfile.TemporaryDirectory() as tmp:
             directory = Path(tmp)
-            apk = directory / "PiComic-1.2.3.apk"
-            apk.write_bytes(b"validated-fixture-apk")
-            manifest = {"schemaVersion": 1, "tag": "v1.2.3", "versionName": "1.2.3", "versionCode": 1002003,
-                        "packageName": "io.github.ddmoyu.picomic", "channel": "stable", "artifacts": [{
-                            "assetName": apk.name, "abis": ["arm64-v8a"], "minSdk": 26,
-                            "sizeBytes": apk.stat().st_size, "sha256": ci.sha256(apk)}]}
-            def save(development=False):
-                (directory / "picomic-update.json").write_text(json.dumps(manifest), encoding="utf-8")
-                (directory / "verification.json").write_text(json.dumps({"development": development,
-                    "manifest": manifest, "signerSha256": "a" * 64}), encoding="utf-8")
-            save()
-            self.assertEqual(3, len(ci.validate_artifacts(directory, "v1.2.3")))
+            manifest = self.make_artifacts(directory)
+            self.save_manifest(directory, manifest)
+            files = ci.validate_artifacts(directory, "v1.2.3")
+            self.assertEqual(5, len(files))
+            expected = {f"PiComic-1.2.3-{abi}.apk" for abi in ci.RELEASE_ABIS} | {"picomic-update.json"}
+            sums = (directory / "SHA256SUMS.txt").read_text().splitlines()
+            self.assertEqual(expected, {line.split("  ")[1] for line in sums})
+            for line in sums:
+                digest, name = line.split("  ")
+                self.assertEqual(ci.sha256(directory / name), digest)
             with self.assertRaises(ValueError):
                 ci.validate_artifacts(directory, "v1.2.4")
-            save(True)
+            self.save_manifest(directory, manifest, development=True)
             with self.assertRaises(ValueError):
                 ci.validate_artifacts(directory, "v1.2.3")
-            save()
-            apk.write_bytes(b"tampered")
-            with self.assertRaises(ValueError):
-                ci.validate_artifacts(directory, "v1.2.3")
+
+    def test_missing_duplicate_unknown_or_mislabeled_abi_is_rejected(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            directory = Path(tmp)
+            baseline = self.make_artifacts(directory)
+            mutations = [
+                lambda rows: rows.pop(),
+                lambda rows: rows.append(rows[0]),
+                lambda rows: rows.__setitem__(1, rows[0]),
+                lambda rows: rows[1].update(abis=["x86"]),
+                lambda rows: rows[1].update(abis=["armeabi-v7a", "arm64-v8a"]),
+                lambda rows: rows[1].update(assetName=rows[0]["assetName"]),
+                lambda rows: rows[2].update(assetName="../PiComic-1.2.3-x86_64.apk"),
+                lambda rows: rows[1].update(minSdk=28),
+            ]
+            for index, mutate in enumerate(mutations):
+                with self.subTest(case=index):
+                    manifest = copy.deepcopy(baseline)
+                    mutate(manifest["artifacts"])
+                    self.save_manifest(directory, manifest)
+                    with self.assertRaises(ValueError):
+                        ci.validate_artifacts(directory, "v1.2.3")
+
+    def test_every_architecture_is_verified_before_upload(self):
+        for abi in ci.RELEASE_ABIS:
+            for mode in ("tampered", "missing"):
+                with self.subTest(abi=abi, mode=mode), tempfile.TemporaryDirectory() as tmp:
+                    directory = Path(tmp)
+                    manifest = self.make_artifacts(directory)
+                    self.save_manifest(directory, manifest)
+                    apk = directory / f"PiComic-1.2.3-{abi}.apk"
+                    if mode == "tampered":
+                        apk.write_bytes(b"changed")
+                    else:
+                        apk.unlink()
+                    with self.assertRaises((ValueError, FileNotFoundError)):
+                        ci.validate_artifacts(directory, "v1.2.3")
 
 
 if __name__ == "__main__":

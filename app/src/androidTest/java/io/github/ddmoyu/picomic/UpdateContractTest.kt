@@ -27,6 +27,39 @@ class UpdateContractTest {
             .put("assets", JSONArray().put(asset(1, "picomic-update.json", manifest.toString().toByteArray().size.toLong())).put(asset(2, "PiComic.apk", 1234)))
     }
     private fun bundle(manifest: JSONObject = this.manifest, release: JSONObject = release(manifest)) = UpdateContract.bundle(release.toString().toByteArray(), manifest.toString().toByteArray(), channel, packageName)
+    @Test fun independentApksFollowDeviceAbiPriorityAndSurviveDownloadRestore() {
+        val manifest = manifest
+        // Intentionally put ARMv7 first: release asset order must not choose a 32-bit package on an ARM64 device.
+        val abis = listOf("armeabi-v7a", "x86_64", "arm64-v8a")
+        val artifacts = JSONArray()
+        abis.forEach { abi -> artifacts.put(JSONObject().put("assetName", "PiComic-1.0-$abi.apk")
+            .put("abis", JSONArray(listOf(abi))).put("minSdk", 26).put("sizeBytes", 1234).put("sha256", "a".repeat(64))) }
+        manifest.put("artifacts", artifacts)
+        val release = release(manifest)
+        val assets = JSONArray().put(release.getJSONArray("assets").getJSONObject(0))
+        abis.forEachIndexed { index, abi -> assets.put(JSONObject().put("id", index + 2).put("name", "PiComic-1.0-$abi.apk")
+            .put("size", 1234).put("state", "uploaded").put("browser_download_url", channel.page + "download/v1.0/PiComic-1.0-$abi.apk")) }
+        release.put("assets", assets)
+        val bundle = bundle(manifest, release)
+        listOf(listOf("arm64-v8a", "armeabi-v7a") to "arm64-v8a", listOf("armeabi-v7a", "armeabi") to "armeabi-v7a",
+            listOf("x86_64", "arm64-v8a", "x86") to "x86_64").forEach { (device, expected) ->
+            val selected = bundle.select(device, 26)!!
+            assertEquals("PiComic-1.0-$expected.apk", selected.asset.name)
+            val context = ApplicationProvider.getApplicationContext<android.content.Context>()
+            val dir = File(context.cacheDir, "update-abi-${System.nanoTime()}")
+            try {
+                val store = UpdateStore(dir, channel, packageName)
+                store.write("task.json", UpdateStore.Saved(bundle, selected.asset.id))
+                val restored = store.read("task.json")!!
+                assertEquals(selected, restored.bundle.artifacts.single { it.asset.id == restored.artifactId })
+                assertEquals(selected, restored.bundle.select(device, 26))
+            } finally { dir.deleteRecursively() }
+        }
+        assertNull(bundle.select(listOf("x86"), 36))
+        assertNull(bundle.select(listOf("arm64-v8a", "armeabi-v7a"), 25))
+        // An older single-APK manifest remains accepted by the same protocol.
+        assertEquals("PiComic.apk", bundle().select(listOf("arm64-v8a"), 26)!!.asset.name)
+    }
     @Test fun manifestIsBoundToReleaseVersionPackageAssetsAndDevice() {
         val bundle = bundle(); assertEquals(90L, bundle.versionCode)
         assertNotNull(bundle.select(listOf("x86_64", "x86"), 26)); assertNull(bundle.select(listOf("x86"), 36)); assertNull(bundle.select(listOf("arm64-v8a"), 25))

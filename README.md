@@ -9,7 +9,7 @@
     <a href="#轻量安装与权限"><img src="https://img.shields.io/badge/%E6%9D%83%E9%99%90-%E6%8C%89%E9%9C%80%E7%94%B3%E8%AF%B7-2E7D32?style=flat-square" alt="权限按需申请" /></a>
     <a href="https://github.com/ddmoyu/PiComic/releases"><img src="https://img.shields.io/github/downloads/ddmoyu/PiComic/total?style=flat-square&amp;label=Downloads&amp;color=4560E8" alt="累计下载量" /></a>
     <a href="https://github.com/ddmoyu/PiComic/releases/latest"><img src="https://img.shields.io/badge/Android-8.0%2B-3DDC84?style=flat-square&amp;logo=android&amp;logoColor=white" alt="Android 8.0 及以上" /></a>
-    <a href="https://github.com/ddmoyu/PiComic/releases/latest"><img src="https://img.shields.io/badge/ABI-arm64--v8a-555555?style=flat-square" alt="arm64-v8a" /></a>
+    <a href="https://github.com/ddmoyu/PiComic/releases/latest"><img src="https://img.shields.io/badge/ABI-arm64--v8a%20%7C%20armeabi--v7a%20%7C%20x86__64-555555?style=flat-square" alt="arm64-v8a / armeabi-v7a / x86_64" /></a>
     <a href="https://github.com/ddmoyu/PiComic/stargazers"><img src="https://img.shields.io/github/stars/ddmoyu/PiComic?style=flat-square&amp;label=Stars&amp;color=E8A045" alt="GitHub Stars" /></a>
   </p>
   <p>
@@ -61,7 +61,9 @@
 
 ## 下载与使用
 
-**系统要求：Android 8.0 及以上，64 位 ARM 设备（arm64-v8a）。**
+**系统要求：Android 8.0 及以上，支持 arm64-v8a、armeabi-v7a（32 位 ARM）和 x86_64。**
+
+Release 为每种架构提供一个独立完整 APK，文件名末尾标注架构。应用内更新会按设备支持的 ABI 自动匹配；同时支持 ARM64 / ARMv7 的设备优先选择 ARM64。
 
 1. 前往 [最新版本](https://github.com/ddmoyu/PiComic/releases/latest)，在 **Assets** 中下载 `.apk` 文件并安装。
 2. 打开应用，选择漫画源；需要登录的来源可先在「设置 → 账号管理」中配置。

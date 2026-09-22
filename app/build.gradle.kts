@@ -4,6 +4,8 @@ plugins {
     alias(libs.plugins.ksp)
 }
 val targetAbi = providers.gradleProperty("targetAbi").orNull
+val releaseAbiSplits = providers.gradleProperty("releaseAbiSplits").orNull == "true"
+require(!releaseAbiSplits || targetAbi == null) { "releaseAbiSplits and targetAbi cannot be combined" }
 val localReleaseSigning = providers.gradleProperty("localReleaseSigning").orNull == "true"
 val releaseOwner = providers.gradleProperty("releaseOwner").orElse("ddmoyu").get()
 val releaseRepo = providers.gradleProperty("releaseRepo").orElse("PiComic").get()
@@ -42,6 +44,12 @@ android {
         targetAbi?.let { ndk.abiFilters += it }
     }
     buildFeatures { compose = true; buildConfig = true }
+    splits.abi {
+        isEnable = releaseAbiSplits
+        reset()
+        include("arm64-v8a", "armeabi-v7a", "x86_64")
+        isUniversalApk = false
+    }
     if (releaseKeyFile != null) signingConfigs.create("production") {
         storeFile = file(releaseKeyFile)
         storePassword = releaseStorePassword

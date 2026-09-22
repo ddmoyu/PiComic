@@ -4,8 +4,16 @@
 
 - 源码和安装包仓库：公开的 `ddmoyu/PiComic`。
 - `.github/workflows/release.yml` 仅监听推送标签 `vX.Y.Z`，没有分支提交、PR、定时或手动打包触发器。标签还会执行严格格式校验：不接受前导零、预发布或 build 后缀。
-- 一个包含 `arm64-v8a` 的完整 Release APK，最低 Android 8；启用 R8，关闭调试，使用固定专用发行证书。
-- 发布文件为 `PiComic-X.Y.Z.apk`、`picomic-update.json`、`SHA256SUMS.txt`；构建校验报告及 R8 mapping 保留在 Actions artifact 14 天，不加入安装包。
+- 三个分别包含 `arm64-v8a`、`armeabi-v7a`、`x86_64` 的独立完整 Release APK，最低 Android 8；启用 R8，关闭调试，使用固定专用发行证书。
+- 发布文件为 `PiComic-X.Y.Z-arm64-v8a.apk`、`PiComic-X.Y.Z-armeabi-v7a.apk`、`PiComic-X.Y.Z-x86_64.apk`、`picomic-update.json`、`SHA256SUMS.txt`；构建校验报告及 R8 mapping 保留在 Actions artifact 14 天，不加入安装包。
+
+### 多架构构建与更新匹配
+
+- 正式构建使用 `-PreleaseAbiSplits=true`，通过 Android Gradle 的 [ABI 多 APK 构建](https://developer.android.com/build/configure-apk-splits) 一次生成三个独立完整包，共享同一次 R8 优化。此参数与本地单架构参数 `targetAbi` 互斥；默认开发构建保持原状。
+- 三个包使用相同 `versionName`、`versionCode`、包名、minSdk 和发行证书。不按 ABI 修改 versionCode，避免设备跨架构更新时出现降级判断。
+- `prepare-release.ps1 -Apk <路径数组>` 从每个实际 APK 检查签名和 native lib ABI，拒绝版本不一致或重复架构；合并生成 schemaVersion 1 更新清单，保持旧客户端兼容。
+- 发布脚本强制检查三种架构齐全、文件名与实际 ABI 对应、大小和摘要不变；草稿中五项资产全部读回一致后才公开为 Latest。
+- 客户端按 `Build.SUPPORTED_ABIS` 的设备优先顺序匹配清单，ARM64 优先 ARM64、32 位 ARM 选择 ARMv7、x86_64 优先 x86_64；下载恢复保留所选资产 ID，安装前再核对 APK 实际 ABI、签名与版本。
 
 ## 版本和操作
 
@@ -134,3 +142,11 @@ Runner 只在临时目录恢复密钥，构建结束清理。Gradle 从 `PICOMIC
 - 匿名下载后的包信息、v2 签名、固定发行证书及 16 KB zipalign 检查通过；摘要与 GitHub 资产、更新清单、校验和文件及云端报告一致。GitHub / GH-Proxy 最新版本 API 和 GitHub / GH-Proxy / GHProxy.net 更新清单均返回 200，指向 v0.3.6，清单内容一致。
 - 在无窗口 API 36.1 模拟器中，由实际公开的 v0.3.5 覆盖安装实际公开的 v0.3.6 成功，原选中 picacg、深色主题和跳过详情页设置保留，崩溃缓冲区为空，已安装 APK 摘要匹配公开资产。未进行实体手机验证；完成后关闭模拟器。
 - 公开资产和读回证据位于 `artifacts/github-release/v0.3.6/`，云端报告与 mapping 位于 `verification-v0.3.6` Actions artifact。
+
+## v0.3.7 多架构发布准备
+
+- 本地签名构建输出 ARM64、ARMv7、x86_64 三个独立完整 APK，均为 versionCode 3007、minSdk 26、同一发行证书；每包均通过 v2 签名、实际 native lib ABI、大小/摘要及 16 KB zipalign 检查。
+- 107 项 JVM 单元测试、8 项发布脚本测试、16 项 Android 更新模块测试通过，覆盖 ABI 优先级、32 位 ARM 选择、无匹配架构、最低系统限制、旧清单兼容、多包清单解析、下载恢复、镜像与签名检查。真实 APK 混入旧版本或重复架构时，准备脚本均拒绝且不生成资产。
+- Release lint 为 0 errors、49 warnings、1 hint。无窗口 API 36.1 模拟器由公开 v0.3.6 覆盖安装本地 v0.3.7 ARM64 包，再切换同签名 x86_64 包，均安装并启动成功，原深色主题和跳过详情页设置保留，崩溃缓冲区为空。
+- ARMv7 完成构建、签名、ABI、清单匹配与静态校验，本轮没有可运行 ARMv7 的实体设备。ARM64 运行检查使用模拟器转译；x86_64 使用原生运行。发布后的公开文件另行读回验证，不混用本地与云端摘要。
+- 本地证据位于 `artifacts/release-v0.3.7-local/`、`artifacts/v0.3.7-local-build.log`、`artifacts/v0.3.7-android-tests.log` 及 `artifacts/v0.3.7-local-upgrade-*.log`。

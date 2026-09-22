@@ -10,6 +10,8 @@ import re
 import subprocess
 import tempfile
 
+RELEASE_ABIS = ("arm64-v8a", "armeabi-v7a", "x86_64")
+
 
 def version_from_tag(tag: str) -> tuple[str, int]:
     match = re.fullmatch(r"v(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)", tag)
@@ -61,19 +63,30 @@ def validate_artifacts(directory: Path, tag: str) -> list[Path]:
         raise ValueError("缺少最终 APK 的正式构建校验报告")
     if not re.fullmatch(r"[0-9a-f]{64}", report.get("signerSha256", "")):
         raise ValueError("缺少预期签名证书摘要")
-    if len(manifest["artifacts"]) != 1:
-        raise ValueError("本发布流程只接受一个 arm64 APK")
-    artifact = manifest["artifacts"][0]
-    if artifact["assetName"] != f"PiComic-{version}.apk" or artifact["abis"] != ["arm64-v8a"]:
-        raise ValueError("APK 文件名或 ABI 与发布目标不符")
-    apk = directory / artifact["assetName"]
-    if apk.stat().st_size != artifact["sizeBytes"] or sha256(apk) != artifact["sha256"]:
-        raise ValueError("待上传 APK 的大小或摘要已变化")
+    artifacts = manifest["artifacts"]
+    if not isinstance(artifacts, list) or len(artifacts) != len(RELEASE_ABIS):
+        raise ValueError("发布必须包含 ARM64、ARMv7 和 x86_64 三个完整 APK")
+    apks = []
+    remaining = set(RELEASE_ABIS)
+    for artifact in artifacts:
+        if set(artifact) != {"assetName", "abis", "minSdk", "sizeBytes", "sha256"}:
+            raise ValueError("APK 清单字段不符合客户端合同")
+        abis = artifact["abis"]
+        if not isinstance(abis, list) or len(abis) != 1 or abis[0] not in remaining:
+            raise ValueError("APK 架构缺失、重复或不是发布目标")
+        abi = abis[0]
+        remaining.remove(abi)
+        if artifact["assetName"] != f"PiComic-{version}-{abi}.apk" or artifact["minSdk"] != 26:
+            raise ValueError("APK 文件名或最低系统版本与发布目标不符")
+        apk = directory / artifact["assetName"]
+        if apk.stat().st_size != artifact["sizeBytes"] or sha256(apk) != artifact["sha256"]:
+            raise ValueError(f"待上传 APK 的大小或摘要已变化：{abi}")
+        apks.append(apk)
     if manifest_file.stat().st_size > 65536:
         raise ValueError("更新清单超过客户端大小限制")
     sums = directory / "SHA256SUMS.txt"
-    sums.write_text("".join(f"{sha256(file)}  {file.name}\n" for file in (apk, manifest_file)), encoding="utf-8")
-    return [apk, manifest_file, sums]
+    sums.write_text("".join(f"{sha256(file)}  {file.name}\n" for file in [*apks, manifest_file]), encoding="utf-8")
+    return [*apks, manifest_file, sums]
 
 
 class GitHub:
