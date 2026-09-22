@@ -1,80 +1,68 @@
-# PiComic
+<div align="center">
+  <img src="design/logo/picomic-rounded.svg" width="112" height="112" alt="PiComic 图标" />
+  <h1>PiComic</h1>
+  <p>把喜欢的漫画，放进随身书架。</p>
+  <p>面向 Android 的多来源漫画阅读器，集发现、阅读、收藏与离线下载于一体。</p>
+  <p>
+    <a href="https://github.com/ddmoyu/PiComic/releases/latest"><img src="https://img.shields.io/github/v/release/ddmoyu/PiComic?style=flat-square&amp;label=Release&amp;color=4560E8" alt="最新版本" /></a>
+    <a href="https://github.com/ddmoyu/PiComic/releases"><img src="https://img.shields.io/github/downloads/ddmoyu/PiComic/total?style=flat-square&amp;label=Downloads&amp;color=4560E8" alt="累计下载量" /></a>
+    <a href="https://github.com/ddmoyu/PiComic/releases/latest"><img src="https://img.shields.io/badge/Android-8.0%2B-3DDC84?style=flat-square&amp;logo=android&amp;logoColor=white" alt="Android 8.0 及以上" /></a>
+    <a href="https://github.com/ddmoyu/PiComic/releases/latest"><img src="https://img.shields.io/badge/ABI-arm64--v8a-555555?style=flat-square" alt="arm64-v8a" /></a>
+    <a href="https://github.com/ddmoyu/PiComic/stargazers"><img src="https://img.shields.io/github/stars/ddmoyu/PiComic?style=flat-square&amp;label=Stars&amp;color=E8A045" alt="GitHub Stars" /></a>
+  </p>
+  <p>
+    <a href="https://github.com/ddmoyu/PiComic/releases/latest">下载 Android APK</a> ·
+    <a href="https://github.com/ddmoyu/PiComic/releases">更新日志</a> ·
+    <a href="https://github.com/ddmoyu/PiComic/issues">问题反馈</a>
+  </p>
+</div>
 
-Android 手机漫画阅读 App · Kotlin / Jetpack Compose · 最新正式版 0.3.1
+## 为阅读而设计
 
-[下载 Android APK](https://github.com/ddmoyu/PiComic/releases/download/v0.3.1/PiComic-0.3.1.apk) · [中英日更新日志](https://github.com/ddmoyu/PiComic/releases/tag/v0.3.1)
+从探索页发现作品，在分类中按兴趣查找，把喜欢的漫画收藏到书架。打开作品即可阅读，阅读进度会自动保存在本机，下次可以从作品详情或书架历史接着看。
 
-支持 Android 8.0+、arm64 设备。旧测试签名版本请先备份，再卸载重装；同一正式发行证书的版本可覆盖安装。
+| 功能 | 你可以做什么 |
+| --- | --- |
+| 多来源浏览 | 在六组内置漫画源之间切换，按来源搜索作品、浏览分类、查看详情与章节。 |
+| 按习惯阅读 | 选择纵向连续、从左向右或从右向左阅读，使用双击缩放、音量键翻页与自动翻页。 |
+| 随身书架 | 集中管理本地收藏、阅读历史与下载，恢复上次的章节、页码和滚动位置。 |
+| 离线阅读 | 下载章节后离线打开，支持任务暂停、继续与下载目录选择。 |
+| 个性化设置 | 调整主题、阅读显示与作品阅读偏好，按关键词和语言筛选内容。 |
+| 账号管理 | 按来源管理登录状态，加密保存账号；哔咔、JM、绅士漫画可记住密码并一键重新登录。 |
+| 备份与迁移 | 导出带密码保护的 `.picomic` 备份，可选择包含账号；通过 WebDAV 同步书架、历史与可迁移偏好。 |
+| 应用内更新 | 在设置中检查新版本、查看更新说明并下载安装包。 |
 
-项目目录：`E:\ddmoyu\PiComic`。首版功能代码已涵盖六组来源、账号、搜索/分类/详情、阅读器、收藏/历史、持久下载与离线、备份/WebDAV、设置/日志和 GitHub 更新。真实平台账号、实体设备、WebDAV 服务商及正式发布验收仍需外部条件，当前保持开发版标识。正常页面使用真实来源，原创示意目录仅在显式开启 Debug 演示模式时使用。源码与安装包使用同一公开仓库 [ddmoyu/PiComic](https://github.com/ddmoyu/PiComic)。
+## 支持的漫画源
 
-图标采用已确认的 D7 圆周率字形；SVG 母版及 Android 资源说明见 [正式图标](design/logo/README.md)。
+内置以下六组来源，无需额外安装扩展：
 
-## 构建
+- **哔咔漫画**（picacg）
+- **E-Hentai / ExHentai**
+- **禁漫天堂**（JMComic）
+- **Hitomi**
+- **绅士漫画**（Wnacg / htcomic）
+- **nhentai**
 
-用 Android Studio 打开项目根目录，配置 Android SDK 后运行 `app`。命令行：
+各来源的登录方式、可访问内容与可用性取决于对应平台和网络环境。可在「设置 → 账号管理」登录，在「设置 → 漫画源」调整来源选项。
 
-```powershell
-.\gradlew.bat :app:assembleDebug
-.\gradlew.bat :app:lintDebug :app:testDebugUnitTest
-.\gradlew.bat :app:connectedDebugAndroidTest
-```
+## 下载与使用
 
-Debug APK：`app/build/outputs/apk/debug/app-debug.apk`。当前功能、测试与外部验收边界见 [完整开发执行清单](docs/18-完整开发执行清单.md)和[最终集成验证](docs/23-首版功能与集成验证.md)。
+**系统要求：Android 8.0 及以上，64 位 ARM 设备（arm64-v8a）。**
 
-仅打包 64 位安卓手机：`.\gradlew.bat :app:assembleDebug -PtargetAbi=arm64-v8a`。当前开发版 `0.3.0-alpha` 的接入及验证边界见 [六来源接入验证](docs/20-六来源接入验证.md)，总体进度见 [完整开发执行清单](docs/18-完整开发执行清单.md)。有效真实账号、实体手机及发布验证不能由夹具测试替代。
+1. 前往 [最新版本](https://github.com/ddmoyu/PiComic/releases/latest)，在 **Assets** 中下载 `.apk` 文件并安装。
+2. 打开应用，选择漫画源；需要登录的来源可先在「设置 → 账号管理」中配置。
+3. 在探索或分类页找到作品，进入详情阅读、收藏或下载。
 
-构建同版本的手机 Release / Debug 体积对比包：
+已安装正式版时，可通过「设置 → 更新」获取新版本。若从旧测试签名版本迁移，请先导出备份，再卸载旧版并安装正式版。
 
-```powershell
-.\gradlew.bat :app:assembleRelease :app:assembleDebug :app:lintRelease -PtargetAbi=arm64-v8a -PlocalReleaseSigning=true
-```
+## 让阅读记录跟着你
 
-Release 启用 R8 代码优化、混淆和资源裁剪，关闭调试；Release 只提供真实内容入口，Debug 可显式启用原创示意目录。`localReleaseSigning=true` 仅用于本机验收，沿用 Debug 证书；配置 `PICOMIC_KEYSTORE_*` 等环境变量后可使用专用发行证书，未配置时普通 Release 未签名。
+- **换设备**：在「设置 → 数据与同步」导出加密配置，在新设备导入，可按需一并迁移平台账号。
+- **同步书架**：配置自己的 WebDAV 服务，同步书架、历史与可迁移偏好；账号凭据和下载的漫画图片不参与 WebDAV 同步。
+- **调整网络**：默认跟随系统网络，支持系统 VPN / 代理，也可在「设置 → 设置代理」配置 HTTP 代理。
 
-GitHub Actions **仅在推送 `vX.Y.Z` 标签时**构建并发布正式签名 APK、更新清单和摘要；普通提交、PR 不触发打包。App 默认使用本仓库 Releases，连接失败或限流时自动尝试 GH-Proxy / GHProxy.net 备用线路，可在设置中关闭。发布操作、版本规则和签名备份见 [Actions 发布说明](docs/24-GitHub-Actions发布与镜像更新.md)，客户端验证见 [更新模块与发布验证](docs/22-更新模块与发布验证.md)。`v0.3.1` 已完成云端构建、公开下载与签名复核；实体手机正式旧版覆盖升级尚未验证。
+## 反馈与建议
 
-哔咔、JM、绅士漫画支持加密记住账号密码及过期后一键重新登录；手动导出生成带密码保护的 `.picomic` 配置，可携带账号并跨设备导入。已有账号需重新登录一次才能保存密码；WebDAV 仍仅同步普通数据。详见 [加密配置与账号备份](docs/25-加密配置与账号备份.md)。
+遇到问题或有功能建议，欢迎提交 [Issue](https://github.com/ddmoyu/PiComic/issues)。报告问题时，请附上应用版本、Android 版本、涉及的漫画源与复现步骤，便于定位。
 
-`0.2.1-alpha` 的体积对比与签名记录见 [Release 与 Debug 构建](docs/15-Release与Debug构建.md)。后续验证持续更新在 [内容接入与 JM 验证](docs/19-内容接入与JM验证.md)。
-
-## 开始评审
-
-- [打开 HTML 交互原型](prototype/index.html)：无需安装依赖，可直接双击打开。
-- [产品需求与范围](docs/01-产品需求.md)：功能、优先级、边界和验收目标。
-- [界面与交互规范](docs/02-界面与交互.md)：页面、导航、状态和手机布局。
-- [技术架构与工程规范](docs/03-技术架构.md)：独立 Kotlin 工程、模块、依赖和开发规则。
-- [竞品源码调研](docs/04-竞品源码调研.md)：四个参考项目及其规则仓库的实现证据。
-- [六平台接入规格](docs/05-平台接入规格.md)：内容获取、认证、地址和平台能力。
-- [网络、登录与会话](docs/06-网络登录与会话.md)：系统代理/VPN、HTTP 代理、Token、Cookie、WebView。
-- [阅读器、缓存与下载](docs/07-阅读器与下载.md)：翻页、长图、手势、JM 重组和后台下载。
-- [数据模型与存储](docs/08-数据模型与存储.md)：数据表、状态隔离、备份与恢复。
-- [开发计划与验收](docs/09-开发计划与验收.md)：阶段、风险、验证矩阵、交付标准。
-- [原型说明与验证](docs/10-原型说明与验证.md)：可交互范围、演示边界、验证记录。
-- [应用更新与 GitHub 发布](docs/11-应用更新与GitHub发布.md)：检查更新、Release 资产、APK 校验与安装。
-- [设置与偏好规格](docs/12-设置与偏好规格.md)：分组设置、平台选项、阅读外观、数据与 WebDAV。
-- [源码证据索引](docs/evidence/source-index.md)：固定提交链接和调研时间。
-
-## 已确认的约束
-
-1. 名称 PiComic；独立 Android Kotlin 项目，设计和业务独立制定。
-2. 手机优先；横屏、分屏、平板不遮挡、不崩溃，暂不开发平板专属工作台或双栏导航。
-3. 内置 picacg、e-hentai/exhentai、jmcomic、hitomi、htcomic、nhentai 六组来源；不提供扩展安装、脚本导入或插件市场。
-4. 默认跟随系统网络，兼容系统 VPN/代理，不强制直连；API、图片、下载、网页登录必须使用一致的网络策略。
-5. 视觉参考原版 PicaComic 的 Material 3、主题色、漫画卡片与来源切换；采用原生 Android 手机交互。
-6. 原型已作为 Android 界面实现基线；正常 App 使用真实来源，演示插画和示意目录只用于显式 Debug 测试。
-7. 2026-09-18 交互调整：探索/分类使用平台 Tab；顶部固定左侧标题、右侧搜索与设置；底部导航仅显示图标。
-8. 账号入口统一为“账号管理”；按平台配置 WebView 登录及自动获取/验证会话，支持重新登录与退出。
-9. 更新通过 GitHub Releases 发布；App 提供手动及可选启动检查、更新说明、下载及系统安装入口。
-10. 设置按内容与来源、阅读体验、APP、网络与关于归类；本轮要求的筛选、平台参数、阅读/外观、数据、日志及 WebDAV 均纳入首版范围。
-
-11. 导航去重：取消“我的”；底部为探索、分类、书架。收藏/阅读历史/下载管理统一在书架，全部配置统一在右上角设置。
-
-## 文档标记
-
-- **已确认**：来自用户明确要求。
-- **建议基线**：本稿的产品/技术决策，可在评审中调整。
-- **源码证据**：已读固定提交中的实现，不代表远端平台当前可用。
-- **待联调**：需要真实网络、账号、图片或 Android 设备验证。
-
-完整来源接入是 v1.0 目标；分批开发只是实施顺序，不会把未接入来源标为已完成。更新发布渠道为公开仓库 `ddmoyu/PiComic` 的 GitHub Releases，APK 不内置仓库凭据。应用商店和云端同步服务不预设。
+喜欢 PiComic 的话，欢迎点亮 **Star**，关注后续更新。
