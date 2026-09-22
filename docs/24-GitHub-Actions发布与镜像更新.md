@@ -143,10 +143,27 @@ Runner 只在临时目录恢复密钥，构建结束清理。Gradle 从 `PICOMIC
 - 在无窗口 API 36.1 模拟器中，由实际公开的 v0.3.5 覆盖安装实际公开的 v0.3.6 成功，原选中 picacg、深色主题和跳过详情页设置保留，崩溃缓冲区为空，已安装 APK 摘要匹配公开资产。未进行实体手机验证；完成后关闭模拟器。
 - 公开资产和读回证据位于 `artifacts/github-release/v0.3.6/`，云端报告与 mapping 位于 `verification-v0.3.6` Actions artifact。
 
-## v0.3.7 多架构发布准备
+## v0.3.7 多架构发布验证
 
 - 本地签名构建输出 ARM64、ARMv7、x86_64 三个独立完整 APK，均为 versionCode 3007、minSdk 26、同一发行证书；每包均通过 v2 签名、实际 native lib ABI、大小/摘要及 16 KB zipalign 检查。
 - 107 项 JVM 单元测试、8 项发布脚本测试、16 项 Android 更新模块测试通过，覆盖 ABI 优先级、32 位 ARM 选择、无匹配架构、最低系统限制、旧清单兼容、多包清单解析、下载恢复、镜像与签名检查。真实 APK 混入旧版本或重复架构时，准备脚本均拒绝且不生成资产。
 - Release lint 为 0 errors、49 warnings、1 hint。无窗口 API 36.1 模拟器由公开 v0.3.6 覆盖安装本地 v0.3.7 ARM64 包，再切换同签名 x86_64 包，均安装并启动成功，原深色主题和跳过详情页设置保留，崩溃缓冲区为空。
 - ARMv7 完成构建、签名、ABI、清单匹配与静态校验，本轮没有可运行 ARMv7 的实体设备。ARM64 运行检查使用模拟器转译；x86_64 使用原生运行。发布后的公开文件另行读回验证，不混用本地与云端摘要。
 - 本地证据位于 `artifacts/release-v0.3.7-local/`、`artifacts/v0.3.7-local-build.log`、`artifacts/v0.3.7-android-tests.log` 及 `artifacts/v0.3.7-local-upgrade-*.log`。
+
+### 公开发布与实际旧版更新
+
+2026-09-22 通过 `v0.3.7` 标签发布，源码提交为 `2ac2ff6`；[Actions 运行 35716702721](https://github.com/ddmoyu/PiComic/actions/runs/35716702721) 成功，[Release](https://github.com/ddmoyu/PiComic/releases/tag/v0.3.7) 已公开并设为 Latest，包含简体中文、英文、日文更新说明。
+
+| 公开 APK | 字节数 | SHA-256 |
+|---|---:|---|
+| `PiComic-0.3.7-arm64-v8a.apk` | 3,274,865 | `796512dae49f16e6adb5cd285d84784fabb8279dfc851c903acafd91ede6f5d1` |
+| `PiComic-0.3.7-armeabi-v7a.apk` | 3,272,023 | `67afe8af3c512a7b3ac5eba8006c16f3cbb640cd0b421f47233aec3e42136131` |
+| `PiComic-0.3.7-x86_64.apk` | 3,275,526 | `43f8149da2227613d978eec9392b9eecbfa0981d47cb1a7cc470ae41c0313833` |
+
+- 云端 107 项 JVM 测试和 8 项发布脚本测试通过；Release lint 为 0 errors、53 warnings、1 hint。匿名下载全部五项资产，三个 APK 的包名、版本、minSdk、native lib ABI / ELF 指令集、v2 签名、发行证书、摘要和 16 KB zipalign 均通过，与清单和云端报告一致。
+- 当前桌面出口匿名 GitHub `latest` API 返回 403 限流；GH-Proxy `latest` 返回 200 并指向 v0.3.7；GitHub、GH-Proxy、GHProxy.net 清单均为 200 且内容一致。经认证的 GitHub `latest` 同样确认 v0.3.7。
+- 未修改的公开 v0.3.6 在 API 36.1 无窗口模拟器中完成应用内检查、下载、校验及系统安装。设备 ABI 顺序为 `x86_64,arm64-v8a`，原安装包为 ARM64，新版自动选择 x86_64；安装后从设备读回 `base.apk`，摘要与公开 x86_64 APK 完全一致。系统 Play Protect 扫描通过后完成安装，未关闭该保护。
+- 升级后深色主题和跳过详情页设置保留，启动崩溃缓冲区为空；新版重新检查显示“暂无更高版本”。此链路通过 App 和系统安装器完成，未用 `adb install` 替代应用内升级。
+- 首次模拟器直连 API 返回 HTTP 301，目标为 `github.com/repos/...`，旧客户端按既有规则拒绝跳转；独立 Android 网络探针复现。临时将模拟器系统代理指向办公电脑现有代理后，真实更新链路通过。测试结束恢复原代理设置并关闭模拟器；该结果不表示直连网络跳转已在产品中修复。
+- 公开资产、CI 报告、旧版与新版界面 XML、安装结果和摘要证据保存在 `artifacts/github-release/v0.3.7/`，主要记录为 `public-verification.json`、`public-routes.json`、`upgrade-verification.json`。未进行 ARMv7 或其他架构实体手机验证。
