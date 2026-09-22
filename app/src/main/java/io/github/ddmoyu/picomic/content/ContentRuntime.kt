@@ -4,6 +4,8 @@ import android.content.Context
 import io.github.ddmoyu.picomic.network.NetworkRepository
 import io.github.ddmoyu.picomic.source.jm.JmRoutes
 import io.github.ddmoyu.picomic.source.ht.HtRoutes
+import io.github.ddmoyu.picomic.auth.PasswordSessionRecovery
+import io.github.ddmoyu.picomic.source.picacg.PicacgClient
 import kotlinx.coroutines.*
 
 /** Reading and foreground downloads share route state and the EH quota gate. */
@@ -14,7 +16,13 @@ class ContentRuntime private constructor(context: Context) {
     private val network = NetworkRepository.get(context)
     val jmRoutes = JmRoutes(context, network, scope) { pref("jm.auto", "true").toBoolean() }
     val htRoutes = HtRoutes(context, network, scope)
+    val passwordSessions = mapOf(
+        "picacg" to PasswordSessionRecovery("picacg", network.sessions, network.engine, scope, network::awaitReady) { PicacgClient(network.engine) },
+        "jmcomic" to PasswordSessionRecovery("jmcomic", network.sessions, network.engine, scope, network::awaitReady) { jmRoutes.client() },
+        "htcomic" to PasswordSessionRecovery("htcomic", network.sessions, network.engine, scope, network::awaitReady) { htRoutes.client() }
+    )
     val repository = ContentRepository(network,
+        passwordSessions = passwordSessions,
         jmImageLine = { pref("jm.image", "分流 1").takeLast(1).toIntOrNull() ?: 1 },
         jmClient = { jmRoutes.client() }, htClient = { htRoutes.client() },
         nhSessionId = { when (pref("nh.auth")) { "API Key" -> "nhentai_key"; "网页会话" -> "nhentai_web"; else -> null } },

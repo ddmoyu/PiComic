@@ -18,7 +18,8 @@ class JmClient internal constructor(engine: NetworkEngine, private val base: Htt
     fun install(candidate: SessionCandidate) {
         if (installed || candidate.kind != CredentialKind.COOKIE) throw JmProtocol.malformed()
         val data = parseObject(candidate.value.toString(Charsets.UTF_8))
-        if (data.optString("origin") != base.origin() || data.optString("profile") != JmProtocol.ID) throw ContentFailure(ContentFailureKind.LOGIN, "JM 线路已变化，请在当前线路重新登录")
+        if (data.optString("profile") != JmProtocol.ID) throw JmProtocol.malformed()
+        if (data.optString("origin") != base.origin()) throw ContentFailure(ContentFailureKind.EXPIRED, "JM 线路已变化，需要在当前线路恢复登录")
         JmProtocol.id(data.optString("uid"))
         val entries = data.optJSONArray("cookies") ?: throw JmProtocol.malformed()
         if (entries.length() !in 1..128) throw JmProtocol.malformed()

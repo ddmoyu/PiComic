@@ -50,13 +50,13 @@ class HtClient internal constructor(private val engine: NetworkEngine, val base:
     fun install(candidate: SessionCandidate): String {
         if (candidate.kind != CredentialKind.COOKIE) throw parseChanged(TITLE)
         val data = try { JSONObject(candidate.value.toString(Charsets.UTF_8)) } catch (_: Exception) { throw parseChanged(TITLE) }
-        if (data.optString("origin") != base.origin()) throw ContentFailure(ContentFailureKind.LOGIN, "域名已更改，请在当前域名重新登录；原会话仍保留")
+        if (data.optString("origin") != base.origin()) throw ContentFailure(ContentFailureKind.EXPIRED, "域名已更改，需要在当前域名恢复登录")
         val name = data.optString("name").takeIf { it.isNotBlank() && it.length <= 200 && it.none(Char::isISOControl) } ?: throw parseChanged(TITLE)
         val cookies = data.optJSONArray("cookies") ?: throw parseChanged(TITLE)
         if (cookies.length() !in 1..64) throw parseChanged(TITLE)
         jar.clear()
         jar.saveFromResponse(base, (0 until cookies.length()).map { Cookie.parse(base, cookies.getString(it)) ?: throw parseChanged(TITLE) })
-        if (jar.loadForRequest(base).isEmpty()) throw parseChanged(TITLE)
+        if (jar.loadForRequest(base).isEmpty()) throw ContentFailure(ContentFailureKind.EXPIRED, "绅士漫画会话已过期，需要恢复登录")
         authenticated = true
         return name
     }

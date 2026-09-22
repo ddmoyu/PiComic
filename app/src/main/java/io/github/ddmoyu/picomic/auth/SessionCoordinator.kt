@@ -113,6 +113,11 @@ class SessionCoordinator(private val store: SecretStore, private val network: Ne
             if (account.status == AccountStatus.AUTHENTICATED) account.copy(status = AccountStatus.NEEDS_VALIDATION) else account
         }
     }
+    internal fun requireValidation(source: String) = synchronized(lock) {
+        mutable.value[source]?.takeIf { it.status == AccountStatus.AUTHENTICATED }?.let {
+            publish(source, it.copy(status = AccountStatus.NEEDS_VALIDATION))
+        }
+    }
     /** Only rejection of the current stored session can expire it; a failed replacement cannot. */
     suspend fun expire(attempt: LoginAttempt) = withContext(Dispatchers.IO) {
         synchronized(lock) {
@@ -152,6 +157,16 @@ class SessionCoordinator(private val store: SecretStore, private val network: Ne
                 publish(source, AccountState(AccountStatus.NEEDS_VALIDATION, it.displayName))
                 SessionCandidate(it.candidate.kind, it.candidate.value.copyOf(), it.accountId)
             }
+        }
+    }
+    /** Snapshot credentials and begin restoration atomically, so logout cannot be undone by a late read. */
+    internal suspend fun beginStoredRecovery(source: String, failed: SessionLease? = null): Pair<LoginAttempt, StoredAccount>? = withContext(Dispatchers.IO) {
+        synchronized(lock) {
+            if (failed != null && !isCurrent(failed)) throw CancellationException("账号或网络已更改")
+            val account = readAccount(source) ?: return@synchronized null
+            rememberedName(source, account.login?.username)
+            publish(source, AccountState(if (account.candidate == null) AccountStatus.EXPIRED else AccountStatus.NEEDS_VALIDATION, account.displayName))
+            begin(source) to account
         }
     }
     suspend fun lease(source: String): SessionLease = withContext(Dispatchers.IO) {

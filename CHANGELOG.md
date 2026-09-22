@@ -1,5 +1,27 @@
 # 更新记录
 
+## 0.3.5
+
+2026-09-22 · Android 8.0+ · arm64-v8a · versionCode 3005
+
+### 简体中文
+
+- 修复已保存账号密码却反复提示登录的问题。哔咔、禁漫天堂和绅士漫画优先复用已保存的会话；会话明确失效后自动登录一次，保存新会话并重试原读取请求。
+- 启动、阅读和下载共享会话恢复，多个请求同时过期时只登录一次。临时网络故障不清除会话，密码错误或需要人工验证时停止自动尝试。
+- 修复切换可信 JM / 绅士漫画线路后无法恢复账号的问题；原 Cookie 不会发送到新域名，使用已保存密码在当前线路重新验证。
+
+### English
+
+- Fixed repeated login prompts despite saved account credentials. Picacg, JM and Wnacg now reuse stored sessions first, sign in once when a session has expired, save the verified replacement and retry the original read.
+- Startup, reading and downloads share session recovery, preventing duplicate sign-ins when concurrent requests expire. Temporary network failures preserve sessions; incorrect credentials or challenges stop automatic attempts.
+- Restore saved accounts after switching trusted JM / Wnacg routes without forwarding old cookies to another origin.
+
+### 日本語
+
+- アカウント情報を保存しているのにログインを繰り返し求められる問題を修正しました。Picacg、JM、Wnacg は保存済みセッションを優先し、期限切れが確認された場合は1回だけ再ログインして、新しいセッションを保存し、元の読み取りを再試行します。
+- 起動・読書・ダウンロードでセッション復元を共有し、同時に期限切れになっても重複ログインしません。一時的な通信障害ではセッションを保持し、パスワード誤りや追加認証が必要な場合は自動試行を停止します。
+- 信頼済みの JM / Wnacg 接続先を切り替えた後も保存済みアカウントを復元します。以前の Cookie は別の接続先へ送信しません。
+
 ## 0.3.4
 
 2026-09-22 · Android 8.0+ · arm64-v8a · versionCode 3004

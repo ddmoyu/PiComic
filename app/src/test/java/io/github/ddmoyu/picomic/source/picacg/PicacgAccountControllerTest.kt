@@ -45,7 +45,7 @@ class PicacgAccountControllerTest {
         assertEquals(setOf("session.picacg"), f.store.data.keys)
         assertFalse(f.controller.state.value.toString().contains("fixture-password"))
     }
-    @Test fun rememberedPasswordSurvivesExpiryAndAllowsExplicitRelogin() = runBlocking {
+    @Test fun rememberedPasswordAttemptsRecoveryOnceAndStillAllowsExplicitRelogin() = runBlocking {
         var expired = false
         val f = Fixture(this, object : Api() {
             override suspend fun signIn(email: String, password: CharArray): SessionCandidate {
@@ -61,10 +61,10 @@ class PicacgAccountControllerTest {
         f.controller.login("fixture-user", password, true); f.done()
         assertTrue(password.all { it == '\u0000' }); assertEquals("fixture-user", f.controller.rememberedAccounts.value["picacg"])
         expired = true; f.controller.restore(); f.done()
-        assertEquals(AccountStatus.EXPIRED, f.status()); assertEquals(1, f.api.logins)
+        assertEquals(AccountStatus.EXPIRED, f.status()); assertEquals(2, f.api.logins)
         f.sessions.rememberedLogin("picacg")!!.use { assertEquals("fixture-user", it.username) }
         expired = false; f.controller.loginSaved(); f.done()
-        assertEquals(2, f.api.logins); assertEquals(AccountStatus.AUTHENTICATED, f.status())
+        assertEquals(3, f.api.logins); assertEquals(AccountStatus.AUTHENTICATED, f.status())
         f.controller.forgetPassword(); f.done()
         assertNull(f.sessions.rememberedLogin("picacg")); assertEquals(AccountStatus.AUTHENTICATED, f.status())
     }

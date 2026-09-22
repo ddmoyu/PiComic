@@ -63,9 +63,9 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
     fun contentList(key: String) = lists.getOrPut(key) {
         ContentListController(viewModelScope) { source, query -> content.run(source) { adapter, _ -> adapter.search(query) } }
     }
-    val picacgAccount = PicacgAccountController(network.sessions, network.engine, viewModelScope, network::awaitReady)
-    val jmAccount = io.github.ddmoyu.picomic.auth.PasswordAccountController("jmcomic", "JM", network.sessions, network.engine, viewModelScope, network::awaitReady) { jmRoutes.loginClient() }
-    val htAccount = io.github.ddmoyu.picomic.auth.PasswordAccountController("htcomic", "绅士漫画", network.sessions, network.engine, viewModelScope, network::awaitReady) { htRoutes.client() }
+    val picacgAccount = PicacgAccountController(network.sessions, network.engine, viewModelScope, network::awaitReady, runtime.passwordSessions.getValue("picacg"))
+    val jmAccount = io.github.ddmoyu.picomic.auth.PasswordAccountController("jmcomic", "JM", network.sessions, network.engine, viewModelScope, network::awaitReady, runtime.passwordSessions.getValue("jmcomic")) { jmRoutes.loginClient() }
+    val htAccount = io.github.ddmoyu.picomic.auth.PasswordAccountController("htcomic", "绅士漫画", network.sessions, network.engine, viewModelScope, network::awaitReady, runtime.passwordSessions.getValue("htcomic")) { htRoutes.client() }
     val ehAccount = io.github.ddmoyu.picomic.auth.CredentialAccountController("ehentai", network.sessions, viewModelScope, network::awaitReady) { io.github.ddmoyu.picomic.source.eh.EhClient(network.engine, it).validate() }
     val nhKeyAccount = io.github.ddmoyu.picomic.auth.CredentialAccountController("nhentai_key", network.sessions, viewModelScope, network::awaitReady) { io.github.ddmoyu.picomic.source.nh.NhClient(network.engine, it).validate() }
     val nhWebAccount = io.github.ddmoyu.picomic.auth.CredentialAccountController("nhentai_web", network.sessions, viewModelScope, network::awaitReady) { io.github.ddmoyu.picomic.source.nh.NhClient(network.engine, it).validate() }

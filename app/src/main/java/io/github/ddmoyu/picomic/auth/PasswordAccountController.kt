@@ -20,8 +20,10 @@ open class PasswordAccountController(
     private val engine: NetworkEngine,
     private val scope: CoroutineScope,
     private val awaitNetwork: suspend () -> Unit,
+    recovery: PasswordSessionRecovery? = null,
     private val apiFactory: suspend () -> PasswordAuthApi
 ) {
+    val sessionRecovery = recovery ?: PasswordSessionRecovery(sourceId, sessions, engine, scope, awaitNetwork, apiFactory)
     val accounts = sessions.state
     val rememberedAccounts = sessions.rememberedAccounts
     private val mutable = MutableStateFlow(PasswordLoginState())
@@ -70,22 +72,10 @@ open class PasswordAccountController(
     /** Manual verification and startup restoration share one job, so concurrent requests are coalesced. */
     fun restore() {
         if (job?.isActive == true) return
-        start {
-            val candidate = sessions.storedCandidate(sourceId) ?: return@start
-            try {
-                currentCoroutineContext().ensureActive()
-                awaitNetwork()
-                val active = sessions.begin(sourceId).also { attempt = it }
-                val api = apiFactory()
-                api.probe()
-                try {
-                    sessions.validateAndCommit(active, candidate) { api.validate(it) }
-                    mutable.value = mutable.value.copy(message = "会话验证通过")
-                } catch (error: Exception) {
-                    if ((error is PicacgFailure && error.kind == PicacgFailureKind.EXPIRED) || (error is ContentFailure && error.kind == ContentFailureKind.EXPIRED)) sessions.expire(active)
-                    throw error
-                }
-            } finally { candidate.value.fill(0) }
+        start(cancelRecovery = false) {
+            sessionRecovery.ensure(force = true)
+            if (sessions.state.value[sourceId]?.status == AccountStatus.AUTHENTICATED)
+                mutable.value = mutable.value.copy(message = "会话已恢复")
         }
     }
 
@@ -108,15 +98,16 @@ open class PasswordAccountController(
         }
     }
 
-    fun cancel() {
+    fun cancel(cancelRecovery: Boolean = true) {
         operation++
         job?.cancel(); job = null
         attempt?.let(sessions::cancel); attempt = null
+        if (cancelRecovery) sessionRecovery.cancel()
         mutable.value = mutable.value.copy(busy = false)
     }
 
-    private fun start(action: suspend () -> Unit): Job {
-        cancel()
+    private fun start(cancelRecovery: Boolean = true, action: suspend () -> Unit): Job {
+        cancel(cancelRecovery)
         val id = operation
         mutable.value = PasswordLoginState(busy = true)
         return scope.launch {

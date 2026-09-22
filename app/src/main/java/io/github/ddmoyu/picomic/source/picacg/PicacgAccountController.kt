@@ -8,7 +8,8 @@ typealias PicacgLoginState = PasswordLoginState
 typealias PicacgAuthApi = PasswordAuthApi
 
 class PicacgAccountController(sessions: SessionCoordinator, engine: NetworkEngine, scope: CoroutineScope,
-    awaitNetwork: suspend () -> Unit, apiFactory: () -> PicacgAuthApi = { PicacgClient(engine) }) :
-    PasswordAccountController(SOURCE, "哔咔", sessions, engine, scope, awaitNetwork, { apiFactory() }) {
+    awaitNetwork: suspend () -> Unit, recovery: PasswordSessionRecovery? = null,
+    apiFactory: () -> PicacgAuthApi = { PicacgClient(engine) }) :
+    PasswordAccountController(SOURCE, "哔咔", sessions, engine, scope, awaitNetwork, recovery, { apiFactory() }) {
     companion object { const val SOURCE = "picacg" }
 }
