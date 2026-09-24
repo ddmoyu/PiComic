@@ -167,3 +167,23 @@ Runner 只在临时目录恢复密钥，构建结束清理。Gradle 从 `PICOMIC
 - 升级后深色主题和跳过详情页设置保留，启动崩溃缓冲区为空；新版重新检查显示“暂无更高版本”。此链路通过 App 和系统安装器完成，未用 `adb install` 替代应用内升级。
 - 首次模拟器直连 API 返回 HTTP 301，目标为 `github.com/repos/...`，旧客户端按既有规则拒绝跳转；独立 Android 网络探针复现。临时将模拟器系统代理指向办公电脑现有代理后，真实更新链路通过。测试结束恢复原代理设置并关闭模拟器；该结果不表示直连网络跳转已在产品中修复。
 - 公开资产、CI 报告、旧版与新版界面 XML、安装结果和摘要证据保存在 `artifacts/github-release/v0.3.7/`，主要记录为 `public-verification.json`、`public-routes.json`、`upgrade-verification.json`。未进行 ARMv7 或其他架构实体手机验证。
+
+## v0.3.8 发布验证
+
+2026-09-24 通过 `v0.3.8` 标签发布，源码提交为 `520d40b`；[Actions 运行 35944379199](https://github.com/ddmoyu/PiComic/actions/runs/35944379199) 成功，[Release](https://github.com/ddmoyu/PiComic/releases/tag/v0.3.8) 已公开并设为 Latest，包含简体中文、英文、日文更新说明。
+
+本版增加哔咔零输入一键注册、完整资料复制、加密保存与登录恢复，完善原生登录页密码显隐、清空及自动填充，修正服务端限流提示。功能及验证边界见 [一键注册规格](30-哔咔一键注册与自动登录.md)。
+
+| 公开 APK | 字节数 | SHA-256 |
+|---|---:|---|
+| `PiComic-0.3.8-arm64-v8a.apk` | 3,292,989 | `5b85a4d7a9515869dcb9b2cf21e580f7d51b21d4960ac21837c9247aad239732` |
+| `PiComic-0.3.8-armeabi-v7a.apk` | 3,290,147 | `30f8490a428c5d7f5361699879062d20dd9feeb7016a084390a4c5b999d18d31` |
+| `PiComic-0.3.8-x86_64.apk` | 3,293,650 | `d10c4aea789047036bee2bfc2cec6ce5ed66d390be2f2f7eb09b5985b18f643e` |
+
+- 本地与云端均通过 117 项 JVM 测试和 8 项发布脚本测试；发版前 17 项 Android 注册、登录及接口测试通过。云端 Release lint 为 0 errors、54 warnings、1 hint。
+- 匿名下载全部五项公开资产，逐包核对版本 `0.3.8 (3008)`、包名、minSdk 26、非调试构建、native lib ABI 与 ELF 指令集、固定发行证书、v2 签名和 16 KB zipalign，全部通过；大小与摘要匹配 GitHub 资产、更新清单、校验和文件及云端报告。
+- GitHub 与 GH-Proxy 的匿名 `latest` API、GitHub / GH-Proxy / GHProxy.net 的更新清单均返回 200，并与 v0.3.8 一致。
+- 在独立 API 36.1 无窗口 x86_64 模拟器中，公开 v0.3.7 通过应用内检查、下载、校验及 Android 系统安装器升级到 v0.3.8。Play Protect 扫描通过后安装，未关闭该保护；实际安装 `base.apk` 的摘要与公开 x86_64 APK 完全一致。
+- 升级后深色主题和跳过详情页设置保留，正式优化包的一键注册、密码显隐入口可见，崩溃缓冲区为空；新版再次检查显示“暂无更高版本”。未调用真实平台注册接口，未验证实体 ARM64 / ARMv7 手机。
+- 测试使用中性空账号页面和设置页；模拟器全程无窗口，来源页面联网在操作前阻止，更新页使用现有代理。完成后恢复代理并关闭模拟器。原有测试模拟器的数据保留。
+- 公开资产、CI 报告、签名核验、界面 XML、安装结果与摘要证据保存在 `artifacts/github-release/v0.3.8/`，主要记录为 `public-verification.json`、`public-routes.json`、`elf-verification.json` 和 `upgrade-verification.json`。
