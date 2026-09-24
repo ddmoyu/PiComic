@@ -187,3 +187,21 @@ Runner 只在临时目录恢复密钥，构建结束清理。Gradle 从 `PICOMIC
 - 升级后深色主题和跳过详情页设置保留，正式优化包的一键注册、密码显隐入口可见，崩溃缓冲区为空；新版再次检查显示“暂无更高版本”。未调用真实平台注册接口，未验证实体 ARM64 / ARMv7 手机。
 - 测试使用中性空账号页面和设置页；模拟器全程无窗口，来源页面联网在操作前阻止，更新页使用现有代理。完成后恢复代理并关闭模拟器。原有测试模拟器的数据保留。
 - 公开资产、CI 报告、签名核验、界面 XML、安装结果与摘要证据保存在 `artifacts/github-release/v0.3.8/`，主要记录为 `public-verification.json`、`public-routes.json`、`elf-verification.json` 和 `upgrade-verification.json`。
+
+## v0.3.9 发布验证
+
+2026-09-24 通过 `v0.3.9` 标签发布，源码提交为 `668d0db`；[Actions 运行 35976820781](https://github.com/ddmoyu/PiComic/actions/runs/35976820781) 成功，[Release](https://github.com/ddmoyu/PiComic/releases/tag/v0.3.9) 已公开并设为 Latest，包含简体中文、英文、日文更新说明。
+
+本版修正账号密码登录的保存时机：默认启用“记住账号密码”时，点击登录就加密保存本次输入；无论认证成功或失败，下次打开或重启后自动填充。填写记录与已验证会话分开保存，失败登录保留原会话和会话恢复密码；“忘记密码”与“清除本地账号”会删除填写记录。影响哔咔、JM 与绅士漫画。
+
+| 公开 APK | 字节数 | SHA-256 |
+|---|---:|---|
+| `PiComic-0.3.9-arm64-v8a.apk` | 3,292,989 | `65727b3ac9844be1eb4e4dad8a2b1141093547da84b3157b439ca3db58de4c5a` |
+| `PiComic-0.3.9-armeabi-v7a.apk` | 3,290,147 | `2f909a7f4a1385341cdd9869163ecbbe3daadf638a0bae17d31a0ce535591f3e` |
+| `PiComic-0.3.9-x86_64.apk` | 3,293,650 | `2d0de39c45d22cd3cfa637a3c66db37dc6dbe93bdf45677f8fbe2d7a402eaceb` |
+
+- 发布工作流中的 JVM 测试、发布脚本测试、Release lint、三架构正式签名构建、资产生成及上传后读回全部成功。本地 120 项 JVM 测试和 8 项发布脚本测试通过；云端 Release lint 为 0 errors、54 warnings、1 hint。
+- 匿名下载五项公开资产，逐项检查大小和 SHA-256；更新清单、校验和与 APK 内容一致。三包版本为 `0.3.9 (3009)`、minSdk 26，使用固定发行签名，分别只包含目标 ABI；签名、v2 和 16 KB zipalign 检查通过。公开摘要与清单和发布资产相符。
+- API 36.1 无窗口 x86_64 模拟器通过 v0.3.8 应用内检查、下载与 Android 系统安装器升级到 v0.3.9；Play Protect 扫描通过。升级后深色主题和“跳过详情页”保留；从系统读回的 `base.apk` 与公开 x86_64 包的 SHA-256 完全一致。启动日志无 PiComic 崩溃记录。
+- 发版前 5 项 Android 登录页测试通过，涵盖三来源失败后重启回填和取消后的保留；另使用独立 API 36.1 无窗口模拟器验证公开升级。未在实体 ARM64 或 ARMv7 设备验证。
+- 公开资产、CI 校验报告、匿名读回摘要和安装升级证据保存在 `artifacts/github-release/v0.3.9/`，包括 `public-verification.json` 与 `upgrade-verification.json`。
