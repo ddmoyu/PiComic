@@ -1,5 +1,24 @@
 # 更新记录
 
+## 0.3.9
+
+2026-09-24 · Android 8.0+ · arm64-v8a / armeabi-v7a / x86_64 · versionCode 3009
+
+### 简体中文
+
+- 哔咔、JM、绅士漫画在点击登录时即加密保存当前输入。无论验证成功或失败，下次打开登录页或重启应用后都会优先填入最近一次提交的账号和密码。
+- 最近输入与已验证会话分开保存；登录失败不会覆盖原会话及其恢复密码。忘记密码和清除本地账号会删除填写记录。
+
+### English
+
+- Picacg, JM and Wnacg now encrypt the entered credentials as soon as sign-in is submitted. The latest submitted account and password are filled when the sign-in screen is reopened, whether authentication succeeded or failed.
+- Keep these form values separate from the verified session. A failed sign-in preserves the existing session and its recovery credentials. Forgetting the password or clearing the local account removes the saved form values.
+
+### 日本語
+
+- 哔咔・JM・Wnacg のログイン画面で送信すると、入力した認証情報をすぐに暗号化して保存します。ログインの成否にかかわらず、画面を再度開くかアプリを再起動すると、最後に送信したアカウントとパスワードを入力欄に反映します。
+- 入力情報は検証済みセッションと分けて保存するため、ログイン失敗時も既存セッションと復元用認証情報は保持されます。「パスワードを忘れた場合」またはローカルアカウントの削除で保存情報も削除します。
+
 ## 0.3.8
 
 2026-09-24 · Android 8.0+ · arm64-v8a / armeabi-v7a / x86_64 · versionCode 3008

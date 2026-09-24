@@ -59,6 +59,9 @@ open class PasswordAccountController(
         mutable.value = mutable.value.copy(message = "已删除保存的账号密码，当前有效会话保留")
     } }
     private suspend fun authenticate(account: String, password: CharArray, rememberPassword: Boolean) {
+        if (rememberPassword) {
+            RememberedLogin(account, password.copyOf()).use { sessions.rememberLoginInput(sourceId, it) }
+        }
         awaitNetwork()
         val active = sessions.begin(sourceId).also { attempt = it }
         val api = apiFactory()

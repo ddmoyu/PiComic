@@ -53,7 +53,8 @@ class PicacgLoginScreenTest {
             ui.waitUntil(10000) { !controller.state.value.busy && controller.state.value.message != null }
             ui.onNodeWithTag("login-success-dialog").assertDoesNotExist()
             ui.onNodeWithText("登录未通过，请检查账号和密码").performScrollTo().assertExists()
-            assertTrue(secrets.data.isEmpty())
+            assertNull(secrets.data["session.picacg"])
+            assertNotNull(secrets.data["login-input.picacg"])
             ui.onNodeWithContentDescription("显示密码").performScrollTo().performClick()
             ui.onNodeWithText("密码").assert(SemanticsMatcher.expectValue(SemanticsProperties.EditableText, AnnotatedString("fixture-password")))
             ui.onNodeWithContentDescription("隐藏密码").performClick()
@@ -76,16 +77,18 @@ class PicacgLoginScreenTest {
             assertEquals(5, server.requestCount)
         }
     }
-    @Test fun leavingLoginDiscardsPasswordAndCancelsAttempt() {
+    @Test fun leavingLoginCancelsAttemptButRefillsRememberedInput() {
         var show by androidx.compose.runtime.mutableStateOf(true)
         val secrets = object : SecretStore {
-            override fun read(key: String): ByteArray? = null
-            override fun write(key: String, value: ByteArray) { fail("Cancelled login must not save") }
-            override fun remove(key: String) {}
+            val data = mutableMapOf<String, ByteArray>()
+            override fun read(key: String) = data[key]?.copyOf()
+            override fun write(key: String, value: ByteArray) { data[key] = value.copyOf() }
+            override fun remove(key: String) { data.remove(key) }
         }
+        var probing = false
         val engine = NetworkEngine(); val sessions = SessionCoordinator(secrets, engine)
         val controller = PicacgAccountController(sessions, engine, scope, {}) { object : PicacgAuthApi {
-            override suspend fun probe() { awaitCancellation() }
+            override suspend fun probe() { probing = true; awaitCancellation() }
             override suspend fun signIn(email: String, password: CharArray): SessionCandidate = error("must not send credentials")
             override suspend fun profile(candidate: SessionCandidate): String = error("must not validate")
         } }
@@ -93,15 +96,70 @@ class PicacgLoginScreenTest {
         ui.onNodeWithText("账号 / 邮箱").performTextInput("fixture")
         ui.onNodeWithText("密码").performTextInput("fixture-password")
         ui.onNodeWithText("登录并验证").performScrollTo().performClick()
-        ui.waitUntil { controller.state.value.busy }
+        ui.waitUntil { probing }
         ui.runOnIdle { show = false }; ui.waitForIdle()
         assertFalse(controller.state.value.busy)
         assertEquals(AccountStatus.ANONYMOUS, sessions.state.value["picacg"]?.status)
+        assertNull(secrets.data["session.picacg"])
         ui.runOnIdle { show = true }; ui.waitForIdle()
-        ui.onNodeWithText("登录并验证").assertIsNotEnabled()
+        ui.waitUntil(5000) { ui.onAllNodesWithContentDescription("清空密码").fetchSemanticsNodes().isNotEmpty() }
+        ui.onNodeWithText("账号 / 邮箱").assert(SemanticsMatcher.expectValue(SemanticsProperties.EditableText, AnnotatedString("fixture")))
+        ui.onNodeWithText("登录并验证").assertIsEnabled()
+        ui.onNodeWithContentDescription("显示密码").performClick()
+        ui.onNodeWithText("密码").assert(SemanticsMatcher.expectValue(SemanticsProperties.EditableText, AnnotatedString("fixture-password")))
+        ui.onNodeWithContentDescription("隐藏密码").performClick()
         val file = File(ui.activity.getExternalFilesDir(null), "screenshots/22-picacg-login.png")
         file.parentFile!!.mkdirs()
         file.outputStream().use { ui.onRoot().captureToImage().asAndroidBitmap().compress(Bitmap.CompressFormat.PNG, 100, it) }
+    }
+
+    @Test fun failedCredentialsFillFromEncryptedStorageAfterRestartAcrossSources() {
+        val context = androidx.test.platform.app.InstrumentationRegistry.getInstrumentation().targetContext
+        val engine = NetworkEngine()
+        val secrets = KeystoreSecretStore(context, "picomic.failed-login-form-test")
+        val sessions = SessionCoordinator(secrets, engine)
+        val sources = listOf("picacg", "jmcomic", "htcomic")
+        fun controller(source: String, coordinator: SessionCoordinator) = PasswordAccountController(
+            source, AccountSlots.titles.getValue(source), coordinator, engine, scope, {}
+        ) { object : PasswordAuthApi {
+            override suspend fun probe() {}
+            override suspend fun signIn(email: String, password: CharArray): SessionCandidate = throw PicacgFailure(PicacgFailureKind.CREDENTIALS)
+            override suspend fun profile(candidate: SessionCandidate): String = error("A rejected login must not validate")
+        } }
+        var active by androidx.compose.runtime.mutableStateOf(controller(sources.first(), sessions))
+        var show by androidx.compose.runtime.mutableStateOf(true)
+        try {
+            runBlocking { sources.forEach { sessions.logout(it) } }
+            ui.setContent { PiComicTheme(false, false) { if (show) PicacgLoginScreen(active, true, openRecovery = {}, openNetwork = {}) } }
+            sources.forEach { source ->
+                ui.runOnIdle { active = controller(source, sessions) }
+                ui.onNodeWithText("账号 / 邮箱").performTextInput("$source@example.test")
+                ui.onNodeWithText("密码").performTextInput("$source-failed-password")
+                ui.onNodeWithText("登录并验证").performScrollTo().performClick()
+                ui.waitUntil(5000) { !active.state.value.busy && active.state.value.message != null }
+                ui.onNodeWithTag("login-success-dialog").assertDoesNotExist()
+                assertNull(runBlocking { sessions.storedCandidate(source) })
+            }
+            ui.runOnIdle { show = false }; ui.waitForIdle()
+            // Recreate the encrypted store and coordinator, not merely the Compose form.
+            val restarted = SessionCoordinator(KeystoreSecretStore(context, "picomic.failed-login-form-test"), engine)
+            sources.forEach { source ->
+                ui.runOnIdle { active = controller(source, restarted); show = true }
+                ui.waitUntil(5000) { ui.onAllNodesWithContentDescription("清空密码").fetchSemanticsNodes().isNotEmpty() }
+                ui.onNodeWithText("账号 / 邮箱").assert(SemanticsMatcher.expectValue(SemanticsProperties.EditableText, AnnotatedString("$source@example.test")))
+                ui.onNodeWithContentDescription("显示密码").performClick()
+                ui.onNodeWithText("密码").assert(SemanticsMatcher.expectValue(SemanticsProperties.EditableText, AnnotatedString("$source-failed-password")))
+                ui.onNodeWithContentDescription("隐藏密码").performClick()
+                if (source == "picacg") screenshot("failed-reopened")
+                ui.activityRule.scenario.moveToState(androidx.lifecycle.Lifecycle.State.CREATED)
+                ui.activityRule.scenario.moveToState(androidx.lifecycle.Lifecycle.State.RESUMED)
+                ui.waitUntil(5000) { ui.onAllNodesWithContentDescription("清空密码").fetchSemanticsNodes().isNotEmpty() }
+                ui.onNodeWithContentDescription("显示密码").assertExists()
+                ui.onNodeWithContentDescription("清空密码").performClick()
+                ui.onNodeWithText("密码").assert(SemanticsMatcher.expectValue(SemanticsProperties.EditableText, AnnotatedString("")))
+                ui.runOnIdle { show = false }; ui.waitForIdle()
+            }
+        } finally { runBlocking { sources.forEach { sessions.logout(it) } } }
     }
 
     @Test fun savedCredentialsFillAfterRestartAndStayIsolatedBetweenSources() {

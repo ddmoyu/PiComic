@@ -9,6 +9,82 @@ import org.junit.Assert.*
 import org.junit.Test
 
 class PicacgAccountControllerTest {
+    @Test fun failedLoginAtEveryNetworkStageStillRefillsAfterRestartForEveryPasswordSource() = runBlocking {
+        for (source in AccountSlots.passwords) for (stage in listOf("network", "probe", "signIn", "validate")) {
+            val store = Store(); val engine = NetworkEngine(); val sessions = SessionCoordinator(store, engine)
+            val api = object : Api() {
+                override suspend fun probe() { if (stage == "probe") throw java.io.IOException("offline") }
+                override suspend fun signIn(email: String, password: CharArray): SessionCandidate {
+                    if (stage == "signIn") throw PicacgFailure(PicacgFailureKind.CREDENTIALS)
+                    return candidate()
+                }
+                override suspend fun profile(candidate: SessionCandidate): String = throw PicacgFailure(PicacgFailureKind.EXPIRED)
+            }
+            val controller = PasswordAccountController(source, source, sessions, engine, this,
+                { if (stage == "network") error("not ready") }) { api }
+            val password = "failed-password".toCharArray()
+            controller.login("$source@example.test", password, true)
+            withTimeout(5000) { controller.state.first { !it.busy } }; yield()
+            assertFalse(controller.state.value.loginSucceeded)
+            assertTrue(password.all { it == '\u0000' })
+            assertEquals(setOf("login-input.$source"), store.data.keys)
+            assertTrue(sessions.exportAccounts().isEmpty())
+            val restarted = SessionCoordinator(store, engine)
+            val reopened = PasswordAccountController(source, source, restarted, engine, this, {}) { error("Autofill is offline") }
+            var filled = false
+            reopened.fillRememberedLogin {
+                filled = true
+                assertEquals("$source@example.test", it.username)
+                assertArrayEquals("failed-password".toCharArray(), it.password)
+            }
+            assertTrue(filled)
+            assertEquals("$source@example.test", reopened.rememberedAccounts.value[source])
+        }
+    }
+    @Test fun failedReplacementRemembersLatestInputButRecoveryKeepsVerifiedCredentials() = runBlocking {
+        var rejectNew = false
+        val signedIn = mutableListOf<String>()
+        val f = Fixture(this, object : Api() {
+            override suspend fun signIn(email: String, password: CharArray): SessionCandidate {
+                signedIn += email
+                if (email == "new-user") throw PicacgFailure(PicacgFailureKind.CREDENTIALS)
+                assertArrayEquals("old-password".toCharArray(), password)
+                return super.signIn(email, password)
+            }
+            override suspend fun profile(candidate: SessionCandidate): String {
+                if (rejectNew) { rejectNew = false; throw PicacgFailure(PicacgFailureKind.EXPIRED) }
+                return super.profile(candidate)
+            }
+        })
+        f.controller.login("old-user", "old-password".toCharArray(), true); f.done()
+        val original = f.store.read("session.picacg")!!
+        f.controller.login("new-user", "new-password".toCharArray(), true); f.done()
+        assertArrayEquals(original, f.store.read("session.picacg"))
+        assertEquals(AccountStatus.AUTHENTICATED, f.status())
+        rejectNew = true; f.controller.restore(); f.done()
+        assertEquals(listOf("old-user", "new-user", "old-user"), signedIn)
+        f.controller.fillRememberedLogin {
+            assertEquals("new-user", it.username); assertArrayEquals("new-password".toCharArray(), it.password)
+        }
+        f.controller.loginSaved(); f.done()
+        assertEquals("new-user", signedIn.last())
+        assertFalse(f.controller.state.value.loginSucceeded)
+    }
+    @Test fun cancelledAttemptKeepsInputUntilExplicitlyForgottenOrCleared() = runBlocking {
+        for (forget in listOf(true, false)) {
+            val started = CompletableDeferred<Unit>()
+            val f = Fixture(this, object : Api() { override suspend fun probe() { started.complete(Unit); awaitCancellation() } })
+            f.controller.login("fixture-user", "fixture-password".toCharArray(), true); started.await()
+            f.controller.cancel(); f.done()
+            assertFalse(f.controller.state.value.loginSucceeded)
+            assertEquals(AccountStatus.ANONYMOUS, f.status())
+            assertNotNull(f.store.read("login-input.picacg"))
+            if (forget) f.controller.forgetPassword() else f.controller.logout()
+            f.done()
+            assertTrue(f.store.data.isEmpty())
+            f.controller.fillRememberedLogin { fail("Cleared input must not return") }
+        }
+    }
     @Test fun autofillReadsStoredCredentialsWithoutNetworkAndClearsTheTemporaryCopy() = runBlocking {
         val f = Fixture(this)
         f.controller.login("fixture-user", "fixture-password".toCharArray(), true); f.done()

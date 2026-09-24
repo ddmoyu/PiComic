@@ -78,7 +78,7 @@ import kotlinx.coroutines.CancellationException
         Text(controller.title, style = MaterialTheme.typography.headlineSmall)
         AccountStatusCard(account)
         profile?.level?.let { Text("等级 $it" + profile.title?.takeIf(String::isNotBlank)?.let { title -> " · $title" }.orEmpty(), style = MaterialTheme.typography.bodySmall) }
-        Text("使用${controller.title}账号登录。默认记住账号密码，验证成功后加密保存，再次打开时自动填充。", style = MaterialTheme.typography.bodyMedium)
+        Text("使用${controller.title}账号登录。默认记住账号密码，点击登录即加密保存，无论成功或失败，再次打开时自动填充。", style = MaterialTheme.typography.bodyMedium)
         OutlinedTextField(email, { edited = true; email = it.take(320); password = "" }, Modifier.fillMaxWidth(), enabled = !operation.busy,
             label = { Text("账号 / 邮箱") }, singleLine = true, keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email),
             trailingIcon = { if (email.isNotEmpty()) IconAction(Glyph.Close, "清空账号", !operation.busy) { edited = true; email = ""; password = "" } })

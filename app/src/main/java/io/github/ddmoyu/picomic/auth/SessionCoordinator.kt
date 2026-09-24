@@ -82,7 +82,10 @@ class SessionCoordinator(private val store: SecretStore, private val network: Ne
                         val bytes = StoredAccountCodec.encode(StoredAccount(result.displayName, result.accountId, candidate, login))
                         try { network.withGeneration(attempt.networkGeneration) { store.write("session.${attempt.source}", bytes) } }
                         finally { bytes.fill(0) }
-                        if (retention == PasswordRetention.Forget) store.remove("registration.${attempt.source}")
+                        if (retention == PasswordRetention.Forget) {
+                            store.remove("login-input.${attempt.source}")
+                            store.remove("registration.${attempt.source}")
+                        }
                         rememberedName(attempt.source, login?.username)
                     } finally { previousAccount?.close() }
                     generations[attempt.source] = attempt.sessionGeneration + 1
@@ -141,6 +144,7 @@ class SessionCoordinator(private val store: SecretStore, private val network: Ne
             revisions.value = generations.toMap()
             cancelLocked(source)
             store.remove("session.$source")
+            store.remove("login-input.$source")
             store.remove("registration.$source")
             rememberedName(source, null)
             publish(source, AccountState())
@@ -205,10 +209,26 @@ class SessionCoordinator(private val store: SecretStore, private val network: Ne
         }
     }
     suspend fun rememberedLogin(source: String): RememberedLogin? = withContext(Dispatchers.IO) {
-        synchronized(lock) { readAccount(source)?.use { account -> account.login?.let { RememberedLogin(it.username, it.password.copyOf()) } } }
+        synchronized(lock) {
+            (readLoginInput(source) ?: readAccount(source))?.use { account ->
+                rememberedName(source, account.login?.username)
+                account.login?.let { RememberedLogin(it.username, it.password.copyOf()) }
+            }
+        }
+    }
+    /** Form input is durable before any network work, but cannot replace a verified session or its recovery password. */
+    suspend fun rememberLoginInput(source: String, login: RememberedLogin) = withContext(Dispatchers.IO) {
+        require(source in AccountSlots.passwords)
+        synchronized(lock) {
+            ensureActive()
+            val bytes = StoredAccountCodec.encode(StoredAccount(AccountSlots.titles.getValue(source), null, null, login))
+            try { store.write("login-input.$source", bytes) } finally { bytes.fill(0) }
+            rememberedName(source, login.username)
+        }
     }
     suspend fun forgetPassword(source: String) = withContext(Dispatchers.IO) {
         synchronized(lock) {
+            store.remove("login-input.$source")
             store.remove("registration.$source")
             readAccount(source)?.use { account ->
                 if (account.candidate == null) store.remove("session.$source")
@@ -245,6 +265,7 @@ class SessionCoordinator(private val store: SecretStore, private val network: Ne
             val bytes = StoredAccountCodec.encode(StoredAccount(name, null, null, login))
             try { network.withGeneration(attempt.networkGeneration) { store.write("session.${attempt.source}", bytes) } }
             finally { bytes.fill(0) }
+            store.remove("login-input.${attempt.source}")
             rememberedName(attempt.source, login.username)
             previous[attempt.source] = AccountState(AccountStatus.NEEDS_VALIDATION, name)
         }
@@ -266,6 +287,7 @@ class SessionCoordinator(private val store: SecretStore, private val network: Ne
             StoredAccountCodec.decode(transfer.bytes).use { account ->
                 require(AccountSlots.accepts(source, account.candidate?.kind) && (account.login == null || source in AccountSlots.passwords))
                 store.write("session.$source", transfer.bytes)
+                store.remove("login-input.$source")
                 cancelLocked(source)
                 generations[source] = (generations[source] ?: 0) + 1
                 revisions.value = generations.toMap()
@@ -275,6 +297,9 @@ class SessionCoordinator(private val store: SecretStore, private val network: Ne
         }
     }
     private fun readAccount(source: String): StoredAccount? = store.read("session.$source")?.let { bytes ->
+        try { StoredAccountCodec.decode(bytes) } finally { bytes.fill(0) }
+    }
+    private fun readLoginInput(source: String): StoredAccount? = store.read("login-input.$source")?.let { bytes ->
         try { StoredAccountCodec.decode(bytes) } finally { bytes.fill(0) }
     }
     private fun fingerprint(source: String): String = store.read("session.$source")?.let { bytes ->
@@ -292,7 +317,8 @@ class SessionCoordinator(private val store: SecretStore, private val network: Ne
         }
     }
     private fun rememberedName(source: String, username: String?) {
-        remembered.value = if (username == null) remembered.value - source else remembered.value + (source to username)
+        val name = readLoginInput(source)?.use { it.login?.username } ?: username
+        remembered.value = if (name == null) remembered.value - source else remembered.value + (source to name)
     }
     private fun publish(source: String, value: AccountState) { mutable.value = mutable.value + (source to value) }
 }
