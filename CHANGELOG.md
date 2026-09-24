@@ -1,5 +1,33 @@
 # 更新记录
 
+## 0.3.8
+
+2026-09-24 · Android 8.0+ · arm64-v8a / armeabi-v7a / x86_64 · versionCode 3008
+
+### 简体中文
+
+- 哔咔新增一键注册，全程无需填写：自动生成账号、密码、昵称和三组密保资料，生日取注册当天往前 20 年。保留手动账号登录。
+- 注册资料面板支持显示/隐藏密码和一键复制完整资料，也可在登录页重新查看；资料加密保存在本机，注册后自动登录，后续复用或恢复已保存会话。
+- 注册请求中断后保留原资料，继续时先确认原账号，避免重复创建；注册成功但登录被限流时仍保留账号密码。
+- 哔咔、JM、绅士漫画登录页支持密码显隐、账号与密码一键清空，默认记住成功登录的账号密码并自动填充；回填不会覆盖正在编辑的内容。
+- 修复哔咔将部分服务端限流误报为账号密码错误的问题，改为显示请求过于频繁。
+
+### English
+
+- Added one-tap Picacg registration with no form entry. Generate the account, password, nickname and three recovery question/answer pairs automatically, with a birthday 20 years before the registration date. Manual sign-in remains available.
+- View registration details, show or hide the password, and copy the complete record with one tap. Store details encrypted on the device, sign in after registration and restore the saved session on later use.
+- Keep the original details when registration is interrupted and check the same account before continuing. Retain credentials when registration succeeds but sign-in is rate limited.
+- Added password visibility and clear controls to Picacg, JM and Wnacg sign-in forms. Successful credentials are remembered and filled automatically by default without overwriting active edits.
+- Correctly report Picacg's additional rate-limit response instead of treating it as an incorrect password.
+
+### 日本語
+
+- 哔咔に入力不要のワンタップ登録を追加しました。アカウント、パスワード、ニックネーム、3組の秘密の質問と回答を自動生成し、生年月日は登録日の20年前に設定します。手動ログインも引き続き利用できます。
+- 登録情報の確認、パスワードの表示切替、全情報の一括コピーに対応しました。情報は端末内に暗号化して保存し、登録後は自動ログイン、次回以降は保存済みセッションを復元します。
+- 登録が中断しても同じ情報を保持し、再開時に元のアカウントを確認します。登録成功後のログインが回数制限にかかっても認証情報は失われません。
+- 哔咔・JM・Wnacg のログイン画面にパスワード表示切替と入力消去を追加しました。ログイン成功時の情報を既定で記憶し、編集中の入力を上書きせずに自動入力します。
+- 哔咔の一部の回数制限をパスワード誤りとして表示する問題を修正しました。
+
 ## 0.3.7
 
 2026-09-22 · Android 8.0+ · arm64-v8a / armeabi-v7a / x86_64 · versionCode 3007

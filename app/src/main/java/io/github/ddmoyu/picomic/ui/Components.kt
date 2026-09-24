@@ -33,6 +33,7 @@ enum class Glyph(@param:androidx.annotation.DrawableRes @get:androidx.annotation
     Moon(R.drawable.ic_phosphor_moon), Refresh(R.drawable.ic_phosphor_refresh),
     Folder(R.drawable.ic_phosphor_folder), Wifi(R.drawable.ic_phosphor_wifi),
     Info(R.drawable.ic_phosphor_info), Close(R.drawable.ic_phosphor_close),
+    Eye(R.drawable.ic_phosphor_eye), EyeSlash(R.drawable.ic_phosphor_eye_slash),
     Check(R.drawable.ic_phosphor_check), Play(R.drawable.ic_phosphor_play),
     Pause(R.drawable.ic_phosphor_pause), Menu(R.drawable.ic_phosphor_menu),
     Trash(R.drawable.ic_phosphor_trash), Clock(R.drawable.ic_phosphor_clock), Plus(R.drawable.ic_phosphor_plus)

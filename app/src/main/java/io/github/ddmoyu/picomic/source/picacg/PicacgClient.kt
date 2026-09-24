@@ -15,7 +15,7 @@ import kotlin.coroutines.resume
 import kotlin.coroutines.resumeWithException
 
 
-enum class PicacgFailureKind { CREDENTIALS, EXPIRED, ACCESS_DENIED, RATE_LIMITED, REDIRECT, RESPONSE, SERVER }
+enum class PicacgFailureKind { CREDENTIALS, EXPIRED, ACCESS_DENIED, RATE_LIMITED, REDIRECT, RESPONSE, SERVER, REGISTRATION, DUPLICATE, UNDERAGE }
 class PicacgFailure(val kind: PicacgFailureKind, val retryAfterSeconds: Long? = null) : IOException(when (kind) {
     PicacgFailureKind.CREDENTIALS -> "登录未通过，请检查账号和密码"
     PicacgFailureKind.EXPIRED -> "会话已失效，请重新登录"
@@ -24,10 +24,13 @@ class PicacgFailure(val kind: PicacgFailureKind, val retryAfterSeconds: Long? = 
     PicacgFailureKind.REDIRECT -> "平台地址发生变化，已停止请求，请等待来源更新"
     PicacgFailureKind.RESPONSE -> "平台响应格式不符合预期，请稍后重试"
     PicacgFailureKind.SERVER -> "平台服务暂时不可用，请稍后重试"
+    PicacgFailureKind.REGISTRATION -> "注册未通过，已保留本次资料，请稍后重试"
+    PicacgFailureKind.DUPLICATE -> "该账号或昵称已存在，已保留本次资料，请尝试使用该账号登录"
+    PicacgFailureKind.UNDERAGE -> "平台拒绝注册：生日不符合年龄要求"
 })
 
 /** Fixed trusted API origin. A client is bound to one network generation for the entire login. */
-class PicacgClient internal constructor(engine: NetworkEngine, private val base: HttpUrl) : PicacgAuthApi {
+class PicacgClient internal constructor(engine: NetworkEngine, private val base: HttpUrl) : PicacgRegistrationApi {
     constructor(engine: NetworkEngine) : this(engine, PicacgProtocol.api)
     init {
         // Loopback is available only through the internal constructor for fixture tests.
@@ -52,6 +55,17 @@ class PicacgClient internal constructor(engine: NetworkEngine, private val base:
             if (!validToken(token)) throw PicacgFailure(PicacgFailureKind.RESPONSE)
             return SessionCandidate(CredentialKind.USER_TOKEN, token.toByteArray(Charsets.UTF_8))
         } finally { bytes.fill(0) }
+    }
+
+    override suspend fun register(details: PicacgRegistration) {
+        val json = JSONObject().put("email", details.username).put("password", String(details.password))
+            .put("name", details.nickname).put("birthday", details.birthday).put("gender", details.gender)
+        details.questions.indices.forEach { index ->
+            json.put("question${index + 1}", details.questions[index]).put("answer${index + 1}", details.answers[index])
+        }
+        val bytes = json.toString().toByteArray(Charsets.UTF_8)
+        try { execute(request("auth/register", "POST", bytes.toRequestBody("application/json; charset=utf-8".toMediaType())), registering = true) }
+        finally { bytes.fill(0) }
     }
 
     override suspend fun profile(candidate: SessionCandidate) = validate(candidate).displayName
@@ -111,7 +125,7 @@ class PicacgClient internal constructor(engine: NetworkEngine, private val base:
     private class Reply(val code: Int, val json: JSONObject)
 
     // Keep cancellation attached until the bounded body is fully read, including a slow response body.
-    private suspend fun execute(request: Request, allowAnonymous: Boolean = false, signingIn: Boolean = false): Reply =
+    private suspend fun execute(request: Request, allowAnonymous: Boolean = false, signingIn: Boolean = false, registering: Boolean = false): Reply =
         suspendCancellableCoroutine { continuation ->
             val call = client.newCall(request)
             continuation.invokeOnCancellation { call.cancel() }
@@ -127,14 +141,23 @@ class PicacgClient internal constructor(engine: NetworkEngine, private val base:
                                 code == 429 -> throw PicacgFailure(PicacgFailureKind.RATE_LIMITED, retry)
                                 code == 403 -> throw PicacgFailure(PicacgFailureKind.ACCESS_DENIED)
                                 code >= 500 -> throw PicacgFailure(PicacgFailureKind.SERVER)
-                                signingIn && code in setOf(400, 401) -> throw PicacgFailure(PicacgFailureKind.CREDENTIALS)
-                                code == 401 && !allowAnonymous -> throw PicacgFailure(PicacgFailureKind.EXPIRED)
-                                code != 200 && !(allowAnonymous && code == 401) -> throw PicacgFailure(PicacgFailureKind.RESPONSE)
+                                code == 401 && !allowAnonymous && !signingIn -> throw PicacgFailure(PicacgFailureKind.EXPIRED)
+                                code != 200 && !(allowAnonymous && code == 401) &&
+                                    !(signingIn && code in setOf(400, 401)) && !(registering && code == 400) -> throw PicacgFailure(PicacgFailureKind.RESPONSE)
                             }
                             val source = it.body.source()
                             if (source.request(256 * 1024L + 1)) throw PicacgFailure(PicacgFailureKind.RESPONSE)
                             val json = try { JSONObject(source.readUtf8()) } catch (_: Exception) { throw PicacgFailure(PicacgFailureKind.RESPONSE) }
                             val business = json.optInt("code", -1)
+                            // Picacg also reports throttling as HTTP 400 / error 1023, not just HTTP 429.
+                            if (json.optString("error") == "1023" || json.optString("message").equals("too many requests", ignoreCase = true))
+                                throw PicacgFailure(PicacgFailureKind.RATE_LIMITED, retry)
+                            if (registering && (code == 400 || business == 400)) throw PicacgFailure(when (json.optString("error")) {
+                                "1002" -> PicacgFailureKind.UNDERAGE
+                                "1008", "1009" -> PicacgFailureKind.DUPLICATE
+                                else -> PicacgFailureKind.REGISTRATION
+                            })
+                            if (signingIn && code in setOf(400, 401)) throw PicacgFailure(PicacgFailureKind.CREDENTIALS)
                             if (!allowAnonymous) when {
                                 business == 401 -> throw PicacgFailure(if (signingIn) PicacgFailureKind.CREDENTIALS else PicacgFailureKind.EXPIRED)
                                 business == 403 -> throw PicacgFailure(PicacgFailureKind.ACCESS_DENIED)

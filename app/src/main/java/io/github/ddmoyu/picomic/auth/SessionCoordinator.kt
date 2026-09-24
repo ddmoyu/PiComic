@@ -82,6 +82,7 @@ class SessionCoordinator(private val store: SecretStore, private val network: Ne
                         val bytes = StoredAccountCodec.encode(StoredAccount(result.displayName, result.accountId, candidate, login))
                         try { network.withGeneration(attempt.networkGeneration) { store.write("session.${attempt.source}", bytes) } }
                         finally { bytes.fill(0) }
+                        if (retention == PasswordRetention.Forget) store.remove("registration.${attempt.source}")
                         rememberedName(attempt.source, login?.username)
                     } finally { previousAccount?.close() }
                     generations[attempt.source] = attempt.sessionGeneration + 1
@@ -140,6 +141,7 @@ class SessionCoordinator(private val store: SecretStore, private val network: Ne
             revisions.value = generations.toMap()
             cancelLocked(source)
             store.remove("session.$source")
+            store.remove("registration.$source")
             rememberedName(source, null)
             publish(source, AccountState())
         }
@@ -207,6 +209,7 @@ class SessionCoordinator(private val store: SecretStore, private val network: Ne
     }
     suspend fun forgetPassword(source: String) = withContext(Dispatchers.IO) {
         synchronized(lock) {
+            store.remove("registration.$source")
             readAccount(source)?.use { account ->
                 if (account.candidate == null) store.remove("session.$source")
                 else {
@@ -215,6 +218,35 @@ class SessionCoordinator(private val store: SecretStore, private val network: Ne
                 }
             }
             rememberedName(source, null)
+        }
+    }
+    /** Registration checkpoints are separate from a verified session and excluded from ordinary backups. */
+    suspend fun registrationRecord(source: String): ByteArray? = withContext(Dispatchers.IO) {
+        require(source == "picacg")
+        synchronized(lock) { store.read("registration.$source") }
+    }
+    suspend fun saveRegistration(attempt: LoginAttempt, bytes: ByteArray) = withContext(Dispatchers.IO) {
+        require(attempt.source == "picacg" && bytes.size in 1..8192)
+        synchronized(lock) {
+            check(current(attempt)) { "注册操作已取消" }
+            network.withGeneration(attempt.networkGeneration) { store.write("registration.${attempt.source}", bytes) }
+        }
+    }
+    /** A successful registration must survive a subsequent failed login, without claiming authentication. */
+    suspend fun rememberRegisteredLogin(attempt: LoginAttempt, name: String, login: RememberedLogin) = withContext(Dispatchers.IO) {
+        synchronized(lock) {
+            check(current(attempt)) { "注册操作已取消" }
+            val old = readAccount(attempt.source)
+            old?.use {
+                check(it.login?.username == login.username) { "已有本地账号，请先清除后再注册" }
+                // Retrying the same registered account must not erase its previously saved token.
+                if (it.candidate != null) return@synchronized
+            }
+            val bytes = StoredAccountCodec.encode(StoredAccount(name, null, null, login))
+            try { network.withGeneration(attempt.networkGeneration) { store.write("session.${attempt.source}", bytes) } }
+            finally { bytes.fill(0) }
+            rememberedName(attempt.source, login.username)
+            previous[attempt.source] = AccountState(AccountStatus.NEEDS_VALIDATION, name)
         }
     }
     suspend fun exportAccounts(): List<AccountTransfer> = withContext(Dispatchers.IO) {

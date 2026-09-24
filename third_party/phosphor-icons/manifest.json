@@ -28,6 +28,8 @@
     "trash": "trash",
     "clock": "clock",
     "plus": "plus",
-    "heart_filled": "heart-fill"
+    "heart_filled": "heart-fill",
+    "eye": "eye",
+    "eye_slash": "eye-slash"
   }
 }

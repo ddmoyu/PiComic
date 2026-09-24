@@ -9,6 +9,21 @@ import org.junit.Assert.*
 import org.junit.Test
 
 class PicacgAccountControllerTest {
+    @Test fun autofillReadsStoredCredentialsWithoutNetworkAndClearsTheTemporaryCopy() = runBlocking {
+        val f = Fixture(this)
+        f.controller.login("fixture-user", "fixture-password".toCharArray(), true); f.done()
+        var temporary: CharArray? = null
+        f.controller.fillRememberedLogin { saved ->
+            assertEquals("fixture-user", saved.username)
+            assertArrayEquals("fixture-password".toCharArray(), saved.password)
+            temporary = saved.password
+        }
+        assertTrue(temporary!!.all { it == '\u0000' })
+        assertEquals(1, f.api.probes); assertEquals(1, f.api.logins)
+        f.sessions.rememberedLogin("picacg")!!.use { assertArrayEquals("fixture-password".toCharArray(), it.password) }
+        f.controller.forgetPassword(); f.done()
+        f.controller.fillRememberedLogin { fail("Forgotten passwords must not autofill") }
+    }
     @Test fun successfulManualOrSavedLoginAcknowledgesButRestorationStaysQuiet() = runBlocking {
         val f = Fixture(this)
         f.controller.login("fixture", charArrayOf('x'), true); f.done()

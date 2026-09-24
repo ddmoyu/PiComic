@@ -26,6 +26,7 @@ ICONS = {
     'info': 'info', 'close': 'x', 'check': 'check', 'play': 'play',
     'pause': 'pause', 'menu': 'list', 'trash': 'trash', 'clock': 'clock', 'plus': 'plus',
     'heart_filled': 'heart-fill',
+    'eye': 'eye', 'eye_slash': 'eye-slash',
 }
 
 parser = argparse.ArgumentParser(description=__doc__)

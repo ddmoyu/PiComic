@@ -33,7 +33,7 @@ class PicacgLoginScreenTest {
     @Test fun loginErrorSuccessAndLogoutUseRealHttpContract() {
         MockWebServer().use { server ->
             val anonymous = MockResponse().setResponseCode(401).setBody("""{"code":401,"error":"1005","message":"unauthorized"}""")
-            server.enqueue(anonymous); server.enqueue(MockResponse().setResponseCode(400))
+            server.enqueue(anonymous); server.enqueue(MockResponse().setResponseCode(400).setBody("""{"code":400,"message":"invalid credentials"}"""))
             server.enqueue(anonymous); server.enqueue(MockResponse().setBody("""{"code":200,"message":"success","data":{"token":"fixture-token"}}"""))
             server.enqueue(MockResponse().setBody("""{"code":200,"message":"success","data":{"user":{"_id":"fixture","name":"联调测试账号"}}}"""))
             server.start()
@@ -54,8 +54,9 @@ class PicacgLoginScreenTest {
             ui.onNodeWithTag("login-success-dialog").assertDoesNotExist()
             ui.onNodeWithText("登录未通过，请检查账号和密码").performScrollTo().assertExists()
             assertTrue(secrets.data.isEmpty())
-            ui.onNodeWithText("密码").performScrollTo().assert(SemanticsMatcher.expectValue(SemanticsProperties.EditableText, AnnotatedString("")))
-            ui.onNodeWithText("密码").performTextInput("fixture-password")
+            ui.onNodeWithContentDescription("显示密码").performScrollTo().performClick()
+            ui.onNodeWithText("密码").assert(SemanticsMatcher.expectValue(SemanticsProperties.EditableText, AnnotatedString("fixture-password")))
+            ui.onNodeWithContentDescription("隐藏密码").performClick()
             ui.onNodeWithText("登录并验证").performScrollTo().performClick()
             ui.waitUntil(10000) { sessions.state.value["picacg"]?.status == AccountStatus.AUTHENTICATED && !controller.state.value.busy }
             ui.onNodeWithTag("login-success-dialog").assertIsDisplayed()
@@ -99,6 +100,110 @@ class PicacgLoginScreenTest {
         ui.runOnIdle { show = true }; ui.waitForIdle()
         ui.onNodeWithText("登录并验证").assertIsNotEnabled()
         val file = File(ui.activity.getExternalFilesDir(null), "screenshots/22-picacg-login.png")
+        file.parentFile!!.mkdirs()
+        file.outputStream().use { ui.onRoot().captureToImage().asAndroidBitmap().compress(Bitmap.CompressFormat.PNG, 100, it) }
+    }
+
+    @Test fun savedCredentialsFillAfterRestartAndStayIsolatedBetweenSources() {
+        val context = androidx.test.platform.app.InstrumentationRegistry.getInstrumentation().targetContext
+        val secrets = KeystoreSecretStore(context, "picomic.login-form-test")
+        val engine = NetworkEngine()
+        val seed = SessionCoordinator(secrets, engine)
+        val sources = listOf("picacg", "jmcomic", "htcomic")
+        try {
+            runBlocking {
+                sources.forEach { source ->
+                    seed.logout(source)
+                    RememberedLogin("$source@example.test", "$source-password".toCharArray()).use { login ->
+                        val kind = if (source == "picacg") CredentialKind.USER_TOKEN else CredentialKind.COOKIE
+                        seed.validateAndCommit(seed.begin(source), SessionCandidate(kind, "fixture-session".toByteArray()), PasswordRetention.Remember(login)) {
+                            ValidationResult.Verified("界面测试账号")
+                        }
+                    }
+                }
+            }
+            // A fresh coordinator has no remembered-account metadata: the form must read encrypted storage.
+            val restarted = SessionCoordinator(KeystoreSecretStore(context, "picomic.login-form-test"), engine)
+            val controllers = sources.map { source ->
+                PasswordAccountController(source, AccountSlots.titles.getValue(source), restarted, engine, scope, {}) { error("Filling must not use the network") }
+            }
+            var selected by androidx.compose.runtime.mutableStateOf(0)
+            var show by androidx.compose.runtime.mutableStateOf(true)
+            ui.setContent { PiComicTheme(false, false) {
+                if (show) PicacgLoginScreen(controllers[selected], true, openRecovery = {}, openNetwork = {})
+            } }
+            sources.forEachIndexed { index, source ->
+                ui.runOnIdle { selected = index }
+                ui.waitUntil(5000) { ui.onAllNodesWithText("$source@example.test").fetchSemanticsNodes().isNotEmpty() }
+                ui.onNodeWithContentDescription("显示密码").performScrollTo().assertExists()
+                ui.onNodeWithText("登录并验证").assertIsEnabled()
+                if (index == 0) screenshot("after-hidden")
+                ui.onNodeWithContentDescription("显示密码").performClick()
+                ui.onNodeWithText("密码").assert(SemanticsMatcher.expectValue(SemanticsProperties.EditableText, AnnotatedString("$source-password")))
+                if (index == 0) screenshot("after-visible")
+            }
+            ui.onNodeWithContentDescription("清空密码").performClick()
+            ui.onNodeWithText("密码").assert(SemanticsMatcher.expectValue(SemanticsProperties.EditableText, AnnotatedString("")))
+            ui.onNodeWithText("登录并验证").assertIsNotEnabled()
+            ui.onNodeWithContentDescription("显示密码").assertExists()
+            // Removing the form and reopening restores the stored values, with visibility reset.
+            ui.runOnIdle { show = false }; ui.waitForIdle()
+            ui.runOnIdle { show = true }
+            ui.waitUntil(5000) { ui.onAllNodesWithContentDescription("清空密码").fetchSemanticsNodes().isNotEmpty() }
+            ui.onNodeWithContentDescription("显示密码").assertExists()
+            repeat(3) {
+                ui.onNodeWithContentDescription("显示密码").performClick()
+                ui.activityRule.scenario.moveToState(androidx.lifecycle.Lifecycle.State.CREATED)
+                ui.activityRule.scenario.moveToState(androidx.lifecycle.Lifecycle.State.RESUMED)
+                ui.waitUntil(5000) { ui.onAllNodesWithContentDescription("清空密码").fetchSemanticsNodes().isNotEmpty() }
+                ui.onNodeWithContentDescription("显示密码").assertExists()
+            }
+            ui.onNodeWithContentDescription("显示密码").performClick()
+            ui.onNodeWithText("密码").assert(SemanticsMatcher.expectValue(SemanticsProperties.EditableText, AnnotatedString("htcomic-password")))
+            ui.onNodeWithText("账号 / 邮箱").performTextReplacement("different@example.test")
+            ui.onNodeWithText("密码").assert(SemanticsMatcher.expectValue(SemanticsProperties.EditableText, AnnotatedString("")))
+            ui.onNodeWithContentDescription("清空账号").performClick()
+            ui.onNodeWithText("账号 / 邮箱").assert(SemanticsMatcher.expectValue(SemanticsProperties.EditableText, AnnotatedString("")))
+            ui.onNodeWithText("登录并验证").assertIsNotEnabled()
+        } finally { runBlocking { sources.forEach { seed.logout(it) } } }
+    }
+
+    @Test fun forgettingPasswordAndClearingAccountRemoveAutofill() {
+        val secrets = object : SecretStore {
+            val data = mutableMapOf<String, ByteArray>()
+            override fun read(key: String) = data[key]?.copyOf()
+            override fun write(key: String, value: ByteArray) { data[key] = value.copyOf() }
+            override fun remove(key: String) { data.remove(key) }
+        }
+        val engine = NetworkEngine(); val sessions = SessionCoordinator(secrets, engine)
+        runBlocking {
+            RememberedLogin("fixture@example.test", "fixture-password".toCharArray()).use { login ->
+                sessions.validateAndCommit(sessions.begin("picacg"), SessionCandidate(CredentialKind.USER_TOKEN, "fixture".toByteArray()), PasswordRetention.Remember(login)) {
+                    ValidationResult.Verified("界面测试账号")
+                }
+            }
+        }
+        val controller = PicacgAccountController(sessions, engine, scope, {}) { error("Must not contact the platform") }
+        var show by androidx.compose.runtime.mutableStateOf(true)
+        ui.setContent { PiComicTheme(false, false) { if (show) PicacgLoginScreen(controller, true, openRecovery = {}, openNetwork = {}) } }
+        ui.waitUntil(5000) { ui.onAllNodesWithContentDescription("清空密码").fetchSemanticsNodes().isNotEmpty() }
+        ui.onNodeWithText("忘记已保存的密码").performScrollTo().performClick()
+        ui.waitUntil(5000) { !controller.state.value.busy && controller.rememberedAccounts.value.isEmpty() }
+        ui.onNodeWithText("密码").performScrollTo().assert(SemanticsMatcher.expectValue(SemanticsProperties.EditableText, AnnotatedString("")))
+        assertEquals(AccountStatus.AUTHENTICATED, sessions.state.value["picacg"]?.status)
+        ui.runOnIdle { show = false }; ui.waitForIdle(); ui.runOnIdle { show = true }; ui.waitForIdle()
+        ui.onNodeWithText("密码").assert(SemanticsMatcher.expectValue(SemanticsProperties.EditableText, AnnotatedString("")))
+        ui.onNodeWithText("账号 / 邮箱").performTextInput("another@example.test")
+        ui.onNodeWithText("密码").performTextInput("another-password")
+        ui.onNodeWithText("清除本地账号").performScrollTo().performClick()
+        ui.waitUntil(5000) { !controller.state.value.busy && sessions.state.value["picacg"]?.status == AccountStatus.ANONYMOUS }
+        ui.onNodeWithText("账号 / 邮箱").performScrollTo().assert(SemanticsMatcher.expectValue(SemanticsProperties.EditableText, AnnotatedString("")))
+        ui.onNodeWithText("密码").assert(SemanticsMatcher.expectValue(SemanticsProperties.EditableText, AnnotatedString("")))
+        assertTrue(secrets.data.isEmpty())
+    }
+
+    private fun screenshot(name: String) {
+        val file = File(ui.activity.getExternalFilesDir(null), "password-input/$name.png")
         file.parentFile!!.mkdirs()
         file.outputStream().use { ui.onRoot().captureToImage().asAndroidBitmap().compress(Bitmap.CompressFormat.PNG, 100, it) }
     }

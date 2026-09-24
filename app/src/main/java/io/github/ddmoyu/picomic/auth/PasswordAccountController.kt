@@ -16,23 +16,28 @@ data class PasswordLoginState(val busy: Boolean = false, val message: String? = 
 open class PasswordAccountController(
     val sourceId: String,
     val title: String,
-    private val sessions: SessionCoordinator,
-    private val engine: NetworkEngine,
-    private val scope: CoroutineScope,
-    private val awaitNetwork: suspend () -> Unit,
+    protected val sessions: SessionCoordinator,
+    protected val engine: NetworkEngine,
+    protected val scope: CoroutineScope,
+    protected val awaitNetwork: suspend () -> Unit,
     recovery: PasswordSessionRecovery? = null,
-    private val apiFactory: suspend () -> PasswordAuthApi
+    protected val apiFactory: suspend () -> PasswordAuthApi
 ) {
     val sessionRecovery = recovery ?: PasswordSessionRecovery(sourceId, sessions, engine, scope, awaitNetwork, apiFactory)
     val accounts = sessions.state
     val rememberedAccounts = sessions.rememberedAccounts
-    private val mutable = MutableStateFlow(PasswordLoginState())
+    protected val mutable = MutableStateFlow(PasswordLoginState())
     val state = mutable.asStateFlow()
     private var job: Job? = null
-    private var attempt: LoginAttempt? = null
+    protected var attempt: LoginAttempt? = null
     private var operation = 0L
 
     fun dismissLoginSuccess() { mutable.value = mutable.value.copy(loginSucceeded = false) }
+
+    /** Decrypt only for the active form; never publish passwords in the controller state. */
+    suspend fun fillRememberedLogin(fill: (RememberedLogin) -> Unit) {
+        sessions.rememberedLogin(sourceId)?.use(fill)
+    }
 
     fun login(email: String, password: CharArray, rememberPassword: Boolean = false) {
         val account = email.trim()
@@ -106,7 +111,9 @@ open class PasswordAccountController(
         mutable.value = mutable.value.copy(busy = false)
     }
 
-    private fun start(cancelRecovery: Boolean = true, action: suspend () -> Unit): Job {
+    protected open suspend fun operationFinished() {}
+
+    protected fun start(cancelRecovery: Boolean = true, action: suspend () -> Unit): Job {
         cancel(cancelRecovery)
         val id = operation
         mutable.value = PasswordLoginState(busy = true)
@@ -124,6 +131,7 @@ open class PasswordAccountController(
             } finally {
                 if (id == operation) {
                     attempt?.let(sessions::cancel); attempt = null
+                    if (currentCoroutineContext().isActive) operationFinished()
                     mutable.value = mutable.value.copy(busy = false)
                     job = null
                 }

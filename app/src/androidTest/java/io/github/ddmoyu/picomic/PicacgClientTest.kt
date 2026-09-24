@@ -17,6 +17,59 @@ import java.util.concurrent.TimeUnit
 
 @RunWith(AndroidJUnit4::class)
 class PicacgClientTest {
+    @Test fun registrationPostsCompleteSignedProfileWithoutAuthentication() = runBlocking {
+        MockWebServer().use { server ->
+            server.enqueue(json("""{"code":200,"message":"success"}""")); server.start()
+            val api = PicacgClient(NetworkEngine(), server.url("/"))
+            PicacgRegistration.generate().use { record ->
+                api.register(record)
+                val request = server.takeRequest()
+                assertEquals("POST", request.method); assertEquals("/auth/register", request.path)
+                assertNull(request.getHeader("authorization")); assertNull(request.getHeader("Cookie"))
+                assertEquals(PicacgProtocol.signature(server.url("/auth/register"), "POST", request.getHeader("time")!!,
+                    request.getHeader("nonce")!!), request.getHeader("signature"))
+                val body = JSONObject(request.body.readUtf8())
+                assertEquals(11, body.length())
+                assertEquals(record.username, body.getString("email")); assertEquals(String(record.password), body.getString("password"))
+                assertEquals(record.nickname, body.getString("name")); assertEquals(record.birthday, body.getString("birthday"))
+                assertEquals("bot", body.getString("gender"))
+                repeat(3) { i -> assertEquals(record.questions[i], body.getString("question${i + 1}")); assertEquals(record.answers[i], body.getString("answer${i + 1}")) }
+            }
+            assertEquals(1, server.requestCount)
+        }
+    }
+
+    @Test fun businessThrottlingIsNotMisreportedAsWrongPasswordOrReplayed() = runBlocking {
+        MockWebServer().use { server ->
+            server.start(); val api = PicacgClient(NetworkEngine(), server.url("/"))
+            for (http in listOf(200, 400)) {
+                repeat(2) { server.enqueue(json("""{"code":400,"error":"1023","message":"too many requests"}""", http).addHeader("Retry-After", "60")) }
+                val login = runCatching { api.signIn("fixture", "fixture-password".toCharArray()) }.exceptionOrNull() as PicacgFailure
+                assertEquals(PicacgFailureKind.RATE_LIMITED, login.kind); assertEquals(60L, login.retryAfterSeconds)
+                PicacgRegistration.generate().use { record ->
+                    val error = runCatching { api.register(record) }.exceptionOrNull() as PicacgFailure
+                    assertEquals(PicacgFailureKind.RATE_LIMITED, error.kind)
+                }
+            }
+            assertEquals(4, server.requestCount)
+        }
+    }
+
+    @Test fun registrationErrorsRemainDistinctAndNeverEchoServerDetails() = runBlocking {
+        MockWebServer().use { server ->
+            server.start(); val api = PicacgClient(NetworkEngine(), server.url("/"))
+            mapOf("1002" to PicacgFailureKind.UNDERAGE, "1008" to PicacgFailureKind.DUPLICATE,
+                "1009" to PicacgFailureKind.DUPLICATE, "unknown" to PicacgFailureKind.REGISTRATION).forEach { (code, kind) ->
+                server.enqueue(json("""{"code":400,"error":"$code","message":"fixture-secret"}""", 400))
+                PicacgRegistration.generate().use { record ->
+                    val error = runCatching { api.register(record) }.exceptionOrNull() as PicacgFailure
+                    assertEquals(kind, error.kind); assertFalse(error.message!!.contains("fixture-secret"))
+                }
+            }
+            assertEquals(4, server.requestCount)
+        }
+    }
+
     private fun json(body: String, code: Int = 200) = MockResponse().setResponseCode(code).addHeader("Content-Type", "application/json").setBody(body)
     private val anonymous = """{"code":401,"error":"1005","message":"unauthorized"}"""
     private val session = """{"code":200,"message":"success","data":{"token":"fixture-token"}}"""
@@ -66,6 +119,8 @@ class PicacgClientTest {
     @Test fun malformedTokenOrProfileCannotBeAccepted() = runBlocking {
         MockWebServer().use { server ->
             server.start(); val api = PicacgClient(NetworkEngine(), server.url("/"))
+            server.enqueue(MockResponse().setResponseCode(400))
+            assertEquals(PicacgFailureKind.RESPONSE, (runCatching { api.signIn("fixture", charArrayOf('x')) }.exceptionOrNull() as PicacgFailure).kind)
             listOf("null", "12345", "\"\"", "\"bad\\ntoken\"").forEach { token ->
                 server.enqueue(json("""{"code":200,"message":"success","data":{"token":$token}}"""))
                 assertTrue(runCatching { api.signIn("fixture", charArrayOf('x')) }.exceptionOrNull() is PicacgFailure)
